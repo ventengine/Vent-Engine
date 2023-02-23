@@ -1,6 +1,6 @@
 use imgui_wgpu::RendererConfig;
 use imgui_winit_support::WinitPlatform;
-use wgpu::{CommandEncoder, Device, Queue, RenderPass, SurfaceConfiguration, SurfaceError, SurfaceTexture, TextureView};
+use wgpu::{Device, Queue, RenderPass, SurfaceConfiguration, SurfaceError};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 use vent_common::render::{DefaultRenderer, Renderer};
@@ -35,27 +35,27 @@ impl ImGUIRenderer {
             ..Default::default()
         };
 
-        let renderer = imgui_wgpu::Renderer::new(&mut imgui_context, &device, &queue, renderer_config);
+        let renderer = imgui_wgpu::Renderer::new(&mut imgui_context, device, queue, renderer_config);
 
-        return ImGUIRenderer {
+        ImGUIRenderer {
             context: imgui_context,
             winit_platform,
             renderer,
-        };
+        }
     }
 
     pub fn pre_render(&mut self, window: &Window) {
         self.winit_platform
-            .prepare_frame(self.context.io_mut(), &window)
+            .prepare_frame(self.context.io_mut(), window)
             .expect("Failed to prepare frame");
         let ui = self.context.frame();
         ui.show_demo_window(&mut true);
-        self.winit_platform.prepare_render(ui, &window);
+        self.winit_platform.prepare_render(ui, window);
     }
 
-    pub fn post_render<'r>(&'r mut self, window: &Window, queue: &Queue, device: &Device, render_pass: &mut RenderPass<'r>) -> Result<(), SurfaceError> {
+    pub fn post_render<'r>(&'r mut self, _window: &Window, queue: &Queue, device: &Device, render_pass: &mut RenderPass<'r>) -> Result<(), SurfaceError> {
         self.renderer
-            .render(self.context.render(), &queue, &device, render_pass)
+            .render(self.context.render(), queue, device, render_pass)
             .expect("Rendering failed");
         Ok(())
     }

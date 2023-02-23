@@ -1,4 +1,4 @@
-use wgpu::{CommandEncoder, Device, Queue, RenderPass, SurfaceError, SurfaceTexture, TextureView};
+use wgpu::{SurfaceError};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 use vent_common::render::{DefaultRenderer, Renderer};
@@ -16,11 +16,11 @@ pub struct EditorRenderer {
 impl EditorRenderer {
     pub(crate) fn new(window: &Window) -> Self {
         let default_renderer: DefaultRenderer = Renderer::new(window);
-        let imgui = ImGUIRenderer::new(&window, &default_renderer.queue, &default_renderer.device, &default_renderer.config);
-        return Self {
+        let imgui = ImGUIRenderer::new(window, &default_renderer.queue, &default_renderer.device, &default_renderer.config);
+        Self {
             default_renderer,
             imgui,
-        };
+        }
     }
 
     pub fn render(&mut self, window: &Window) -> Result<(), SurfaceError> {

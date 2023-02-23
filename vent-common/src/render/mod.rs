@@ -78,19 +78,19 @@ impl Renderer for DefaultRenderer {
             .expect("Surface isn't supported by the adapter.");
         surface.configure(&device, &config);
 
-        return Self {
+        Self {
             surface,
             device,
             queue,
             config,
-        };
+        }
     }
 
-    fn render(&mut self, window: &Window, renderer: &DefaultRenderer) -> Result<(), SurfaceError> {
+    fn render(&mut self, _window: &Window, _renderer: &DefaultRenderer) -> Result<(), SurfaceError> {
         Ok(())
     }
 
-    fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>) {
+    fn resize(&mut self, _window: &Window, new_size: PhysicalSize<u32>) {
         self.config.width = new_size.width.max(1);
         self.config.height = new_size.height.max(1);
         self.surface.configure(&self.device, &self.config);

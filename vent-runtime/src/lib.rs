@@ -15,7 +15,7 @@ pub struct VentApplication {
 
 impl VentApplication {
     pub fn new(info: AppInfo) -> Self {
-        return VentApplication { info };
+        VentApplication { info }
     }
 
     pub fn start(self) {

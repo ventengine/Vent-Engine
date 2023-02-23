@@ -1,4 +1,4 @@
-use wgpu::{CommandEncoder, Device, Queue, RenderPass, SurfaceError, SurfaceTexture, TextureView};
+use wgpu::{CommandEncoder, SurfaceError, SurfaceTexture};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 use vent_common::render::{DefaultRenderer, Renderer};
@@ -11,12 +11,12 @@ pub struct RuntimeRenderer {
 impl RuntimeRenderer {
     pub(crate) fn new(window: &Window) -> Self {
         let renderer = Renderer::new(window);
-        return Self {
+        Self {
             default_renderer: renderer,
-        };
+        }
     }
 
-    pub fn render(&self, window: &Window) -> Result<(), SurfaceError> {
+    pub fn render(&self, _window: &Window) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -49,12 +49,12 @@ impl RuntimeRenderer {
         Ok(())
     }
 
-    pub fn render_from(window: &Window,  encoder: &mut &CommandEncoder, view: &SurfaceTexture) -> Result<(), SurfaceError> {
+    pub fn render_from(_window: &Window,  _encoder: &mut &CommandEncoder, _view: &SurfaceTexture) -> Result<(), SurfaceError> {
         Ok(())
     }
 
     pub fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>) {
-        RuntimeRenderer::resize_from(&mut self.default_renderer, &window, new_size)
+        RuntimeRenderer::resize_from(&mut self.default_renderer, window, new_size)
     }
 
     pub fn resize_from(renderer: &mut DefaultRenderer, window: &Window, new_size: PhysicalSize<u32>) {

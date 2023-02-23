@@ -14,7 +14,7 @@ impl VentWindow {
             .with_title(title)
             .build(&event_loop).unwrap();
 
-        return Self {
+        Self {
             window,
             event_loop
         }
