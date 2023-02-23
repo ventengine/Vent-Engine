@@ -54,7 +54,7 @@ fn main() {
             // ...
             _ => {}
         }
-        renderer.im_gui.platform.handle_event(renderer.im_gui.imgui.io_mut(), &vent_window.window, &event);
+        renderer.imgui.winit_platform.handle_event(renderer.imgui.context.io_mut(), &vent_window.window, &event);
     });
 }
 

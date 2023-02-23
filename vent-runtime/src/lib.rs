@@ -5,8 +5,8 @@ use crate::render::RuntimeRenderer;
 pub mod render;
 
 pub struct AppInfo {
-    pub(crate) name: String,
-    pub(crate) version: String,
+    pub name: String,
+    pub version: String,
 }
 
 pub struct VentApplication {
