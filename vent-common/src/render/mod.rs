@@ -29,25 +29,28 @@ impl Renderer for DefaultRenderer {
 
         let surface = unsafe {
             #[cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))]
-                let surface = instance.create_surface(&window).unwrap();
+            let surface = instance.create_surface(&window).unwrap();
             #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
-                let surface = {
+            let surface = {
                 if let Some(offscreen_canvas_setup) = &offscreen_canvas_setup {
                     log::info!("Creating surface from OffscreenCanvas");
-                    instance
-                        .create_surface_from_offscreen_canvas(&offscreen_canvas_setup.offscreen_canvas)
+                    instance.create_surface_from_offscreen_canvas(
+                        &offscreen_canvas_setup.offscreen_canvas,
+                    )
                 } else {
                     instance.create_surface(&window)
                 }
             }
-                .unwrap();
+            .unwrap();
 
             surface
         };
-        let adapter = block_on(
-            wgpu::util::initialize_adapter_from_env_or_default(&instance, backends, Some(&surface))
-        ).expect("No suitable GPU adapters found on the system!");
-
+        let adapter = block_on(wgpu::util::initialize_adapter_from_env_or_default(
+            &instance,
+            backends,
+            Some(&surface),
+        ))
+        .expect("No suitable GPU adapters found on the system!");
 
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -56,21 +59,19 @@ impl Renderer for DefaultRenderer {
         }
 
         let trace_dir = std::env::var("WGPU_TRACE");
-        let (device, queue) = block_on(
-            adapter
-                .request_device(
-                    &wgpu::DeviceDescriptor {
-                        label: None,
-                        features: wgpu::Features::empty(),
-                        limits: if cfg!(target_arch = "wasm32") {
-                            wgpu::Limits::downlevel_webgl2_defaults()
-                        } else {
-                            wgpu::Limits::default()
-                        },
-                    },
-                    trace_dir.ok().as_ref().map(std::path::Path::new),
-                )
-        ).expect("Unable to find a suitable GPU adapter!");
+        let (device, queue) = block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                label: None,
+                features: wgpu::Features::empty(),
+                limits: if cfg!(target_arch = "wasm32") {
+                    wgpu::Limits::downlevel_webgl2_defaults()
+                } else {
+                    wgpu::Limits::default()
+                },
+            },
+            trace_dir.ok().as_ref().map(std::path::Path::new),
+        ))
+        .expect("Unable to find a suitable GPU adapter!");
 
         let size = window.inner_size();
         let config = surface
@@ -86,7 +87,11 @@ impl Renderer for DefaultRenderer {
         }
     }
 
-    fn render(&mut self, _window: &Window, _renderer: &DefaultRenderer) -> Result<(), SurfaceError> {
+    fn render(
+        &mut self,
+        _window: &Window,
+        _renderer: &DefaultRenderer,
+    ) -> Result<(), SurfaceError> {
         Ok(())
     }
 

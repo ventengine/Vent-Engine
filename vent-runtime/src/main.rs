@@ -1,9 +1,9 @@
+use vent_common::window::VentWindow;
 use wgpu::SurfaceError;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
-use vent_common::window::VentWindow;
 
-use vent_common::render::Renderer;
 use crate::lib::{AppInfo, VentApplication};
+use vent_common::render::Renderer;
 
 mod lib;
 pub mod render;
@@ -16,5 +16,3 @@ fn main() {
     let app = VentApplication::new(info);
     app.start();
 }
-
-

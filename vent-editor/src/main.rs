@@ -1,7 +1,7 @@
+use crate::render::EditorRenderer;
+use vent_common::window::VentWindow;
 use wgpu::SurfaceError;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
-use vent_common::window::VentWindow;
-use crate::render::EditorRenderer;
 
 mod render;
 
@@ -21,11 +21,11 @@ fn main() {
                     WindowEvent::CloseRequested
                     | WindowEvent::KeyboardInput {
                         input:
-                        KeyboardInput {
-                            state: ElementState::Pressed,
-                            virtual_keycode: Some(VirtualKeyCode::Escape),
-                            ..
-                        },
+                            KeyboardInput {
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(VirtualKeyCode::Escape),
+                                ..
+                            },
                         ..
                     } => control_flow.set_exit(),
                     WindowEvent::Resized(physical_size) => {
@@ -54,8 +54,10 @@ fn main() {
             // ...
             _ => {}
         }
-        renderer.imgui.winit_platform.handle_event(renderer.imgui.context.io_mut(), &vent_window.window, &event);
+        renderer.imgui.winit_platform.handle_event(
+            renderer.imgui.context.io_mut(),
+            &vent_window.window,
+            &event,
+        );
     });
 }
-
-

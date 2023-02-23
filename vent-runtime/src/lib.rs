@@ -1,6 +1,6 @@
-use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
-use vent_common::window::VentWindow;
 use crate::render::RuntimeRenderer;
+use vent_common::window::VentWindow;
+use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 pub mod render;
 
@@ -35,11 +35,11 @@ impl VentApplication {
                         WindowEvent::CloseRequested
                         | WindowEvent::KeyboardInput {
                             input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(VirtualKeyCode::Escape),
-                                ..
-                            },
+                                KeyboardInput {
+                                    state: ElementState::Pressed,
+                                    virtual_keycode: Some(VirtualKeyCode::Escape),
+                                    ..
+                                },
                             ..
                         } => control_flow.set_exit(),
                         WindowEvent::Resized(physical_size) => {
@@ -71,4 +71,3 @@ impl VentApplication {
         });
     }
 }
-

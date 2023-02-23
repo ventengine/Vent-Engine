@@ -1,8 +1,7 @@
+use vent_common::render::{DefaultRenderer, Renderer};
 use wgpu::{CommandEncoder, SurfaceError, SurfaceTexture};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
-use vent_common::render::{DefaultRenderer, Renderer};
-
 
 pub struct RuntimeRenderer {
     default_renderer: DefaultRenderer,
@@ -19,11 +18,16 @@ impl RuntimeRenderer {
     pub fn render(&self, _window: &Window) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.default_renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
+        let mut encoder =
+            self.default_renderer
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Render Encoder"),
+                });
 
         {
             let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -44,12 +48,18 @@ impl RuntimeRenderer {
                 depth_stencil_attachment: None,
             });
         }
-        self.default_renderer.queue.submit(std::iter::once(encoder.finish()));
+        self.default_renderer
+            .queue
+            .submit(std::iter::once(encoder.finish()));
         output.present();
         Ok(())
     }
 
-    pub fn render_from(_window: &Window,  _encoder: &mut &CommandEncoder, _view: &SurfaceTexture) -> Result<(), SurfaceError> {
+    pub fn render_from(
+        _window: &Window,
+        _encoder: &mut &CommandEncoder,
+        _view: &SurfaceTexture,
+    ) -> Result<(), SurfaceError> {
         Ok(())
     }
 
@@ -57,7 +67,11 @@ impl RuntimeRenderer {
         RuntimeRenderer::resize_from(&mut self.default_renderer, window, new_size)
     }
 
-    pub fn resize_from(renderer: &mut DefaultRenderer, window: &Window, new_size: PhysicalSize<u32>) {
+    pub fn resize_from(
+        renderer: &mut DefaultRenderer,
+        window: &Window,
+        new_size: PhysicalSize<u32>,
+    ) {
         Renderer::resize(renderer, window, new_size);
     }
 }

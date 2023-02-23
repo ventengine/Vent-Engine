@@ -1,12 +1,11 @@
-use wgpu::{SurfaceError};
+use crate::render::gui_renderer::ImGUIRenderer;
+use vent_common::render::{DefaultRenderer, Renderer};
+use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
-use vent_common::render::{DefaultRenderer, Renderer};
-use crate::render::gui_renderer::ImGUIRenderer;
 
 mod gui_renderer;
 mod runtime_renderer;
-
 
 pub struct EditorRenderer {
     default_renderer: DefaultRenderer,
@@ -16,7 +15,12 @@ pub struct EditorRenderer {
 impl EditorRenderer {
     pub(crate) fn new(window: &Window) -> Self {
         let default_renderer: DefaultRenderer = Renderer::new(window);
-        let imgui = ImGUIRenderer::new(window, &default_renderer.queue, &default_renderer.device, &default_renderer.config);
+        let imgui = ImGUIRenderer::new(
+            window,
+            &default_renderer.queue,
+            &default_renderer.device,
+            &default_renderer.config,
+        );
         Self {
             default_renderer,
             imgui,
@@ -28,11 +32,16 @@ impl EditorRenderer {
 
         self.imgui.pre_render(window);
 
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.default_renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
+        let mut encoder =
+            self.default_renderer
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Render Encoder"),
+                });
 
         {
             let mut _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -52,9 +61,18 @@ impl EditorRenderer {
                 })],
                 depth_stencil_attachment: None,
             });
-            self.imgui.post_render(window, &self.default_renderer.queue, &self.default_renderer.device, &mut _render_pass).expect("Failed to Render ImGUI")
+            self.imgui
+                .post_render(
+                    window,
+                    &self.default_renderer.queue,
+                    &self.default_renderer.device,
+                    &mut _render_pass,
+                )
+                .expect("Failed to Render ImGUI")
         }
-        self.default_renderer.queue.submit(std::iter::once(encoder.finish()));
+        self.default_renderer
+            .queue
+            .submit(std::iter::once(encoder.finish()));
         output.present();
         Ok(())
     }
