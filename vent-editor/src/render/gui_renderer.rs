@@ -2,7 +2,10 @@ use egui::{PlatformOutput, TextureId};
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use vent_common::render::{DefaultRenderer, Renderer};
-use wgpu::{CommandEncoder, Device, FilterMode, Queue, RenderPass, SurfaceConfiguration, SurfaceError, TextureView};
+use wgpu::{
+    CommandEncoder, Device, FilterMode, Queue, RenderPass, SurfaceConfiguration, SurfaceError,
+    TextureView,
+};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
@@ -45,21 +48,30 @@ impl EguiRenderer {
         let screen_descriptor = ScreenDescriptor {
             physical_width: window.inner_size().width as _,
             physical_height: window.inner_size().height as _,
-            scale_factor: window.scale_factor() as _
+            scale_factor: window.scale_factor() as _,
         };
 
         let texture_delta = full_output.textures_delta;
-        self.renderer.add_textures(device, queue, &texture_delta).expect("Failed to add textures");
+        self.renderer
+            .add_textures(device, queue, &texture_delta)
+            .expect("Failed to add textures");
 
-        self.renderer.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
+        self.renderer
+            .update_buffers(device, queue, &paint_jobs, &screen_descriptor);
         self.renderer
             .execute(encoder, texture_view, &paint_jobs, &screen_descriptor, None)
             .expect("Failed to execute render pass");
     }
 
     #[inline]
-    pub fn register_texture(&mut self, device: &Device, texture: &TextureView, filter: FilterMode) -> TextureId {
-        self.renderer.egui_texture_from_wgpu_texture(device, texture, filter)
+    pub fn register_texture(
+        &mut self,
+        device: &Device,
+        texture: &TextureView,
+        filter: FilterMode,
+    ) -> TextureId {
+        self.renderer
+            .egui_texture_from_wgpu_texture(device, texture, filter)
     }
 
     #[inline]

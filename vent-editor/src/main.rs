@@ -54,8 +54,6 @@ fn main() {
             // ...
             _ => {}
         }
-        renderer.egui.platform.handle_event(
-             &event,
-        );
+        renderer.egui.platform.handle_event(&event);
     });
 }

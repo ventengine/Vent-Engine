@@ -9,7 +9,7 @@ pub struct DefaultRenderer {
     pub queue: Queue,
 
     pub config: SurfaceConfiguration,
-    pub caps: SurfaceCapabilities
+    pub caps: SurfaceCapabilities,
 }
 
 pub trait Renderer {
@@ -85,7 +85,7 @@ impl Renderer for DefaultRenderer {
             device,
             queue,
             config,
-            caps
+            caps,
         }
     }
 

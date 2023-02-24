@@ -1,6 +1,7 @@
-use crate::render::gui_renderer::{EguiRenderer};
+use crate::render::gui_renderer::EguiRenderer;
+use crate::render::runtime_renderer::EditorRuntimeRenderer;
 use vent_common::render::{DefaultRenderer, Renderer};
-use wgpu::SurfaceError;
+use wgpu::{Extent3d, SurfaceError};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
@@ -10,6 +11,8 @@ mod runtime_renderer;
 pub struct EditorRenderer {
     default_renderer: DefaultRenderer,
     pub egui: EguiRenderer,
+
+    pub editor_runtime_renderer: EditorRuntimeRenderer,
 }
 
 impl EditorRenderer {
@@ -21,30 +24,41 @@ impl EditorRenderer {
             default_renderer.caps.formats[0],
         );
 
+        let editor_runtime_renderer = EditorRuntimeRenderer::new(
+            &default_renderer.device,
+            &default_renderer.config,
+            Extent3d {
+                width: &default_renderer.config.width / 2,
+                height: &default_renderer.config.height / 2,
+                depth_or_array_layers: 1,
+            },
+        );
+
         Self {
             default_renderer,
             egui,
+            editor_runtime_renderer,
         }
     }
 
     pub fn render(&mut self, window: &Window) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
+            label: Some("Editor View"),
+            ..Default::default()
+        });
 
         let mut encoder =
             self.default_renderer
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Render Encoder"),
+                    label: Some("Editor Render Encoder"),
                 });
 
         {
             let mut _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
+                label: Some("Editor Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -62,14 +76,17 @@ impl EditorRenderer {
             });
         }
 
-        self.egui
-            .render(
-                window,
-                &self.default_renderer.device,
-                &self.default_renderer.queue,
-                &view,
-                &mut encoder,
-            );
+        self.editor_runtime_renderer
+            .render(&window, &mut encoder)
+            .expect("Failed to Render Runtime inside Editor");
+
+        self.egui.render(
+            window,
+            &self.default_renderer.device,
+            &self.default_renderer.queue,
+            &view,
+            &mut encoder,
+        );
 
         self.default_renderer
             .queue
@@ -80,5 +97,7 @@ impl EditorRenderer {
 
     pub fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>) {
         Renderer::resize(&mut self.default_renderer, window, new_size);
+        // TODO
+        self.editor_runtime_renderer.resize(&self.default_renderer.device, &self.default_renderer.config, &new_size);
     }
 }
