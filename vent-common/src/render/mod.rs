@@ -1,5 +1,5 @@
 use pollster::block_on;
-use wgpu::{Device, Queue, Surface, SurfaceConfiguration, SurfaceError};
+use wgpu::{Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
@@ -9,6 +9,7 @@ pub struct DefaultRenderer {
     pub queue: Queue,
 
     pub config: SurfaceConfiguration,
+    pub caps: SurfaceCapabilities
 }
 
 pub trait Renderer {
@@ -78,12 +79,13 @@ impl Renderer for DefaultRenderer {
             .get_default_config(&adapter, size.width, size.height)
             .expect("Surface isn't supported by the adapter.");
         surface.configure(&device, &config);
-
+        let caps = surface.get_capabilities(&adapter);
         Self {
             surface,
             device,
             queue,
             config,
+            caps
         }
     }
 

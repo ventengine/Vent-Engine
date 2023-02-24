@@ -9,10 +9,13 @@ edition = "2021"
 vent-runtime = { path = "../vent-runtime"}
 vent-common = { path = "../vent-common"}
 
-imgui = "0.10"
-imgui-winit-support = { version = "0.10"  }
-imgui-wgpu = "0.22.0"
+egui = "0.21.0"
+#egui-winit = "0.21.1"
+#egui-wgpu = "0.21.0"
 
-winit = "0.27.1"
+egui_wgpu_backend = { git = "https://github.com/zmarlon/egui_wgpu_backend" }
+egui_winit_platform = { git = "https://github.com/zmarlon/egui_winit_platform" }
+
+winit = "0.28.1"
 wgpu = "0.15.1"
 pollster = "0.3.0"

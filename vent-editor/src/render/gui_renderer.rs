@@ -1,77 +1,69 @@
-use imgui_wgpu::RendererConfig;
-use imgui_winit_support::WinitPlatform;
+use egui::{PlatformOutput, TextureId};
+use egui_wgpu_backend::ScreenDescriptor;
+use egui_winit_platform::{Platform, PlatformDescriptor};
 use vent_common::render::{DefaultRenderer, Renderer};
-use wgpu::{Device, Queue, RenderPass, SurfaceConfiguration, SurfaceError};
+use wgpu::{CommandEncoder, Device, FilterMode, Queue, RenderPass, SurfaceConfiguration, SurfaceError, TextureView};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-pub struct ImGUIRenderer {
-    pub context: imgui::Context,
-    pub winit_platform: imgui_winit_support::WinitPlatform,
-    renderer: imgui_wgpu::Renderer,
+pub struct EguiRenderer {
+    pub platform: Platform,
+    renderer: egui_wgpu_backend::RenderPass,
 }
 
-impl ImGUIRenderer {
-    pub(crate) fn new(
+impl EguiRenderer {
+    pub fn new(window: &Window, device: &Device, surface_format: wgpu::TextureFormat) -> Self {
+        let mut platform = Platform::new(PlatformDescriptor {
+            physical_width: window.inner_size().width as _,
+            physical_height: window.inner_size().height as _,
+            scale_factor: window.scale_factor(),
+            font_definitions: Default::default(),
+            style: Default::default(),
+        });
+
+        let mut renderer = egui_wgpu_backend::RenderPass::new(device, surface_format, 1);
+        Self { platform, renderer }
+    }
+
+    pub fn render<'a>(
+        &'a mut self,
         window: &Window,
-        queue: &Queue,
         device: &Device,
-        config: &SurfaceConfiguration,
-    ) -> Self {
-        let mut imgui_context = imgui::Context::create();
-        imgui_context.set_ini_filename(None);
+        queue: &Queue,
+        texture_view: &TextureView,
+        encoder: &mut CommandEncoder,
+    ) {
+        self.platform.begin_frame();
 
-        let mut winit_platform = WinitPlatform::init(&mut imgui_context);
-        winit_platform.attach_window(
-            imgui_context.io_mut(),
-            window,
-            imgui_winit_support::HiDpiMode::Rounded,
-        );
+        egui::Window::new("UwU").show(&self.platform.context(), |ui| {
+            ui.heading("My egui Application");
+        });
 
-        imgui_context
-            .fonts()
-            .add_font(&[imgui::FontSource::DefaultFontData { config: None }]);
+        let full_output = self.platform.end_frame(Some(window));
+        let paint_jobs = self.platform.context().tessellate(full_output.shapes);
 
-        imgui_context.io_mut().font_global_scale = (1.0 / winit_platform.hidpi_factor()) as f32;
-
-        let renderer_config = RendererConfig {
-            texture_format: config.format,
-            ..Default::default()
+        let screen_descriptor = ScreenDescriptor {
+            physical_width: window.inner_size().width as _,
+            physical_height: window.inner_size().height as _,
+            scale_factor: window.scale_factor() as _
         };
 
-        let renderer =
-            imgui_wgpu::Renderer::new(&mut imgui_context, device, queue, renderer_config);
+        let texture_delta = full_output.textures_delta;
+        self.renderer.add_textures(device, queue, &texture_delta).expect("Failed to add textures");
 
-        ImGUIRenderer {
-            context: imgui_context,
-            winit_platform,
-            renderer,
-        }
-    }
-
-    pub fn pre_render(&mut self, window: &Window) {
-        self.winit_platform
-            .prepare_frame(self.context.io_mut(), window)
-            .expect("Failed to prepare frame");
-        let ui = self.context.frame();
-        ui.show_demo_window(&mut true);
-        self.winit_platform.prepare_render(ui, window);
-    }
-
-    pub fn post_render<'r>(
-        &'r mut self,
-        _window: &Window,
-        queue: &Queue,
-        device: &Device,
-        render_pass: &mut RenderPass<'r>,
-    ) -> Result<(), SurfaceError> {
+        self.renderer.update_buffers(device, queue, &paint_jobs, &screen_descriptor);
         self.renderer
-            .render(self.context.render(), queue, device, render_pass)
-            .expect("Rendering failed");
-        Ok(())
+            .execute(encoder, texture_view, &paint_jobs, &screen_descriptor, None)
+            .expect("Failed to execute render pass");
     }
 
-    pub fn resize(renderer: &mut DefaultRenderer, window: &Window, new_size: PhysicalSize<u32>) {
-        Renderer::resize(renderer, window, new_size);
+    #[inline]
+    pub fn register_texture(&mut self, device: &Device, texture: &TextureView, filter: FilterMode) -> TextureId {
+        self.renderer.egui_texture_from_wgpu_texture(device, texture, filter)
+    }
+
+    #[inline]
+    pub fn atlas_id(&self) -> TextureId {
+        self.atlas_id()
     }
 }

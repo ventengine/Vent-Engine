@@ -1,4 +1,4 @@
-use crate::render::gui_renderer::ImGUIRenderer;
+use crate::render::gui_renderer::{EguiRenderer};
 use vent_common::render::{DefaultRenderer, Renderer};
 use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;
@@ -9,32 +9,31 @@ mod runtime_renderer;
 
 pub struct EditorRenderer {
     default_renderer: DefaultRenderer,
-    pub imgui: ImGUIRenderer,
+    pub egui: EguiRenderer,
 }
 
 impl EditorRenderer {
     pub(crate) fn new(window: &Window) -> Self {
         let default_renderer: DefaultRenderer = Renderer::new(window);
-        let imgui = ImGUIRenderer::new(
+        let egui = EguiRenderer::new(
             window,
-            &default_renderer.queue,
             &default_renderer.device,
-            &default_renderer.config,
+            default_renderer.caps.formats[0],
         );
+
         Self {
             default_renderer,
-            imgui,
+            egui,
         }
     }
 
     pub fn render(&mut self, window: &Window) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
-        self.imgui.pre_render(window);
-
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+
 
         let mut encoder =
             self.default_renderer
@@ -61,15 +60,17 @@ impl EditorRenderer {
                 })],
                 depth_stencil_attachment: None,
             });
-            self.imgui
-                .post_render(
-                    window,
-                    &self.default_renderer.queue,
-                    &self.default_renderer.device,
-                    &mut _render_pass,
-                )
-                .expect("Failed to Render ImGUI")
         }
+
+        self.egui
+            .render(
+                window,
+                &self.default_renderer.device,
+                &self.default_renderer.queue,
+                &view,
+                &mut encoder,
+            );
+
         self.default_renderer
             .queue
             .submit(std::iter::once(encoder.finish()));

@@ -54,10 +54,8 @@ fn main() {
             // ...
             _ => {}
         }
-        renderer.imgui.winit_platform.handle_event(
-            renderer.imgui.context.io_mut(),
-            &vent_window.window,
-            &event,
+        renderer.egui.platform.handle_event(
+             &event,
         );
     });
 }
