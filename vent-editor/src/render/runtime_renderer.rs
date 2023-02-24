@@ -1,6 +1,9 @@
 use egui::Window;
 use vent_runtime::render::RuntimeRenderer;
-use wgpu::{CommandEncoder, Device, Extent3d, SurfaceConfiguration, SurfaceError, Texture, TextureDimension, TextureFormat, TextureUsages, TextureView};
+use wgpu::{
+    CommandEncoder, Device, Extent3d, SurfaceConfiguration, SurfaceError, Texture,
+    TextureDimension, TextureFormat, TextureUsages, TextureView,
+};
 use winit::dpi::PhysicalSize;
 
 pub struct EditorRuntimeRenderer {
@@ -36,7 +39,12 @@ impl EditorRuntimeRenderer {
         RuntimeRenderer::render_from(&window, encoder, &view)
     }
 
-    pub fn resize(&mut self, device: &Device, config: &SurfaceConfiguration, new_size: &PhysicalSize<u32>) {
+    pub fn resize(
+        &mut self,
+        device: &Device,
+        config: &SurfaceConfiguration,
+        new_size: &PhysicalSize<u32>,
+    ) {
         self.texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: Extent3d {

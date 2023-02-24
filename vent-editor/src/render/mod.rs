@@ -98,6 +98,10 @@ impl EditorRenderer {
     pub fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>) {
         Renderer::resize(&mut self.default_renderer, window, new_size);
         // TODO
-        self.editor_runtime_renderer.resize(&self.default_renderer.device, &self.default_renderer.config, &new_size);
+        self.editor_runtime_renderer.resize(
+            &self.default_renderer.device,
+            &self.default_renderer.config,
+            &new_size,
+        );
     }
 }
