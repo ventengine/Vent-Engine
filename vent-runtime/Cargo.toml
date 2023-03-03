@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 vent-common = { path = "../vent-common"}
 
-winit = "0.28.1"
+winit = "0.28.2"
 wgpu = "0.15.1"
 pollster = "0.3.0"
