@@ -103,5 +103,6 @@ impl EditorRenderer {
             &self.default_renderer.config,
             &new_size,
         );
+        // egui does Automatically resize
     }
 }

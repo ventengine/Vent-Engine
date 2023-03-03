@@ -10,8 +10,8 @@ vent-runtime = { path = "../vent-runtime"}
 vent-common = { path = "../vent-common"}
 
 egui = "0.21.0"
-#egui-winit = "0.21.1"
-#egui-wgpu = "0.21.0"
+egui_dock = "0.4.0"
+native-dialog = "0.6.3"
 
 egui_wgpu_backend = { git = "https://github.com/zmarlon/egui_wgpu_backend" }
 egui_winit_platform = { git = "https://github.com/zmarlon/egui_winit_platform" }

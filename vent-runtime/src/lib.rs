@@ -1,27 +1,25 @@
-use crate::render::RuntimeRenderer;
+use std::fs::File;
+use std::path::Path;
+use crate::render::{Dimension, RuntimeRenderer};
 use vent_common::window::VentWindow;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use vent_common::project::VentApplicationProject;
 
 pub mod render;
-
-pub struct AppInfo {
-    pub name: String,
-    pub version: String,
-}
-
 pub struct VentApplication {
-    info: AppInfo,
+    project: VentApplicationProject,
 }
 
 impl VentApplication {
-    pub fn new(info: AppInfo) -> Self {
-        VentApplication { info }
+    pub fn new(project: VentApplicationProject) -> Self {
+        Self { project }
     }
 
     pub fn start(self) {
         let vent_window = VentWindow::new(&self.info.name);
 
-        let mut renderer = RuntimeRenderer::new(&vent_window.window);
+        // TODO
+        let mut renderer = RuntimeRenderer::new(Dimension::D3, &vent_window.window);
 
         vent_window.event_loop.run(move |event, _, control_flow| {
             control_flow.set_wait();
@@ -35,11 +33,11 @@ impl VentApplication {
                         WindowEvent::CloseRequested
                         | WindowEvent::KeyboardInput {
                             input:
-                                KeyboardInput {
-                                    state: ElementState::Pressed,
-                                    virtual_keycode: Some(VirtualKeyCode::Escape),
-                                    ..
-                                },
+                            KeyboardInput {
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(VirtualKeyCode::Escape),
+                                ..
+                            },
                             ..
                         } => control_flow.set_exit(),
                         WindowEvent::Resized(physical_size) => {

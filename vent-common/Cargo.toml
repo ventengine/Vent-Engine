@@ -9,3 +9,6 @@ edition = "2021"
 winit = "0.28.1"
 wgpu = "0.15.1"
 pollster = "0.3.0"
+
+glam = "0.23.0"
+

@@ -1,8 +1,12 @@
-use vent_runtime::{AppInfo, VentApplication};
+use std::fs::File;
+use std::path::Path;
+use vent_common::project::VentApplicationProject;
+use vent_runtime::{ApplicationInfos, VentApplication};
 
 fn main() {
-    let info = AppInfo {
+    let info = VentApplicationProject {
         name: "TODO".to_string(),
+        working_dir: **Path::new(""),
         version: "1.0.0".to_string(),
     };
     let app = VentApplication::new(info);
