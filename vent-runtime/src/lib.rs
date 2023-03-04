@@ -4,6 +4,7 @@ use std::path::Path;
 use vent_common::project::VentApplicationProject;
 use vent_common::window::VentWindow;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use winit::window::WindowBuilder;
 
 pub mod render;
 
@@ -17,7 +18,9 @@ impl VentApplication {
     }
 
     pub fn start(self) {
-        let vent_window = VentWindow::new(&self.project.name);
+        let window_builder = WindowBuilder::new()
+            .with_title(&self.project.name);
+        let vent_window = VentWindow::new(window_builder);
 
         // TODO
         let mut renderer = RuntimeRenderer::new(Dimension::D3, &vent_window.window);

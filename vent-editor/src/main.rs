@@ -1,12 +1,20 @@
+use std::path::Path;
 use crate::render::EditorRenderer;
 use vent_common::window::VentWindow;
 use wgpu::SurfaceError;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use winit::window::WindowBuilder;
 
 mod render;
 
 fn main() {
-    let vent_window = VentWindow::new(&format!("Vent-Editor v{}", env!("CARGO_PKG_VERSION")));
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/textures/icon/icon64.png");
+
+    let window_builder = WindowBuilder::new()
+        .with_title(&format!("Vent-Editor v{}", env!("CARGO_PKG_VERSION")))
+        // TODO
+        .with_window_icon(Some(VentWindow::load_icon(Path::new(path))));
+    let vent_window = VentWindow::new(window_builder);
 
     let mut renderer = EditorRenderer::new(&vent_window.window);
     vent_window.event_loop.run(move |event, _, control_flow| {
