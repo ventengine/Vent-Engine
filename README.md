@@ -4,7 +4,7 @@
 
 **A Game-Engine written in Rust using WGPU with the Goal to be very Fast & User Friendly**
 
-![MIT](https://img.shields.io/badge/license-Apatche_2.0-blue.svg)
+![Apache](https://img.shields.io/badge/license-Apache_2.0-blue.svg)
 </div>
 
 ### 🏗 Current Status
@@ -31,13 +31,14 @@ Vent-Engine Tries to Support all Common Platforms
 - ✅: Works as intended
 - 😬: Mostly works but Unstable
 - ❓: Unknown status
+
 ---
 
 |         | Status |
 |---------|--------|
 | Windows | ✅️     |
 | MacOS   | **❓**  |
-| Unix    | ✅      |
+| Unix    | ✅️     |
 | Redox   | **❓**  |
 | Android | **❓**  |
 | IOS     | **❓**  |
