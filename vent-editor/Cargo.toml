@@ -16,6 +16,6 @@ native-dialog = "0.6.3"
 egui_wgpu_backend = { git = "https://github.com/zmarlon/egui_wgpu_backend" }
 egui_winit_platform = { git = "https://github.com/zmarlon/egui_winit_platform" }
 
-winit = "0.28.1"
+winit = "0.28.2"
 wgpu = "0.15.1"
 pollster = "0.3.0"
