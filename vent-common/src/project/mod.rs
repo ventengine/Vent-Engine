@@ -1,12 +1,11 @@
 use std::path::Path;
 
-pub struct VentApplicationProject<'a> {
+pub struct VentApplicationProject {
     pub name: String,
-    pub working_dir: &'a Path,
     pub version: String,
 }
 
-impl VentApplicationProject<'_>  {
+impl VentApplicationProject  {
     /// Creates a New Project
     pub fn serialize() {
 

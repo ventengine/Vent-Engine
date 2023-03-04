@@ -13,4 +13,4 @@ wgpu = "0.15.1"
 pollster = "0.3.0"
 
 glam = "0.23.0"
-bytemuck = "1.13.0"
+bytemuck = { version = "1.13.0", features = ["derive"] }

@@ -4,6 +4,8 @@ use wgpu::{CommandEncoder, SurfaceError, SurfaceTexture, TextureView};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
+use bytemuck::{Pod, Zeroable};
+
 pub struct RuntimeRenderer {
     default_renderer: DefaultRenderer,
 }

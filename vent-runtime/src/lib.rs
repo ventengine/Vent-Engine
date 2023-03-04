@@ -6,12 +6,13 @@ use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEve
 use vent_common::project::VentApplicationProject;
 
 pub mod render;
+
 pub struct VentApplication {
     project: VentApplicationProject,
 }
 
 impl VentApplication {
-    pub fn new(project: VentApplicationProject) -> Self {
+    pub fn new<'a>(project: VentApplicationProject) -> Self {
         Self { project }
     }
 
