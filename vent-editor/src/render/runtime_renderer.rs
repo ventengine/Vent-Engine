@@ -36,7 +36,7 @@ impl EditorRuntimeRenderer {
             ..Default::default()
         });
 
-        RuntimeRenderer::render_from(&window, encoder, &view)
+        RuntimeRenderer::render_from(window, encoder, &view)
     }
 
     pub fn resize(
