@@ -304,9 +304,7 @@ impl MultiDimensionRenderer for Renderer3D {
             label: None,
         });
 
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/3D/shader.wgsl");
-        let shader = device.create_shader_module(include_wgsl!(path));
-
+        let shader = device.create_shader_module(include_wgsl!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/app/3D/shader.wgsl")));
         let vertex_buffers = [wgpu::VertexBufferLayout {
             array_stride: vertex_size as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
