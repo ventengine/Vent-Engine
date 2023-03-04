@@ -1,11 +1,10 @@
 [workspace]
-resolver="2"
+resolver = "2"
 members = [
     "vent-runtime",
     "vent-common",
     "vent-editor"
 ]
-
 
 [workspace.package]
 version = "0.1.0"

@@ -1,11 +1,12 @@
 use pollster::block_on;
-use wgpu::{Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError};
+use wgpu::{Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
 pub struct DefaultRenderer {
     pub surface: Surface,
     pub device: Device,
+    pub adapter: Adapter,
     pub queue: Queue,
 
     pub config: SurfaceConfiguration,
@@ -83,6 +84,7 @@ impl Renderer for DefaultRenderer {
         Self {
             surface,
             device,
+            adapter,
             queue,
             config,
             caps,
