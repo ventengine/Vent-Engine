@@ -19,7 +19,7 @@ Contribution in any form are also very Welcome.
 To get Started you should run this Commands
 
 ```shell
-git clone https://github.com/Snowiiii/Vent-Engine.git
+git clone https://github.com/Snowiiii/Vent-Engine.git vent
 cd vent
 cargo run --release --bin vent-editor
 ```
