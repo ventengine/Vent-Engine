@@ -1,9 +1,7 @@
-
 pub struct Camera2D {
-    position: glam::Vec2
+    position: glam::Vec2,
 }
 
 pub struct Camera3D {
-    position: glam::Vec3
-
+    position: glam::Vec3,
 }

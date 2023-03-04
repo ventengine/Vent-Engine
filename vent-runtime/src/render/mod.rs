@@ -12,7 +12,7 @@ pub struct RuntimeRenderer {
 
 pub enum Dimension {
     D2,
-    D3
+    D3,
 }
 
 impl RuntimeRenderer {
@@ -164,7 +164,7 @@ pub trait MultiDimensionRenderer {
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
-         uniform_buf: wgpu::Buffer,
+        uniform_buf: wgpu::Buffer,
     ) {
         let mx_total = Self::generate_matrix(config.width as f32 / config.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
@@ -172,8 +172,6 @@ pub trait MultiDimensionRenderer {
     }
 
     fn render();
-
-
 }
 
 pub struct Renderer3D {}

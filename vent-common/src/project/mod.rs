@@ -5,10 +5,7 @@ pub struct VentApplicationProject {
     pub version: String,
 }
 
-impl VentApplicationProject  {
+impl VentApplicationProject {
     /// Creates a New Project
-    pub fn serialize() {
-
-    }
+    pub fn serialize() {}
 }
-
