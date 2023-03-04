@@ -23,7 +23,7 @@ impl RuntimeRenderer {
         }
     }
 
-    pub fn render(&self, _window: &Window) -> Result<(), SurfaceError> {
+    pub fn render(&self, window: &Window) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
@@ -38,7 +38,7 @@ impl RuntimeRenderer {
                     label: Some("Runtime Render Encoder"),
                 });
 
-        Self::render_from(&_window, &mut encoder, &view).expect("Failed to Render Runtime");
+        Self::render_from(window, &mut encoder, &view).expect("Failed to Render Runtime");
 
         self.default_renderer
             .queue
@@ -56,7 +56,7 @@ impl RuntimeRenderer {
             let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Runtime Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
+                    view: view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {

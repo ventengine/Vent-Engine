@@ -77,7 +77,7 @@ impl EditorRenderer {
         }
 
         self.editor_runtime_renderer
-            .render(&window, &mut encoder)
+            .render(window, &mut encoder)
             .expect("Failed to Render Runtime inside Editor");
 
         self.egui.render(
