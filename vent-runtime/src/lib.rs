@@ -16,7 +16,7 @@ impl VentApplication {
     }
 
     pub fn start(self) {
-        let vent_window = VentWindow::new(&self.info.name);
+        let vent_window = VentWindow::new(&self.project.name);
 
         // TODO
         let mut renderer = RuntimeRenderer::new(Dimension::D3, &vent_window.window);

@@ -162,10 +162,11 @@ pub trait MultiDimensionRenderer {
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
+         uniform_buf: wgpu::Buffer,
     ) {
         let mx_total = Self::generate_matrix(config.width as f32 / config.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
+        queue.write_buffer(&uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }
 
     fn render();
