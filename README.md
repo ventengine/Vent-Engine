@@ -20,7 +20,7 @@ To get Started you should run this Commands
 
 ```shell
 git clone https://github.com/Snowiiii/Vent-Engine.git
-cd vent
+cd Vent-Engine
 cargo run --release --bin vent-editor
 ```
 
@@ -31,7 +31,6 @@ Vent-Engine Tries to Support all Common Platforms
 - ✅: Works as intended
 - 😬: Mostly works but Unstable
 - ❓: Unknown status
-
 ---
 
 |         | Status |
