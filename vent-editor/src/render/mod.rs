@@ -4,6 +4,7 @@ use vent_common::render::{DefaultRenderer, Renderer};
 use wgpu::{Extent3d, SurfaceError};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
+use vent_runtime::render::Dimension;
 
 mod gui_renderer;
 mod runtime_renderer;
@@ -25,8 +26,9 @@ impl EditorRenderer {
         );
 
         let editor_runtime_renderer = EditorRuntimeRenderer::new(
-            &default_renderer.device,
-            &default_renderer.config,
+            &default_renderer,
+            // TODO
+            Dimension::D3,
             Extent3d {
                 width: &default_renderer.config.width / 2,
                 height: &default_renderer.config.height / 2,

@@ -1,5 +1,7 @@
 use pollster::block_on;
-use wgpu::{Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError};
+use wgpu::{
+    Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError,
+};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 

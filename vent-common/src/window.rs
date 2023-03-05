@@ -10,9 +10,7 @@ pub struct VentWindow {
 impl VentWindow {
     pub fn new(builder: WindowBuilder) -> Self {
         let event_loop = EventLoop::new();
-        let window = builder
-            .build(&event_loop)
-            .unwrap();
+        let window = builder.build(&event_loop).unwrap();
 
         Self { window, event_loop }
     }

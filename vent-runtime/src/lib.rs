@@ -2,6 +2,7 @@ use crate::render::{Dimension, RuntimeRenderer};
 use std::fs::File;
 use std::path::Path;
 use vent_common::project::VentApplicationProject;
+use vent_common::render::Renderer;
 use vent_common::window::VentWindow;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::window::WindowBuilder;
@@ -18,12 +19,11 @@ impl VentApplication {
     }
 
     pub fn start(self) {
-        let window_builder = WindowBuilder::new()
-            .with_title(&self.project.name);
+        let window_builder = WindowBuilder::new().with_title(&self.project.name);
         let vent_window = VentWindow::new(window_builder);
 
         // TODO
-        let mut renderer = RuntimeRenderer::new(Dimension::D3, &vent_window.window);
+        let mut renderer = RuntimeRenderer::new(Dimension::D3, Renderer::new(&vent_window.window));
 
         vent_window.event_loop.run(move |event, _, control_flow| {
             control_flow.set_wait();

@@ -1,29 +1,32 @@
 use egui::Window;
-use vent_runtime::render::RuntimeRenderer;
+use vent_runtime::render::{Dimension, RuntimeRenderer};
 use wgpu::{
     CommandEncoder, Device, Extent3d, SurfaceConfiguration, SurfaceError, Texture,
     TextureDimension, TextureFormat, TextureUsages, TextureView,
 };
 use winit::dpi::PhysicalSize;
+use vent_common::render::DefaultRenderer;
+use vent_runtime::render::app_renderer::AppRenderer;
 
 pub struct EditorRuntimeRenderer {
     texture: Texture,
+    app_renderer: AppRenderer,
 }
 
 impl EditorRuntimeRenderer {
-    pub fn new(device: &Device, config: &SurfaceConfiguration, extent: Extent3d) -> Self {
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
+    pub fn new(default_renderer: &DefaultRenderer, dimension: Dimension, extent: Extent3d) -> Self {
+        let texture = default_renderer.device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: extent,
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: config.format,
-            usage: config.usage,
+            format: default_renderer.config.format,
+            usage: default_renderer.config.usage,
             view_formats: &[],
         });
-
-        Self { texture }
+        let app_renderer = AppRenderer::new(dimension, &default_renderer);
+        Self { texture, app_renderer }
     }
 
     pub fn render(
@@ -36,7 +39,8 @@ impl EditorRuntimeRenderer {
             ..Default::default()
         });
 
-        RuntimeRenderer::render_from(window, encoder, &view)
+        self.app_renderer.render(encoder, &view);
+        Ok(())
     }
 
     pub fn resize(
