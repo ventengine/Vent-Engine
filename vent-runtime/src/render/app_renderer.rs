@@ -1,12 +1,12 @@
 use crate::render::Dimension;
+use bytemuck::{Pod, Zeroable};
 use std::f32::consts;
 use std::mem;
-use bytemuck::{Pod, Zeroable};
+use vent_common::render::DefaultRenderer;
 use wgpu::util::DeviceExt;
 use wgpu::{
     include_wgsl, Adapter, CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView,
 };
-use vent_common::render::DefaultRenderer;
 
 pub struct AppRenderer {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
@@ -133,8 +133,8 @@ pub trait MultiDimensionRenderer {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Self
-        where
-            Self: Sized;
+    where
+        Self: Sized;
 
     fn resize(
         &mut self,
@@ -160,8 +160,8 @@ impl MultiDimensionRenderer for Renderer2D {
         device: &Device,
         queue: &Queue,
     ) -> Self
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         Self {}
     }
@@ -188,8 +188,8 @@ impl MultiDimensionRenderer for Renderer3D {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Self
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         // Create the vertex and index buffers
         let vertex_size = mem::size_of::<Vertex3D>();

@@ -1,10 +1,10 @@
 use crate::render::gui_renderer::EguiRenderer;
 use crate::render::runtime_renderer::EditorRuntimeRenderer;
 use vent_common::render::{DefaultRenderer, Renderer};
+use vent_runtime::render::Dimension;
 use wgpu::{Extent3d, SurfaceError};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
-use vent_runtime::render::Dimension;
 
 mod gui_renderer;
 mod runtime_renderer;
