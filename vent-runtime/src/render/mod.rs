@@ -1,14 +1,13 @@
 use vent_common::render::{DefaultRenderer, Renderer};
 use wgpu::{
-    include_wgsl, Adapter, CommandEncoder, Device, Queue, SurfaceConfiguration, SurfaceError,
-    SurfaceTexture, TextureView,
+    SurfaceError,
 };
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-use crate::render::app_renderer::{AppRenderer, MultiDimensionRenderer, Renderer2D, Renderer3D};
-use bytemuck::{Pod, Zeroable};
-use wgpu::util::DeviceExt;
+use crate::render::app_renderer::{AppRenderer, MultiDimensionRenderer};
+
+
 
 pub mod app_renderer;
 
@@ -30,7 +29,7 @@ impl RuntimeRenderer {
         }
     }
 
-    pub fn render(&self, window: &Window) -> Result<(), SurfaceError> {
+    pub fn render(&self, _window: &Window) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor {

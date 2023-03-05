@@ -14,7 +14,7 @@ fn main() {
     );
 
     let window_builder = WindowBuilder::new()
-        .with_title(&format!("Vent-Editor v{}", env!("CARGO_PKG_VERSION")))
+        .with_title(format!("Vent-Editor v{}", env!("CARGO_PKG_VERSION")))
         // TODO
         .with_window_icon(Some(VentWindow::load_icon(Path::new(path))));
     let vent_window = VentWindow::new(window_builder);

@@ -1,6 +1,6 @@
 use crate::render::{Dimension, RuntimeRenderer};
-use std::fs::File;
-use std::path::Path;
+
+
 use vent_common::project::VentApplicationProject;
 use vent_common::render::Renderer;
 use vent_common::window::VentWindow;
@@ -19,7 +19,7 @@ impl VentApplication {
     }
 
     pub fn start(self) {
-        let window_builder = WindowBuilder::new().with_title(&self.project.name);
+        let window_builder = WindowBuilder::new().with_title(self.project.name);
         let vent_window = VentWindow::new(window_builder);
 
         // TODO

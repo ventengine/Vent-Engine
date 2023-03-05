@@ -4,7 +4,7 @@ use std::f32::consts;
 use std::mem;
 use vent_common::render::DefaultRenderer;
 use wgpu::util::DeviceExt;
-use wgpu::{include_wgsl, Adapter, CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView, Buffer};
+use wgpu::{include_wgsl, Adapter, CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
 
 pub struct AppRenderer {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
@@ -154,10 +154,10 @@ pub struct Renderer2D {}
 
 impl MultiDimensionRenderer for Renderer2D {
     fn init(
-        config: &SurfaceConfiguration,
+        _config: &SurfaceConfiguration,
         _adapter: &Adapter,
-        device: &Device,
-        queue: &Queue,
+        _device: &Device,
+        _queue: &Queue,
     ) -> Self
         where
             Self: Sized,
@@ -165,11 +165,11 @@ impl MultiDimensionRenderer for Renderer2D {
         Self {}
     }
 
-    fn resize(&mut self, config: &SurfaceConfiguration, _device: &Device, queue: &Queue) {
+    fn resize(&mut self, _config: &SurfaceConfiguration, _device: &Device, _queue: &Queue) {
         todo!()
     }
 
-    fn render(&self, encoder: &mut CommandEncoder, view: &TextureView) {
+    fn render(&self, _encoder: &mut CommandEncoder, _view: &TextureView) {
         todo!()
     }
 }

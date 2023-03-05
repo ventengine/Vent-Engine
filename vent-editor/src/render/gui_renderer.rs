@@ -1,12 +1,12 @@
-use egui::{PlatformOutput, TextureId};
+use egui::{TextureId};
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
-use vent_common::render::{DefaultRenderer, Renderer};
+use vent_common::render::{Renderer};
 use wgpu::{
-    CommandEncoder, Device, FilterMode, Queue, RenderPass, SurfaceConfiguration, SurfaceError,
+    CommandEncoder, Device, FilterMode, Queue,
     TextureView,
 };
-use winit::dpi::PhysicalSize;
+
 use winit::window::Window;
 
 pub struct EguiRenderer {
@@ -16,7 +16,7 @@ pub struct EguiRenderer {
 
 impl EguiRenderer {
     pub fn new(window: &Window, device: &Device, surface_format: wgpu::TextureFormat) -> Self {
-        let mut platform = Platform::new(PlatformDescriptor {
+        let platform = Platform::new(PlatformDescriptor {
             physical_width: window.inner_size().width as _,
             physical_height: window.inner_size().height as _,
             scale_factor: window.scale_factor(),
@@ -24,12 +24,12 @@ impl EguiRenderer {
             style: Default::default(),
         });
 
-        let mut renderer = egui_wgpu_backend::RenderPass::new(device, surface_format, 1);
+        let renderer = egui_wgpu_backend::RenderPass::new(device, surface_format, 1);
         Self { platform, renderer }
     }
 
-    pub fn render<'a>(
-        &'a mut self,
+    pub fn render(
+        &mut self,
         window: &Window,
         device: &Device,
         queue: &Queue,

@@ -1,8 +1,8 @@
-use egui::Window;
+
 use vent_common::render::DefaultRenderer;
 use vent_runtime::render::app_renderer::AppRenderer;
-use vent_runtime::render::{Dimension, RuntimeRenderer};
-use wgpu::{CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture, TextureDimension, TextureFormat, TextureUsages, TextureView};
+use vent_runtime::render::{Dimension};
+use wgpu::{CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture, TextureDimension};
 use winit::dpi::PhysicalSize;
 
 pub struct EditorRuntimeRenderer {
@@ -24,7 +24,7 @@ impl EditorRuntimeRenderer {
                 usage: default_renderer.config.usage,
                 view_formats: &[],
             });
-        let app_renderer = AppRenderer::new(dimension, &default_renderer);
+        let app_renderer = AppRenderer::new(dimension, default_renderer);
         Self {
             texture,
             app_renderer,
@@ -33,7 +33,7 @@ impl EditorRuntimeRenderer {
 
     pub fn render(
         &self,
-        window: &winit::window::Window,
+        _window: &winit::window::Window,
         encoder: &mut CommandEncoder,
     ) -> Result<(), SurfaceError> {
         let view = self.texture.create_view(&wgpu::TextureViewDescriptor {
@@ -66,6 +66,6 @@ impl EditorRuntimeRenderer {
             usage: config.usage,
             view_formats: &[],
         });
-        self.app_renderer.resize(&config, &device, &queue);
+        self.app_renderer.resize(config, device, queue);
     }
 }
