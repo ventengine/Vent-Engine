@@ -4,6 +4,7 @@
 
 **A Game-Engine written in Rust using WGPU with the Goal to be very Fast & User Friendly**
 
+![CI](https://github.com/Snowiiii/Vent-Engine/actions/workflows/rust.yml/badge.svg)
 ![Apache](https://img.shields.io/badge/license-Apache_2.0-blue.svg)
 </div>
 
@@ -14,9 +15,9 @@ development. [See Here to See the current Status](https://github.com/Snowiiii/Ve
 
 But Compiling & Running should be working (in most cases)
 
-Contribution in any form are also very Welcome.
+Contribution in any way shape or form is appreciated.
 
-To get Started you should run this Commands
+Get started by running this commands
 
 ```shell
 git clone https://github.com/Snowiiii/Vent-Engine.git
@@ -34,15 +35,15 @@ Vent-Engine Tries to Support all Common Platforms
 
 ---
 
-|         | Status |
-|---------|--------|
-| Windows | ✅️     |
-| MacOS   | **❓**  |
-| Unix    | ✅️     |
-| Redox   | **❓**  |
-| Android | **❓**  |
-| IOS     | **❓**  |
-| WASM    | **❓**  |
+| Platform | Status |
+|----------|--------|
+| Windows  | ✅️     |
+| MacOS    | **❓**  |
+| Unix     | ✅️     |
+| Redox    | **❓**  |
+| Android  | **❓**  |
+| IOS      | **❓**  |
+| WASM     | **❓**  |
 
 ---
 
