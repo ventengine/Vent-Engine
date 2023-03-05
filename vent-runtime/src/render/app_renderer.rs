@@ -4,9 +4,7 @@ use std::f32::consts;
 use std::mem;
 use vent_common::render::DefaultRenderer;
 use wgpu::util::DeviceExt;
-use wgpu::{
-    include_wgsl, Adapter, CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView,
-};
+use wgpu::{include_wgsl, Adapter, CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView, Buffer};
 
 pub struct AppRenderer {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
@@ -34,6 +32,12 @@ impl AppRenderer {
 
     pub fn render(&self, encoder: &mut CommandEncoder, view: &TextureView) {
         self.multi_renderer.render(encoder, view)
+    }
+
+    pub fn resize(&mut self, config: &wgpu::SurfaceConfiguration,
+                  _device: &wgpu::Device,
+                  queue: &wgpu::Queue) {
+        self.multi_renderer.resize(config, _device, queue);
     }
 }
 
@@ -133,20 +137,15 @@ pub trait MultiDimensionRenderer {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Self
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 
     fn resize(
         &mut self,
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
-        uniform_buf: wgpu::Buffer,
-    ) {
-        let mx_total = generate_matrix(config.width as f32 / config.height as f32);
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
-        queue.write_buffer(&uniform_buf, 0, bytemuck::cast_slice(mx_ref));
-    }
+    );
 
     fn render(&self, encoder: &mut CommandEncoder, view: &TextureView);
 }
@@ -160,10 +159,14 @@ impl MultiDimensionRenderer for Renderer2D {
         device: &Device,
         queue: &Queue,
     ) -> Self
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         Self {}
+    }
+
+    fn resize(&mut self, config: &SurfaceConfiguration, _device: &Device, queue: &Queue) {
+        todo!()
     }
 
     fn render(&self, encoder: &mut CommandEncoder, view: &TextureView) {
@@ -188,8 +191,8 @@ impl MultiDimensionRenderer for Renderer3D {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Self
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         // Create the vertex and index buffers
         let vertex_size = mem::size_of::<Vertex3D>();
@@ -390,6 +393,12 @@ impl MultiDimensionRenderer for Renderer3D {
             pipeline,
             pipeline_wire,
         }
+    }
+
+    fn resize(&mut self, config: &SurfaceConfiguration, _device: &Device, queue: &Queue) {
+        let mx_total = generate_matrix(config.width as f32 / config.height as f32);
+        let mx_ref: &[f32; 16] = mx_total.as_ref();
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }
 
     fn render(&self, encoder: &mut CommandEncoder, view: &TextureView) {

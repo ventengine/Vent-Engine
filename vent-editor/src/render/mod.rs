@@ -102,6 +102,7 @@ impl EditorRenderer {
         // TODO
         self.editor_runtime_renderer.resize(
             &self.default_renderer.device,
+            &self.default_renderer.queue,
             &self.default_renderer.config,
             &new_size,
         );
