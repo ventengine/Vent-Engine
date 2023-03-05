@@ -3,5 +3,6 @@ pub struct Camera2D {
 }
 
 pub struct Camera3D {
-    position: glam::Vec3,
+    pub position: glam::Vec3,
+    pub rotation: glam::Vec2
 }

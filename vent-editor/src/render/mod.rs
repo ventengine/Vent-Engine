@@ -78,10 +78,6 @@ impl EditorRenderer {
             });
         }
 
-        self.editor_runtime_renderer
-            .render(window, &mut encoder)
-            .expect("Failed to Render Runtime inside Editor");
-
         self.egui.render(
             window,
             &self.default_renderer.device,
@@ -89,6 +85,10 @@ impl EditorRenderer {
             &view,
             &mut encoder,
         );
+
+        self.editor_runtime_renderer
+            .render(window, &mut encoder)
+            .expect("Failed to Render Runtime inside Editor");
 
         self.default_renderer
             .queue

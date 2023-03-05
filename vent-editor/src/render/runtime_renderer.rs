@@ -15,7 +15,7 @@ impl EditorRuntimeRenderer {
         let texture = default_renderer
             .device
             .create_texture(&wgpu::TextureDescriptor {
-                label: None,
+                label: Some("Editor Runtime Texture"),
                 size: extent,
                 mip_level_count: 1,
                 sample_count: 1,
