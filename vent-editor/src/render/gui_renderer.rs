@@ -16,9 +16,10 @@ pub struct EguiRenderer {
 
 impl EguiRenderer {
     pub fn new(window: &Window, device: &Device, surface_format: wgpu::TextureFormat) -> Self {
+        let inner_size = window.inner_size();
         let platform = Platform::new(PlatformDescriptor {
-            physical_width: window.inner_size().width as _,
-            physical_height: window.inner_size().height as _,
+            physical_width: inner_size.width,
+            physical_height: inner_size.height,
             scale_factor: window.scale_factor(),
             font_definitions: Default::default(),
             style: Default::default(),
@@ -52,15 +53,16 @@ impl EguiRenderer {
         };
 
         let texture_delta = full_output.textures_delta;
-        self.renderer
-            .add_textures(device, queue, &texture_delta)
-            .expect("Failed to add textures");
+        if let Err(err) = self.renderer.add_textures(device, queue, &texture_delta) {
+            eprintln!("Failed to add textures: {:?}", err);
+            return;
+        }
 
         self.renderer
             .update_buffers(device, queue, &paint_jobs, &screen_descriptor);
-        self.renderer
-            .execute(encoder, texture_view, &paint_jobs, &screen_descriptor, None)
-            .expect("Failed to execute render pass");
+        if let Err(err) = self.renderer.execute(encoder, texture_view, &paint_jobs, &screen_descriptor, None) {
+            eprintln!("Failed to execute render pass: {:?}", err);
+        }
     }
 
     #[inline]

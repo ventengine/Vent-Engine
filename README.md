@@ -27,7 +27,7 @@ cargo run --release --bin vent-editor
 
 ### 🎮 Platforms
 
-Vent-Engine Tries to Support all Common Platforms
+Vent-Engine Supports all Common Platforms
 
 - ✅: Works as intended
 - 😬: Mostly works but Unstable
