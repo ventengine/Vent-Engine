@@ -38,7 +38,7 @@ Vent-Engine Tries to Support all Common Platforms
 | Platform | Status |
 |----------|--------|
 | Windows  | ✅️     |
-| MacOS    | **❓**  |
+| MacOS    | ✅️     |
 | Unix     | ✅️     |
 | Redox    | **❓**  |
 | Android  | **❓**  |
