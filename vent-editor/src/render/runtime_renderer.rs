@@ -1,8 +1,10 @@
-
 use vent_common::render::DefaultRenderer;
 use vent_runtime::render::app_renderer::AppRenderer;
-use vent_runtime::render::{Dimension};
-use wgpu::{CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture, TextureDimension};
+use vent_runtime::render::Dimension;
+use wgpu::{
+    CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture,
+    TextureDimension,
+};
 use winit::dpi::PhysicalSize;
 
 pub struct EditorRuntimeRenderer {
