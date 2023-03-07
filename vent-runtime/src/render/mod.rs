@@ -5,7 +5,7 @@ use wgpu::{
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-use crate::render::app_renderer::{AppRenderer, MultiDimensionRenderer};
+use crate::render::app_renderer::AppRenderer;
 
 
 
