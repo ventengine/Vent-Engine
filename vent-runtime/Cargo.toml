@@ -13,8 +13,9 @@ wgpu = "0.15.1"
 pollster = "0.3.0"
 
 log = "0.4.17"
-env_logger = "0.10.0"
 
 glam = "0.23.0"
 bytemuck = { version = "1.13.0", features = ["derive"] }
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger = "0.10.0"
