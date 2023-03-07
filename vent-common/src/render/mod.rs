@@ -5,6 +5,37 @@ use wgpu::{
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
+#[cfg(target_arch = "wasm32")]
+use std::str::FromStr;
+
+#[cfg(target_arch = "wasm32")]
+use web_sys::{ImageBitmapRenderingContext, OffscreenCanvas};
+
+#[cfg(target_arch = "wasm32")]
+/// Parse the query string as returned by `web_sys::window()?.location().search()?` and get a
+/// specific key out of it.
+pub fn parse_url_query_string<'a>(query: &'a str, search_key: &str) -> Option<&'a str> {
+    let query_string = query.strip_prefix('?')?;
+
+    for pair in query_string.split('&') {
+        let mut pair = pair.split('=');
+        let key = pair.next()?;
+        let value = pair.next()?;
+
+        if key == search_key {
+            return Some(value);
+        }
+    }
+
+    None
+}
+
+#[cfg(target_arch = "wasm32")]
+pub struct OffscreenCanvasSetup {
+    pub offscreen_canvas: OffscreenCanvas,
+    pub bitmap_renderer: ImageBitmapRenderingContext,
+}
+
 pub struct DefaultRenderer {
     pub surface: Surface,
     pub device: Device,
@@ -13,6 +44,9 @@ pub struct DefaultRenderer {
 
     pub config: SurfaceConfiguration,
     pub caps: SurfaceCapabilities,
+
+    #[cfg(target_arch = "wasm32")]
+    pub offscreen_canvas_setup: Option<OffscreenCanvasSetup>,
 }
 
 pub trait Renderer {
@@ -30,6 +64,59 @@ impl Renderer for DefaultRenderer {
             backends,
             dx12_shader_compiler,
         });
+
+        #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::WindowExtWebSys;
+        let query_string = web_sys::window().unwrap().location().search().unwrap();
+        let level: log::Level = parse_url_query_string(&query_string, "RUST_LOG")
+            .and_then(|x| x.parse().ok())
+            .unwrap_or(log::Level::Error);
+        console_log::init_with_level(level).expect("could not initialize logger");
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        // On wasm, append the canvas to the document body
+        web_sys::window()
+            .and_then(|win| win.document())
+            .and_then(|doc| doc.body())
+            .and_then(|body| {
+                body.append_child(&web_sys::Element::from(window.canvas()))
+                    .ok()
+            })
+            .expect("couldn't append canvas to document body");
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    let mut offscreen_canvas_setup: Option<OffscreenCanvasSetup> = None;
+    #[cfg(target_arch = "wasm32")]
+    {
+        use wasm_bindgen::JsCast;
+        use winit::platform::web::WindowExtWebSys;
+
+        let query_string = web_sys::window().unwrap().location().search().unwrap();
+        if let Some(offscreen_canvas_param) =
+            parse_url_query_string(&query_string, "offscreen_canvas")
+        {
+            if FromStr::from_str(offscreen_canvas_param) == Ok(true) {
+                log::info!("Creating OffscreenCanvasSetup");
+
+                let offscreen_canvas =
+                    OffscreenCanvas::new(1024, 768).expect("couldn't create OffscreenCanvas");
+
+                let bitmap_renderer = window
+                    .canvas()
+                    .get_context("bitmaprenderer")
+                    .expect("couldn't create ImageBitmapRenderingContext (Result)")
+                    .expect("couldn't create ImageBitmapRenderingContext (Option)")
+                    .dyn_into::<ImageBitmapRenderingContext>()
+                    .expect("couldn't convert into ImageBitmapRenderingContext");
+
+                offscreen_canvas_setup = Some(OffscreenCanvasSetup {
+                    offscreen_canvas,
+                    bitmap_renderer,
+                })
+            }
+        }
+    };
 
         let surface = unsafe {
             #[cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))]
@@ -90,6 +177,9 @@ impl Renderer for DefaultRenderer {
             queue,
             config,
             caps,
+
+            #[cfg(target_arch = "wasm32")]
+            offscreen_canvas_setup,
         }
     }
 

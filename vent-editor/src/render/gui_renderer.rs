@@ -1,11 +1,8 @@
-use egui::{TextureId};
+use egui::TextureId;
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
-use vent_common::render::{Renderer};
-use wgpu::{
-    CommandEncoder, Device, FilterMode, Queue,
-    TextureView,
-};
+use vent_common::render::Renderer;
+use wgpu::{CommandEncoder, Device, FilterMode, Queue, TextureView};
 
 use winit::window::Window;
 
@@ -60,7 +57,10 @@ impl EguiRenderer {
 
         self.renderer
             .update_buffers(device, queue, &paint_jobs, &screen_descriptor);
-        if let Err(err) = self.renderer.execute(encoder, texture_view, &paint_jobs, &screen_descriptor, None) {
+        if let Err(err) =
+            self.renderer
+                .execute(encoder, texture_view, &paint_jobs, &screen_descriptor, None)
+        {
             eprintln!("Failed to execute render pass: {:?}", err);
         }
     }

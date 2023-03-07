@@ -49,6 +49,22 @@ impl RuntimeRenderer {
             .queue
             .submit(std::iter::once(encoder.finish()));
         output.present();
+
+        #[cfg(target_arch = "wasm32")]
+                {
+                    if let Some(offscreen_canvas_setup) = &self.default_renderer.offscreen_canvas_setup {
+                        let image_bitmap = offscreen_canvas_setup
+                            .offscreen_canvas
+                            .transfer_to_image_bitmap()
+                            .expect("couldn't transfer offscreen canvas to image bitmap.");
+                        offscreen_canvas_setup
+                            .bitmap_renderer
+                            .transfer_from_image_bitmap(&image_bitmap);
+
+                        log::info!("Transferring OffscreenCanvas to ImageBitmapRenderer");
+                    }
+                }
+
         Ok(())
     }
 

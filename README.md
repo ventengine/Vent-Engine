@@ -43,7 +43,7 @@ Vent-Engine Supports all Common Platforms
 | Redox    | **❓**  |
 | Android  | **❓**  |
 | IOS      | **❓**  |
-| WASM     | **❓**  |
+| WASM     | ✅️     |
 
 ---
 

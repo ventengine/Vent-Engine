@@ -13,3 +13,16 @@ pollster = "0.3.0"
 glam = "0.23.0"
 image = "0.24.5"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.7"
+console_log = "0.2.1"
+wgpu = { version = "0.15.1", features = ["webgl"]}
+wasm-bindgen = "0.2.84"
+wasm-bindgen-futures = "0.4.34"
+web-sys = { version = "0.3.61", features = [
+    "Document",
+    "Window",
+    "Element",
+    "Location"
+]}
+log = "0.4.17"
