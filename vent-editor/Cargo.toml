@@ -19,3 +19,6 @@ egui_winit_platform = { git = "https://github.com/zmarlon/egui_winit_platform" }
 winit = "0.28.2"
 wgpu = "0.15.1"
 pollster = "0.3.0"
+
+[target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
+env_logger = "0.10.0"

@@ -1346,9 +1346,9 @@ checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
 name = "orbclient"
-version = "0.3.42"
+version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba683f1641c11041c59d5d93689187abcab3c1349dc6d9d70c550c9f9360802f"
+checksum = "974465c5e83cf9df05c1e4137b271d29035c902e39e5ad4c1939837e22160af8"
 dependencies = [
  "cfg-if",
  "redox_syscall 0.2.16",
@@ -1856,6 +1856,7 @@ dependencies = [
  "egui_dock",
  "egui_wgpu_backend",
  "egui_winit_platform",
+ "env_logger",
  "native-dialog",
  "pollster",
  "vent-common",
