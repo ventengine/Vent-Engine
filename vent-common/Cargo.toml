@@ -15,7 +15,7 @@ image = "0.24.5"
 
 log = "0.4.17"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+[target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
 env_logger = "0.10.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

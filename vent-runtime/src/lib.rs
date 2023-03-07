@@ -13,7 +13,7 @@ pub struct VentApplication {
 }
 
 impl VentApplication {
-    pub fn new<'a>(project: VentApplicationProject) -> Self {
+    pub fn new(project: VentApplicationProject) -> Self {
         Self { project }
     }
 
