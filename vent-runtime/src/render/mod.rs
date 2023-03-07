@@ -1,13 +1,9 @@
 use vent_common::render::{DefaultRenderer, Renderer};
-use wgpu::{
-    SurfaceError,
-};
+use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
 use crate::render::app_renderer::AppRenderer;
-
-
 
 pub mod app_renderer;
 
@@ -51,25 +47,29 @@ impl RuntimeRenderer {
         output.present();
 
         #[cfg(target_arch = "wasm32")]
-                {
-                    if let Some(offscreen_canvas_setup) = &self.default_renderer.offscreen_canvas_setup {
-                        let image_bitmap = offscreen_canvas_setup
-                            .offscreen_canvas
-                            .transfer_to_image_bitmap()
-                            .expect("couldn't transfer offscreen canvas to image bitmap.");
-                        offscreen_canvas_setup
-                            .bitmap_renderer
-                            .transfer_from_image_bitmap(&image_bitmap);
+        {
+            if let Some(offscreen_canvas_setup) = &self.default_renderer.offscreen_canvas_setup {
+                let image_bitmap = offscreen_canvas_setup
+                    .offscreen_canvas
+                    .transfer_to_image_bitmap()
+                    .expect("couldn't transfer offscreen canvas to image bitmap.");
+                offscreen_canvas_setup
+                    .bitmap_renderer
+                    .transfer_from_image_bitmap(&image_bitmap);
 
-                        log::info!("Transferring OffscreenCanvas to ImageBitmapRenderer");
-                    }
-                }
+                log::info!("Transferring OffscreenCanvas to ImageBitmapRenderer");
+            }
+        }
 
         Ok(())
     }
 
     pub fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>) {
         Renderer::resize(&mut self.default_renderer, window, new_size);
-        self.app_renderer.resize(&self.default_renderer.config, &self.default_renderer.device, &self.default_renderer.queue)
+        self.app_renderer.resize(
+            &self.default_renderer.config,
+            &self.default_renderer.device,
+            &self.default_renderer.queue,
+        )
     }
 }

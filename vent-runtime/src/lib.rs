@@ -1,6 +1,5 @@
 use crate::render::{Dimension, RuntimeRenderer};
 
-
 use vent_common::project::VentApplicationProject;
 use vent_common::render::Renderer;
 use vent_common::window::VentWindow;
