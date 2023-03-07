@@ -1,5 +1,3 @@
-
-
 pub struct VentApplicationProject {
     pub name: String,
     pub version: String,
