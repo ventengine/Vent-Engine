@@ -1,7 +1,6 @@
 use egui::TextureId;
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
-use vent_common::render::Renderer;
 use wgpu::{CommandEncoder, Device, FilterMode, Queue, TextureView};
 
 use winit::window::Window;

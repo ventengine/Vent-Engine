@@ -6,6 +6,7 @@
 
 ![CI](https://github.com/Snowiiii/Vent-Engine/actions/workflows/rust.yml/badge.svg)
 ![Apache](https://img.shields.io/badge/license-Apache_2.0-blue.svg)
+
 </div>
 
 ### 🏗 Current Status
@@ -36,15 +37,13 @@ Vent-Engine Supports all Common Platforms
 ---
 
 | Platform | Status |
-|----------|--------|
-| Windows  | ✅️     |
-| MacOS    | ✅️     |
-| Unix     | ✅️     |
-| Redox    | **❓**  |
-| Android  | **❓**  |
-| IOS      | **❓**  |
-| WASM     | ✅️     |
+| -------- | ------ |
+| Windows  | ✅️    |
+| MacOS    | ✅️    |
+| Unix     | ✅️    |
+| Redox    | **❓** |
+| Android  | **❓** |
+| IOS      | **❓** |
+| WASM     | ✅️    |
 
 ---
-
-

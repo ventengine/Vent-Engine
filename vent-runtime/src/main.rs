@@ -1,5 +1,3 @@
-
-
 use vent_common::project::VentApplicationProject;
 use vent_runtime::VentApplication;
 

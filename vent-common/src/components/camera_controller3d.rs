@@ -1,7 +1,7 @@
-use std::time::Duration;
-use glam::Vec3;
-use winit::event::{ElementState, VirtualKeyCode};
 use crate::entities::Camera3D;
+use glam::Vec3;
+use std::time::Duration;
+use winit::event::{ElementState, VirtualKeyCode};
 
 #[derive(Debug)]
 pub struct CameraController3D {
@@ -34,7 +34,11 @@ impl CameraController3D {
     }
 
     pub fn process_keyboard(&mut self, key: VirtualKeyCode, state: ElementState) -> bool {
-        let amount = if state == ElementState::Pressed { 1.0 } else { 0.0 };
+        let amount = if state == ElementState::Pressed {
+            1.0
+        } else {
+            0.0
+        };
         match key {
             VirtualKeyCode::W | VirtualKeyCode::Up => {
                 self.amount_forward = amount;
@@ -97,6 +101,3 @@ impl CameraController3D {
         }
     }
 }
-
-
-
