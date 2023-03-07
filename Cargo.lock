@@ -1856,6 +1856,7 @@ dependencies = [
  "egui_dock",
  "egui_wgpu_backend",
  "egui_winit_platform",
+ "env_logger",
  "native-dialog",
  "pollster",
  "vent-common",
