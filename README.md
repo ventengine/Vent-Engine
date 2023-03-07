@@ -36,7 +36,7 @@ Vent-Engine Supports all Common Platforms
 - ❓: Unknown status
 
 ---
-
+    
 | Platform | Runtime | Editor |
 |----------|---------|--------|
 | Windows  | ✅️      | ✅️     |
