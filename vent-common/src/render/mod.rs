@@ -7,6 +7,7 @@ use winit::window::Window;
 
 #[cfg(target_arch = "wasm32")]
 use std::str::FromStr;
+use log::debug;
 
 #[cfg(target_arch = "wasm32")]
 use web_sys::{ImageBitmapRenderingContext, OffscreenCanvas};
@@ -146,7 +147,8 @@ impl Renderer for DefaultRenderer {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let adapter_info = adapter.get_info();
-            println!("Using {} ({:?})", adapter_info.name, adapter_info.backend);
+            debug!("GPU {} {:?}", adapter_info.name, adapter_info.device_type);
+            debug!("Software {:?} {}", adapter_info.backend, adapter_info.driver_info);
         }
 
         let trace_dir = std::env::var("WGPU_TRACE");

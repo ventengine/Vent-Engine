@@ -135,6 +135,12 @@ struct Vertex3D {
     _tex_coord: [f32; 2],
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+struct UBO3D {
+
+}
+
 pub trait MultiDimensionRenderer {
     fn init(
         config: &wgpu::SurfaceConfiguration,

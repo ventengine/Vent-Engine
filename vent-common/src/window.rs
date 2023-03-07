@@ -1,4 +1,5 @@
 use std::path::Path;
+
 use winit::event_loop::EventLoop;
 use winit::window::{Icon, Window, WindowBuilder};
 

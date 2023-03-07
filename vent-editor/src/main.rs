@@ -8,6 +8,9 @@ use winit::window::WindowBuilder;
 mod render;
 
 fn main() {
+    env_logger::init();
+
+
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/assets/textures/icon/icon64.png"
