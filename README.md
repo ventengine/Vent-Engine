@@ -11,7 +11,7 @@
 
 ### 🏆 Goals
 
-- [X] **Built in Rust::** At Vent-Engine, we believe in the power of Rust and strive to avoid any bindings to other languages.
+- [X] **Built in Rust:** At Vent-Engine, we believe in the power of Rust and strive to avoid any bindings to other languages.
 - [X] **Optimized for Performance:** Our engine places a strong emphasis on performance. By utilizing WGPU, we leverage native APIs to deliver top-tier results.
 - [X] **Designed for Accessibility:** Our engine is designed to be user-friendly, making it easy for you to focus on your work instead of getting bogged down in the details.
 - [X] **Cross-Platform Support:** We Support a variety of [Platforms](https://github.com/Snowiiii/Vent-Engine#-platforms), you can be confident that your creation will run seamlessly across different devices, making it accessible to all.
