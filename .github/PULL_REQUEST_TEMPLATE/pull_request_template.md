@@ -1,17 +1,20 @@
-- [ ] I confirm that I Tested all platforms changed
+## Pull Request Checklist
 
-### Commands
-Make sure you Ran this Commands first before Making a Pull Request
+- [ ] I have tested all platforms that were changed
+- [ ] I have updated the documentation (if applicable)
+- [ ] I have added tests (if applicable)
 
-- [ ] Ran ``cargo clippy --fix``
-- [ ] Ran ``cargo fmt``
+## Pre-merge checklist
 
+Before merging, please make sure that the following commands have been run:
 
-### Info
+- [ ] `cargo clippy --fix`
+- [ ] `cargo fmt`
 
-**Describe what you'd changed**
-A clear and concise description of what you have Changed.
+## Description
 
+Please provide a clear and concise description of the changes you have made, including any relevant context and background information.
 
+## Related Issues
 
-
+If this pull request is related to any issues, please list them here.
