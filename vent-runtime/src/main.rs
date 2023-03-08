@@ -1,7 +1,6 @@
 use vent_common::project::VentApplicationProject;
 use vent_runtime::VentApplication;
 
-
 fn main() {
     env_logger::init();
 

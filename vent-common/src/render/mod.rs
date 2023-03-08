@@ -5,9 +5,9 @@ use wgpu::{
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
+use log::debug;
 #[cfg(target_arch = "wasm32")]
 use std::str::FromStr;
-use log::debug;
 
 #[cfg(target_arch = "wasm32")]
 use web_sys::{ImageBitmapRenderingContext, OffscreenCanvas};
@@ -148,7 +148,10 @@ impl Renderer for DefaultRenderer {
         {
             let adapter_info = adapter.get_info();
             debug!("GPU {} {:?}", adapter_info.name, adapter_info.device_type);
-            debug!("Software {:?} {}", adapter_info.backend, adapter_info.driver_info);
+            debug!(
+                "Software {:?} {}",
+                adapter_info.backend, adapter_info.driver_info
+            );
         }
 
         let trace_dir = std::env::var("WGPU_TRACE");

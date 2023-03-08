@@ -137,9 +137,7 @@ struct Vertex3D {
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
-struct UBO3D {
-
-}
+struct UBO3D {}
 
 pub trait MultiDimensionRenderer {
     fn init(
