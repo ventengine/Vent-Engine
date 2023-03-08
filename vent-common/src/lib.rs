@@ -1,4 +1,4 @@
-pub mod components;
+pub mod component;
 pub mod entities;
 pub mod project;
 pub mod render;
