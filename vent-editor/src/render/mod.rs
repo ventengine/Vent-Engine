@@ -17,7 +17,7 @@ pub struct EditorRenderer {
 }
 
 impl EditorRenderer {
-    pub(crate) fn new(window: &Window) -> Self {
+    pub fn new(window: &Window) -> Self {
         let default_renderer: DefaultRenderer = Renderer::new(window);
         let egui = EguiRenderer::new(
             window,
