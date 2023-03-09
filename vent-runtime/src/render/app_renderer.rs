@@ -230,7 +230,9 @@ impl MultiDimensionRenderer for Renderer3D {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(64),
+                        min_binding_size: wgpu::BufferSize::new(
+                            mem::size_of::<UBO3D>() as wgpu::BufferAddress
+                        ),
                     },
                     count: None,
                 },
@@ -284,10 +286,12 @@ impl MultiDimensionRenderer for Renderer3D {
 
         // Create other resources
         let mx_total = generate_matrix(config.width as f32 / config.height as f32);
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
+        let ubo = UBO3D {
+            view_proj: mx_total.to_cols_array_2d(),
+        };
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
-            contents: bytemuck::cast_slice(mx_ref),
+            contents: bytemuck::bytes_of(&ubo),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 

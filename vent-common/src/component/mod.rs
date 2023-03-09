@@ -1,4 +1,3 @@
-
 use std::collections::HashMap;
 
 pub type Entity = usize;
