@@ -7,7 +7,6 @@ use wgpu::util::DeviceExt;
 use wgpu::{
     include_wgsl, Adapter, CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView,
 };
-
 pub struct AppRenderer {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
 }
@@ -137,7 +136,9 @@ struct Vertex3D {
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
-struct UBO3D {}
+struct UBO3D {
+    view_proj: [[f32; 4]; 4],
+}
 
 pub trait MultiDimensionRenderer {
     fn init(

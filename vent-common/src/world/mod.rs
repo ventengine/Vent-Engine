@@ -7,6 +7,7 @@ struct World {
     components: Vec<Box<dyn Any>>,
 }
 
+#[allow(dead_code)]
 impl World {
     fn new() -> World {
         World {
