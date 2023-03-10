@@ -1,18 +1,24 @@
 use crate::render::Dimension;
 use bytemuck::{Pod, Zeroable};
-use std::f32::consts;
+
 use std::mem;
+use vent_common::entities::camera::{BasicCameraImpl, Camera};
 use vent_common::render::DefaultRenderer;
 use wgpu::util::DeviceExt;
 use wgpu::{
     include_wgsl, Adapter, CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView,
 };
-pub struct AppRenderer {
+
+pub struct VentApplicationManager {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
 }
 
-impl AppRenderer {
-    pub fn new(dimension: Dimension, default_renderer: &DefaultRenderer) -> Self {
+impl VentApplicationManager {
+    pub fn new(
+        dimension: Dimension,
+        default_renderer: &DefaultRenderer,
+        camera: &mut dyn BasicCameraImpl,
+    ) -> Self {
         Self {
             multi_renderer: match dimension {
                 Dimension::D2 => Box::new(Renderer2D::init(
@@ -20,19 +26,31 @@ impl AppRenderer {
                     &default_renderer.adapter,
                     &default_renderer.device,
                     &default_renderer.queue,
+                    camera,
                 )),
                 Dimension::D3 => Box::new(Renderer3D::init(
                     &default_renderer.config,
                     &default_renderer.adapter,
                     &default_renderer.device,
                     &default_renderer.queue,
+                    camera,
                 )),
             },
         }
     }
 
-    pub fn render(&self, encoder: &mut CommandEncoder, view: &TextureView) {
-        self.multi_renderer.render(encoder, view)
+    pub fn update(&self) {}
+
+    pub fn render(
+        &self,
+        encoder: &mut CommandEncoder,
+        view: &TextureView,
+        queue: &Queue,
+        camera: &mut dyn BasicCameraImpl,
+        aspect_ratio: f32,
+    ) {
+        self.multi_renderer
+            .render(encoder, view, queue, camera, aspect_ratio)
     }
 
     pub fn resize(
@@ -40,8 +58,9 @@ impl AppRenderer {
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
+        camera: &mut dyn BasicCameraImpl,
     ) {
-        self.multi_renderer.resize(config, _device, queue);
+        self.multi_renderer.resize(config, _device, queue, camera);
     }
 }
 
@@ -116,17 +135,6 @@ fn create_texels(size: usize) -> Vec<u8> {
         .collect()
 }
 
-// TODO
-pub fn generate_matrix(aspect_ratio: f32) -> glam::Mat4 {
-    let projection = glam::Mat4::perspective_rh(consts::FRAC_PI_4, aspect_ratio, 1.0, 10.0);
-    let view = glam::Mat4::look_at_rh(
-        glam::Vec3::new(1.5f32, -5.0, 3.0),
-        glam::Vec3::ZERO,
-        glam::Vec3::Z,
-    );
-    projection * view
-}
-
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct Vertex3D {
@@ -146,6 +154,7 @@ pub trait MultiDimensionRenderer {
         _adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        camera: &mut dyn BasicCameraImpl,
     ) -> Self
     where
         Self: Sized;
@@ -155,9 +164,17 @@ pub trait MultiDimensionRenderer {
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
+        camera: &mut dyn BasicCameraImpl,
     );
 
-    fn render(&self, encoder: &mut CommandEncoder, view: &TextureView);
+    fn render(
+        &self,
+        encoder: &mut CommandEncoder,
+        view: &TextureView,
+        queue: &Queue,
+        camera: &mut dyn BasicCameraImpl,
+        aspect_ratio: f32,
+    );
 }
 
 pub struct Renderer2D {}
@@ -168,6 +185,7 @@ impl MultiDimensionRenderer for Renderer2D {
         _adapter: &Adapter,
         _device: &Device,
         _queue: &Queue,
+        _camera: &mut dyn BasicCameraImpl,
     ) -> Self
     where
         Self: Sized,
@@ -175,11 +193,24 @@ impl MultiDimensionRenderer for Renderer2D {
         Self {}
     }
 
-    fn resize(&mut self, _config: &SurfaceConfiguration, _device: &Device, _queue: &Queue) {
+    fn resize(
+        &mut self,
+        _config: &SurfaceConfiguration,
+        _device: &Device,
+        _queue: &Queue,
+        _camera: &mut dyn BasicCameraImpl,
+    ) {
         todo!()
     }
 
-    fn render(&self, _encoder: &mut CommandEncoder, _view: &TextureView) {
+    fn render(
+        &self,
+        _encoder: &mut CommandEncoder,
+        _view: &TextureView,
+        _queue: &Queue,
+        _camera: &mut dyn BasicCameraImpl,
+        _aspect_ratio: f32,
+    ) {
         todo!()
     }
 }
@@ -200,6 +231,7 @@ impl MultiDimensionRenderer for Renderer3D {
         _adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        camera: &mut dyn BasicCameraImpl,
     ) -> Self
     where
         Self: Sized,
@@ -285,7 +317,8 @@ impl MultiDimensionRenderer for Renderer3D {
         );
 
         // Create other resources
-        let mx_total = generate_matrix(config.width as f32 / config.height as f32);
+        let mx_total =
+            camera.build_view_projection_matrix(config.width as f32 / config.height as f32);
         let ubo = UBO3D {
             view_proj: mx_total.to_cols_array_2d(),
         };
@@ -398,6 +431,7 @@ impl MultiDimensionRenderer for Renderer3D {
         };
 
         // Done
+
         Self {
             vertex_buf,
             index_buf,
@@ -409,13 +443,32 @@ impl MultiDimensionRenderer for Renderer3D {
         }
     }
 
-    fn resize(&mut self, config: &SurfaceConfiguration, _device: &Device, queue: &Queue) {
-        let mx_total = generate_matrix(config.width as f32 / config.height as f32);
+    fn resize(
+        &mut self,
+        config: &SurfaceConfiguration,
+        _device: &Device,
+        queue: &Queue,
+        camera: &mut dyn BasicCameraImpl,
+    ) {
+        let mx_total =
+            camera.build_view_projection_matrix(config.width as f32 / config.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }
 
-    fn render(&self, encoder: &mut CommandEncoder, view: &TextureView) {
+    fn render(
+        &self,
+        encoder: &mut CommandEncoder,
+        view: &TextureView,
+        queue: &Queue,
+        camera: &mut dyn BasicCameraImpl,
+        aspect_ratio: f32,
+    ) {
+        let mx_total = camera.build_view_projection_matrix(aspect_ratio);
+        let ubo = UBO3D {
+            view_proj: mx_total.to_cols_array_2d(),
+        };
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,

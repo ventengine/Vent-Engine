@@ -5,6 +5,7 @@ use vent_runtime::render::Dimension;
 use wgpu::{Extent3d, SurfaceError};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
+use vent_common::entities::camera::BasicCameraImpl;
 
 mod gui_renderer;
 mod runtime_renderer;
@@ -17,7 +18,7 @@ pub struct EditorRenderer {
 }
 
 impl EditorRenderer {
-    pub fn new(window: &Window) -> Self {
+    pub fn new(window: &Window, camera: &mut dyn BasicCameraImpl) -> Self {
         let default_renderer: DefaultRenderer = Renderer::new(window);
         let egui = EguiRenderer::new(
             window,
@@ -34,6 +35,7 @@ impl EditorRenderer {
                 height: &default_renderer.config.height / 2,
                 depth_or_array_layers: 1,
             },
+            camera,
         );
 
         Self {
@@ -43,7 +45,7 @@ impl EditorRenderer {
         }
     }
 
-    pub fn render(&mut self, window: &Window) -> Result<(), SurfaceError> {
+    pub fn render(&mut self, window: &Window, camera: &mut dyn BasicCameraImpl) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
@@ -87,7 +89,7 @@ impl EditorRenderer {
         );
 
         self.editor_runtime_renderer
-            .render(window, &mut encoder)
+            .render(window, &mut encoder, &self.default_renderer.queue, camera)
             .expect("Failed to Render Runtime inside Editor");
 
         self.default_renderer
@@ -97,7 +99,7 @@ impl EditorRenderer {
         Ok(())
     }
 
-    pub fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>) {
+    pub fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>, camera: &mut dyn BasicCameraImpl) {
         Renderer::resize(&mut self.default_renderer, window, new_size);
         // TODO
         self.editor_runtime_renderer.resize(
@@ -105,6 +107,7 @@ impl EditorRenderer {
             &self.default_renderer.queue,
             &self.default_renderer.config,
             &new_size,
+            camera,
         );
         // egui does Automatically resize
     }
