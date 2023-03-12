@@ -2081,7 +2081,6 @@ dependencies = [
  "egui-winit",
  "egui_dock",
  "env_logger",
- "epaint",
  "log",
  "native-dialog",
  "pollster",
