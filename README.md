@@ -19,11 +19,15 @@
 
 
 ### 🏗 Current Status
+-- Vent-Engine is in development --
 
-Vent-Engine is in
-development. [See Here to See the current Status](https://github.com/Snowiiii/Vent-Engine/projects?query=is%3Aopen)
+We're using [GitHub Projects](https://github.com/Snowiiii/Vent-Engine/projects?query=is%3Aopen) for Managing our Tasks
 
-But Compiling & Running should be working (in most cases)
+#### Why not a Roadmap ?
+There are several reasons why we don't find a roadmap useful.
+Firstly, we believe that Vent-Engine should be released in a polished and fully functional state with all features included,
+regardless of how long it takes. We have no time constraints, so we can focus on implementing as many polished features as possible without unnecessary stress.
+Therefore, we do not see the need for a roadmap in this regard.
 
 Contribution in any way shape or form is appreciated.
 
