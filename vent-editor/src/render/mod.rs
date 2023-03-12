@@ -3,10 +3,6 @@ use crate::render::runtime_renderer::EditorRuntimeRenderer;
 use vent_common::entities::camera::BasicCameraImpl;
 use vent_common::render::{DefaultRenderer, Renderer};
 use vent_runtime::render::Dimension;
-use wgpu::{Extent3d, SurfaceError};
-use winit::dpi::PhysicalSize;
-use winit::event_loop::EventLoopWindowTarget;
-use winit::window::Window;
 
 mod gui_renderer;
 mod runtime_renderer;
@@ -20,8 +16,8 @@ pub struct EditorRenderer {
 
 impl EditorRenderer {
     pub fn new<T>(
-        window: &Window,
-        event_loop: &EventLoopWindowTarget<T>,
+        window: &winit::window::Window,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<T>,
         camera: &mut dyn BasicCameraImpl,
     ) -> Self {
         let default_renderer: DefaultRenderer = Renderer::new(window);
@@ -35,7 +31,7 @@ impl EditorRenderer {
             &default_renderer,
             // TODO
             Dimension::D3,
-            Extent3d {
+            wgpu::Extent3d {
                 width: &default_renderer.config.width / 2,
                 height: &default_renderer.config.height / 2,
                 depth_or_array_layers: 1,
@@ -52,9 +48,9 @@ impl EditorRenderer {
 
     pub fn render(
         &mut self,
-        window: &Window,
+        window: &winit::window::Window,
         camera: &mut dyn BasicCameraImpl,
-    ) -> Result<(), SurfaceError> {
+    ) -> Result<(), wgpu::SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
@@ -118,8 +114,8 @@ impl EditorRenderer {
 
     pub fn resize(
         &mut self,
-        window: &Window,
-        new_size: PhysicalSize<u32>,
+        window: &winit::window::Window,
+        new_size: winit::dpi::PhysicalSize<u32>,
         camera: &mut dyn BasicCameraImpl,
     ) {
         Renderer::resize(&mut self.default_renderer, window, new_size);

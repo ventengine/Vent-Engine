@@ -1,27 +1,18 @@
-use egui::{Context, TextureId};
-use egui_wgpu::renderer::ScreenDescriptor;
-use egui_winit::State;
-
-use wgpu::{CommandEncoder, Device, FilterMode, Queue, RenderPass, TextureView};
-use winit::event_loop::EventLoopWindowTarget;
-
-use winit::window::Window;
-
 pub struct EguiRenderer {
     renderer: egui_wgpu::Renderer,
     pub context: egui::Context,
-    pub state: State,
+    pub state: egui_winit::State,
 }
 
 impl EguiRenderer {
     pub fn new<T>(
-        event_loop: &EventLoopWindowTarget<T>,
-        device: &Device,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<T>,
+        device: &wgpu::Device,
         surface_format: wgpu::TextureFormat,
     ) -> Self {
         let renderer = egui_wgpu::Renderer::new(device, surface_format, None, 1);
-        let context = Context::default();
-        let state = State::new(event_loop);
+        let context = egui::Context::default();
+        let state = egui_winit::State::new(event_loop);
         Self {
             renderer,
             context,
@@ -31,11 +22,11 @@ impl EguiRenderer {
 
     pub fn render<'r>(
         &'r mut self,
-        renderpass: &mut RenderPass<'r>,
-        window: &Window,
-        device: &Device,
-        queue: &Queue,
-        encoder: &mut CommandEncoder,
+        renderpass: &mut wgpu::RenderPass<'r>,
+        window: &winit::window::Window,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
     ) {
         self.context.begin_frame(self.state.take_egui_input(window));
 
@@ -55,7 +46,7 @@ impl EguiRenderer {
                 .update_texture(device, queue, texture_id, &image_delta);
         }
 
-        let screen_descriptor = ScreenDescriptor {
+        let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
             size_in_pixels: [
                 window.inner_size().width as _,
                 window.inner_size().height as _,
@@ -73,16 +64,16 @@ impl EguiRenderer {
     #[inline]
     pub fn register_texture(
         &mut self,
-        _device: &Device,
-        _texture: &TextureView,
-        _filter: FilterMode,
-    ) -> TextureId {
+        _device: &wgpu::Device,
+        _texture: &wgpu::TextureView,
+        _filter: wgpu::FilterMode,
+    ) -> egui::TextureId {
         //   self.renderer.update_egui_texture_from_wgpu_texture(device, texture, filter)
         todo!()
     }
 
     #[inline]
-    pub fn atlas_id(&self) -> TextureId {
+    pub fn atlas_id(&self) -> egui::TextureId {
         self.atlas_id()
     }
 }

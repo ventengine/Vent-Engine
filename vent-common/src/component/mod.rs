@@ -10,12 +10,6 @@ pub struct Component<T> {
 }
 
 impl<T> Component<T> {
-    pub fn new() -> Component<T> {
-        Component {
-            map: HashMap::new(),
-        }
-    }
-
     pub fn insert(&mut self, entity: Entity, component: T) {
         self.map.insert(entity, component);
     }
@@ -38,5 +32,13 @@ impl<T> Component<T> {
 
     pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<Entity, T> {
         self.map.iter_mut()
+    }
+}
+
+impl<T> Default for Component<T> {
+    fn default() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
     }
 }

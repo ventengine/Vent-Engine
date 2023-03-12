@@ -33,8 +33,28 @@ impl BasicCameraImpl for Camera2D {
     }
 }
 
+
 impl BasicCamera {
-    pub fn new() -> Self {
+    pub fn build_view_projection_matrix(&mut self, aspect_ratio: f32) -> glam::Mat4 {
+        self.aspect = aspect_ratio;
+
+        self.projection =
+            glam::Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
+
+        let view = glam::Mat4::look_at_rh(
+            glam::Vec3::new(1.5f32, -5.0, 3.0),
+            glam::Vec3::ZERO,
+            glam::Vec3::Y,
+        );
+
+        self.view = view;
+
+        self.projection * self.view
+    }
+}
+
+impl Default for BasicCamera {
+    fn default() -> Self {
         let aspect = 0.0;
         let _fovy = 60.0;
         let znear = 0.1;
@@ -58,24 +78,8 @@ impl BasicCamera {
             rotation: glam::Vec2::ZERO,
         }
     }
-
-    pub fn build_view_projection_matrix(&mut self, aspect_ratio: f32) -> glam::Mat4 {
-        self.aspect = aspect_ratio;
-
-        self.projection =
-            glam::Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
-
-        let view = glam::Mat4::look_at_rh(
-            glam::Vec3::new(1.5f32, -5.0, 3.0),
-            glam::Vec3::ZERO,
-            glam::Vec3::Y,
-        );
-
-        self.view = view;
-
-        self.projection * self.view
-    }
 }
+
 
 pub struct Camera2D {
     pub basic_cam: BasicCamera,
@@ -88,7 +92,7 @@ impl Camera for Camera2D {
         Self: Sized,
     {
         Self {
-            basic_cam: BasicCamera::new(),
+            basic_cam: BasicCamera::default(),
             position: glam::Vec2::ZERO,
         }
     }
@@ -105,7 +109,7 @@ impl Camera for Camera3D {
         Self: Sized,
     {
         Self {
-            basic_cam: BasicCamera::new(),
+            basic_cam: BasicCamera::default(),
             position: glam::Vec3::ZERO,
         }
     }

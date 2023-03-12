@@ -34,7 +34,7 @@ fn main() {
                 ref event,
                 window_id,
             } if window_id == vent_window.window.id() => {
-                renderer.egui.state.on_event(&renderer.egui.context, event);
+                let _ = renderer.egui.state.on_event(&renderer.egui.context, event);
                 match event {
                     WindowEvent::CloseRequested
                     | WindowEvent::KeyboardInput {

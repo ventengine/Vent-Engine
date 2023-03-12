@@ -6,7 +6,6 @@ use wgpu::{
     CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture,
     TextureDimension,
 };
-use winit::dpi::PhysicalSize;
 
 pub struct EditorRuntimeRenderer {
     texture: Texture,
@@ -68,7 +67,7 @@ impl EditorRuntimeRenderer {
         device: &Device,
         queue: &Queue,
         config: &SurfaceConfiguration,
-        new_size: &PhysicalSize<u32>,
+        new_size: &winit::dpi::PhysicalSize<u32>,
         camera: &mut dyn BasicCameraImpl,
     ) {
         self.texture = device.create_texture(&wgpu::TextureDescriptor {

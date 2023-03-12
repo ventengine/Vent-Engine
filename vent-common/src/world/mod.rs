@@ -36,7 +36,7 @@ impl World {
     }
 
     fn register_component<T: 'static>(&mut self) -> usize {
-        self.components.push(Box::new(Component::<T>::new()));
+        self.components.push(Box::<Component<T>>::default());
         self.components.len() - 1
     }
 
