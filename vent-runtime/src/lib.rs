@@ -1,5 +1,6 @@
 use crate::render::{Dimension, RuntimeRenderer};
 use std::time::Instant;
+use log::info;
 
 use vent_common::component::components::camera_controller3d::CameraController3D;
 use vent_common::entities::camera::{Camera, Camera3D};
@@ -16,6 +17,15 @@ pub struct VentApplication {
 }
 
 impl VentApplication {
+    pub fn default() {
+        env_logger::init();
+
+        let project = VentApplicationProject::serialize().expect("Failed to load Vent Project");
+        info!("Project: {} {}", project.name, project.version);
+        let app = VentApplication::new(project);
+        app.start();
+    }
+
     pub fn new(project: VentApplicationProject) -> Self {
         Self { project }
     }

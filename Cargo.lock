@@ -1955,6 +1955,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "runtime-sandbox"
+version = "0.1.0"
+dependencies = [
+ "vent-common",
+ "vent-runtime",
+]
+
+[[package]]
 name = "russimp"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2516,6 +2524,8 @@ dependencies = [
  "log",
  "pollster",
  "russimp",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
