@@ -35,7 +35,6 @@ impl ModelLoader3D {
                 })
             }
 
-            indices.reserve(mesh.faces.len());
             for face in mesh.faces {
                 for indicie in face.0 {
                     indices.push(indicie);
