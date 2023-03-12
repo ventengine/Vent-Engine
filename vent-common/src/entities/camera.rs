@@ -33,7 +33,6 @@ impl BasicCameraImpl for Camera2D {
     }
 }
 
-
 impl BasicCamera {
     pub fn build_view_projection_matrix(&mut self, aspect_ratio: f32) -> glam::Mat4 {
         self.aspect = aspect_ratio;
@@ -79,7 +78,6 @@ impl Default for BasicCamera {
         }
     }
 }
-
 
 pub struct Camera2D {
     pub basic_cam: BasicCamera,

@@ -1,3 +1,5 @@
+pub mod model;
+
 use pollster::block_on;
 use wgpu::{
     Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError,
@@ -5,6 +7,7 @@ use wgpu::{
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
+use bytemuck::{Pod, Zeroable};
 use log::debug;
 #[cfg(target_arch = "wasm32")]
 use std::str::FromStr;
@@ -48,6 +51,13 @@ pub struct DefaultRenderer {
 
     #[cfg(target_arch = "wasm32")]
     pub offscreen_canvas_setup: Option<OffscreenCanvasSetup>,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct Vertex3D {
+    pub _pos: [f32; 3],
+    pub _tex_coord: [f32; 2],
 }
 
 pub trait Renderer {

@@ -2,8 +2,8 @@ use crate::render::Dimension;
 use bytemuck::{Pod, Zeroable};
 
 use std::mem;
-use vent_common::entities::camera::{BasicCameraImpl};
-use vent_common::render::DefaultRenderer;
+use vent_common::entities::camera::BasicCameraImpl;
+use vent_common::render::{DefaultRenderer, Vertex3D};
 use wgpu::util::DeviceExt;
 
 pub struct VentApplicationManager {
@@ -130,13 +130,6 @@ fn create_texels(size: usize) -> Vec<u8> {
             count
         })
         .collect()
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-struct Vertex3D {
-    _pos: [f32; 3],
-    _tex_coord: [f32; 2],
 }
 
 #[repr(C)]

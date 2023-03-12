@@ -22,6 +22,7 @@ impl VentWindow {
             let rgba = image.into_raw();
             (rgba, width, height)
         };
-        winit::window::Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to open icon")
+        winit::window::Icon::from_rgba(icon_rgba, icon_width, icon_height)
+            .expect("Failed to open icon")
     }
 }

@@ -71,9 +71,4 @@ impl EguiRenderer {
         //   self.renderer.update_egui_texture_from_wgpu_texture(device, texture, filter)
         todo!()
     }
-
-    #[inline]
-    pub fn atlas_id(&self) -> egui::TextureId {
-        self.atlas_id()
-    }
 }
