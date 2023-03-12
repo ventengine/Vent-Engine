@@ -54,7 +54,7 @@ Vent-Engine Supports all Common Platforms
 |----------|---------|--------|
 | Windows  | ✅️      | ✅️     |
 | MacOS    | ✅️      | ✅️     |
-| Unix     | ✅️      | ✅️     |
+| Linux    | ✅️      | ✅️     |
 | Redox    | **❓**   | **❓**  |
 | Android  | **❓**   | ❌      |
 | IOS      | **❓**   | ❌      |
