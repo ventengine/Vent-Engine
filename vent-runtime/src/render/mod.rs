@@ -79,13 +79,18 @@ impl RuntimeRenderer {
         Ok(())
     }
 
-    pub fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>, camera: &mut dyn BasicCameraImpl) {
+    pub fn resize(
+        &mut self,
+        window: &Window,
+        new_size: PhysicalSize<u32>,
+        camera: &mut dyn BasicCameraImpl,
+    ) {
         Renderer::resize(&mut self.default_renderer, window, new_size);
         self.app_renderer.resize(
             &self.default_renderer.config,
             &self.default_renderer.device,
             &self.default_renderer.queue,
-            camera
+            camera,
         )
     }
 }

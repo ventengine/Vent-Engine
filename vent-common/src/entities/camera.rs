@@ -60,25 +60,20 @@ impl BasicCamera {
     }
 
     pub fn build_view_projection_matrix(&mut self, aspect_ratio: f32) -> glam::Mat4 {
-            self.aspect = aspect_ratio;
+        self.aspect = aspect_ratio;
 
-            self.projection = glam::Mat4::perspective_rh(
-                self.fovy.to_radians(),
-                aspect_ratio,
-                self.znear,
-                self.zfar,
-            );
+        self.projection =
+            glam::Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
 
+        let view = glam::Mat4::look_at_rh(
+            glam::Vec3::new(1.5f32, -5.0, 3.0),
+            glam::Vec3::ZERO,
+            glam::Vec3::Y,
+        );
 
-            let view = glam::Mat4::look_at_rh(
-                glam::Vec3::new(1.5f32, -5.0, 3.0),
-                glam::Vec3::ZERO,
-                glam::Vec3::Y,
-            );
+        self.view = view;
 
-            self.view = view;
-
-       self.projection * self.view
+        self.projection * self.view
     }
 }
 

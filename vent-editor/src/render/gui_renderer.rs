@@ -1,78 +1,84 @@
-use egui::TextureId;
-use egui_wgpu_backend::ScreenDescriptor;
-use egui_winit_platform::{Platform, PlatformDescriptor};
-use wgpu::{CommandEncoder, Device, FilterMode, Queue, TextureView};
+use egui::{Context, TextureId};
+use egui_wgpu::renderer::ScreenDescriptor;
+use egui_winit::State;
+
+use wgpu::{CommandEncoder, Device, FilterMode, Queue, RenderPass, TextureView};
+use winit::event_loop::EventLoopWindowTarget;
 
 use winit::window::Window;
 
 pub struct EguiRenderer {
-    pub platform: Platform,
-    renderer: egui_wgpu_backend::RenderPass,
+    renderer: egui_wgpu::Renderer,
+    pub context: egui::Context,
+    pub state: State,
 }
 
 impl EguiRenderer {
-    pub fn new(window: &Window, device: &Device, surface_format: wgpu::TextureFormat) -> Self {
-        let inner_size = window.inner_size();
-        let platform = Platform::new(PlatformDescriptor {
-            physical_width: inner_size.width,
-            physical_height: inner_size.height,
-            scale_factor: window.scale_factor(),
-            font_definitions: Default::default(),
-            style: Default::default(),
-        });
-
-        let renderer = egui_wgpu_backend::RenderPass::new(device, surface_format, 1);
-        Self { platform, renderer }
+    pub fn new<T>(
+        event_loop: &EventLoopWindowTarget<T>,
+        device: &Device,
+        surface_format: wgpu::TextureFormat,
+    ) -> Self {
+        let renderer = egui_wgpu::Renderer::new(device, surface_format, None, 1);
+        let context = Context::default();
+        let state = State::new(event_loop);
+        Self {
+            renderer,
+            context,
+            state,
+        }
     }
 
-    pub fn render(
-        &mut self,
+    pub fn render<'r>(
+        &'r mut self,
+        renderpass: &mut RenderPass<'r>,
         window: &Window,
         device: &Device,
         queue: &Queue,
-        texture_view: &TextureView,
         encoder: &mut CommandEncoder,
     ) {
-        self.platform.begin_frame();
+        self.context.begin_frame(self.state.take_egui_input(window));
 
-        egui::Window::new("UwU").show(&self.platform.context(), |ui| {
+        egui::Window::new("UwU").show(&self.context, |ui| {
             ui.heading("My egui Application");
         });
 
-        let full_output = self.platform.end_frame(Some(window));
-        let paint_jobs = self.platform.context().tessellate(full_output.shapes);
+        let output = self.context.end_frame();
+
+        self.state
+            .handle_platform_output(window, &self.context, output.platform_output);
+
+        let clipped_meshes = self.context.tessellate(output.shapes);
+
+        for (texture_id, image_delta) in output.textures_delta.set {
+            self.renderer
+                .update_texture(device, queue, texture_id, &image_delta);
+        }
 
         let screen_descriptor = ScreenDescriptor {
-            physical_width: window.inner_size().width as _,
-            physical_height: window.inner_size().height as _,
-            scale_factor: window.scale_factor() as _,
+            size_in_pixels: [
+                window.inner_size().width as _,
+                window.inner_size().height as _,
+            ],
+            pixels_per_point: window.scale_factor() as _,
         };
 
-        let texture_delta = full_output.textures_delta;
-        if let Err(err) = self.renderer.add_textures(device, queue, &texture_delta) {
-            eprintln!("Failed to add textures: {:?}", err);
-            return;
-        }
+        self.renderer
+            .update_buffers(device, queue, encoder, &clipped_meshes, &screen_descriptor);
 
         self.renderer
-            .update_buffers(device, queue, &paint_jobs, &screen_descriptor);
-        if let Err(err) =
-            self.renderer
-                .execute(encoder, texture_view, &paint_jobs, &screen_descriptor, None)
-        {
-            eprintln!("Failed to execute render pass: {:?}", err);
-        }
+            .render(renderpass, &clipped_meshes, &screen_descriptor);
     }
 
     #[inline]
     pub fn register_texture(
         &mut self,
-        device: &Device,
-        texture: &TextureView,
-        filter: FilterMode,
+        _device: &Device,
+        _texture: &TextureView,
+        _filter: FilterMode,
     ) -> TextureId {
-        self.renderer
-            .egui_texture_from_wgpu_texture(device, texture, filter)
+        //   self.renderer.update_egui_texture_from_wgpu_texture(device, texture, filter)
+        todo!()
     }
 
     #[inline]

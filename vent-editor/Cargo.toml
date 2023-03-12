@@ -9,15 +9,19 @@ edition = "2021"
 vent-runtime = { path = "../vent-runtime"}
 vent-common = { path = "../vent-common"}
 
+# egui
 egui = "0.21.0"
 egui_dock = "0.4.0"
 
-egui_wgpu_backend = { git = "https://github.com/zmarlon/egui_wgpu_backend" }
-egui_winit_platform = { git = "https://github.com/zmarlon/egui_winit_platform" }
+epaint = "0.21.0"
+egui-wgpu = "0.21.0"
+egui-winit = "0.21.1"
 
 winit = "0.28.2"
 wgpu = "0.15.1"
 pollster = "0.3.0"
+
+log = "0.4.17"
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
 env_logger = "0.10.0"

@@ -1,10 +1,10 @@
 use crate::render::EditorRenderer;
 use std::path::Path;
+use vent_common::entities::camera::{Camera, Camera3D};
 use vent_common::window::VentWindow;
 use wgpu::SurfaceError;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::window::WindowBuilder;
-use vent_common::entities::camera::{Camera, Camera3D};
 
 mod render;
 
@@ -12,8 +12,8 @@ fn main() {
     env_logger::init();
 
     let path = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/assets/textures/icon/icon64.png"
+        env!("CARGO_MANIFEST_DIR"),
+        "/assets/textures/icon/icon64.png"
     );
 
     let window_builder = WindowBuilder::new()
@@ -24,7 +24,8 @@ fn main() {
 
     let mut camera = Camera3D::new();
 
-    let mut renderer = EditorRenderer::new(&vent_window.window, &mut camera);
+    let mut renderer =
+        EditorRenderer::new(&vent_window.window, &vent_window.event_loop, &mut camera);
     vent_window.event_loop.run(move |event, _, control_flow| {
         control_flow.set_wait();
 
@@ -33,15 +34,16 @@ fn main() {
                 ref event,
                 window_id,
             } if window_id == vent_window.window.id() => {
+                renderer.egui.state.on_event(&renderer.egui.context, event);
                 match event {
                     WindowEvent::CloseRequested
                     | WindowEvent::KeyboardInput {
                         input:
-                        KeyboardInput {
-                            state: ElementState::Pressed,
-                            virtual_keycode: Some(VirtualKeyCode::Escape),
-                            ..
-                        },
+                            KeyboardInput {
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(VirtualKeyCode::Escape),
+                                ..
+                            },
                         ..
                     } => control_flow.set_exit(),
                     WindowEvent::Resized(physical_size) => {
@@ -70,6 +72,5 @@ fn main() {
             // ...
             _ => {}
         }
-        renderer.egui.platform.handle_event(&event);
     });
 }

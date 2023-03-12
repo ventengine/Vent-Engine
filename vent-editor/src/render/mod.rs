@@ -1,11 +1,12 @@
 use crate::render::gui_renderer::EguiRenderer;
 use crate::render::runtime_renderer::EditorRuntimeRenderer;
+use vent_common::entities::camera::BasicCameraImpl;
 use vent_common::render::{DefaultRenderer, Renderer};
 use vent_runtime::render::Dimension;
 use wgpu::{Extent3d, SurfaceError};
 use winit::dpi::PhysicalSize;
+use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
-use vent_common::entities::camera::BasicCameraImpl;
 
 mod gui_renderer;
 mod runtime_renderer;
@@ -18,10 +19,14 @@ pub struct EditorRenderer {
 }
 
 impl EditorRenderer {
-    pub fn new(window: &Window, camera: &mut dyn BasicCameraImpl) -> Self {
+    pub fn new<T>(
+        window: &Window,
+        event_loop: &EventLoopWindowTarget<T>,
+        camera: &mut dyn BasicCameraImpl,
+    ) -> Self {
         let default_renderer: DefaultRenderer = Renderer::new(window);
         let egui = EguiRenderer::new(
-            window,
+            event_loop,
             &default_renderer.device,
             default_renderer.caps.formats[0],
         );
@@ -45,19 +50,28 @@ impl EditorRenderer {
         }
     }
 
-    pub fn render(&mut self, window: &Window, camera: &mut dyn BasicCameraImpl) -> Result<(), SurfaceError> {
+    pub fn render(
+        &mut self,
+        window: &Window,
+        camera: &mut dyn BasicCameraImpl,
+    ) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("Editor View"),
             ..Default::default()
         });
-
         let mut encoder =
             self.default_renderer
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("Editor Render Encoder"),
+                });
+        let mut encoder2 =
+            self.default_renderer
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Editor Runtime Render Encoder"),
                 });
 
         {
@@ -78,28 +92,36 @@ impl EditorRenderer {
                 })],
                 depth_stencil_attachment: None,
             });
+            self.egui.render(
+                &mut _render_pass,
+                window,
+                &self.default_renderer.device,
+                &self.default_renderer.queue,
+                &mut encoder2,
+            );
         }
-
-        self.egui.render(
-            window,
-            &self.default_renderer.device,
-            &self.default_renderer.queue,
-            &view,
-            &mut encoder,
-        );
-
-        self.editor_runtime_renderer
-            .render(window, &mut encoder, &self.default_renderer.queue, camera)
-            .expect("Failed to Render Runtime inside Editor");
 
         self.default_renderer
             .queue
             .submit(std::iter::once(encoder.finish()));
+
+        self.editor_runtime_renderer
+            .render(window, &mut encoder2, &self.default_renderer.queue, camera)
+            .expect("Failed to Render Runtime inside Editor");
+
+        self.default_renderer
+            .queue
+            .submit(std::iter::once(encoder2.finish()));
         output.present();
         Ok(())
     }
 
-    pub fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>, camera: &mut dyn BasicCameraImpl) {
+    pub fn resize(
+        &mut self,
+        window: &Window,
+        new_size: PhysicalSize<u32>,
+        camera: &mut dyn BasicCameraImpl,
+    ) {
         Renderer::resize(&mut self.default_renderer, window, new_size);
         // TODO
         self.editor_runtime_renderer.resize(

@@ -27,7 +27,8 @@ impl VentApplication {
         // TODO
         let mut cam = Camera3D::new();
 
-        let mut renderer = RuntimeRenderer::new(Dimension::D3, Renderer::new(&vent_window.window), &mut cam);
+        let mut renderer =
+            RuntimeRenderer::new(Dimension::D3, Renderer::new(&vent_window.window), &mut cam);
 
         let mut controller = CameraController3D::new(1.0, 10.0);
 
@@ -44,11 +45,11 @@ impl VentApplication {
                         WindowEvent::CloseRequested => control_flow.set_exit(),
                         WindowEvent::KeyboardInput {
                             input:
-                            KeyboardInput {
-                                state,
-                                virtual_keycode: Some(key),
-                                ..
-                            },
+                                KeyboardInput {
+                                    state,
+                                    virtual_keycode: Some(key),
+                                    ..
+                                },
                             ..
                         } => {
                             controller.process_keyboard(key, *state);

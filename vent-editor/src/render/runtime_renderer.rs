@@ -1,3 +1,4 @@
+use vent_common::entities::camera::BasicCameraImpl;
 use vent_common::render::DefaultRenderer;
 use vent_runtime::render::app_renderer::VentApplicationManager;
 use vent_runtime::render::Dimension;
@@ -6,7 +7,6 @@ use wgpu::{
     TextureDimension,
 };
 use winit::dpi::PhysicalSize;
-use vent_common::entities::camera::BasicCameraImpl;
 
 pub struct EditorRuntimeRenderer {
     texture: Texture,
@@ -15,7 +15,12 @@ pub struct EditorRuntimeRenderer {
 }
 
 impl EditorRuntimeRenderer {
-    pub fn new(default_renderer: &DefaultRenderer, dimension: Dimension, extent: Extent3d, camera: &mut dyn BasicCameraImpl) -> Self {
+    pub fn new(
+        default_renderer: &DefaultRenderer,
+        dimension: Dimension,
+        extent: Extent3d,
+        camera: &mut dyn BasicCameraImpl,
+    ) -> Self {
         let texture = default_renderer
             .device
             .create_texture(&wgpu::TextureDescriptor {
