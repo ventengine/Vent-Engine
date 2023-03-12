@@ -22,24 +22,14 @@ impl ModelLoader3D {
         )
         .unwrap();
 
-        let mut vertices: Vec<Vertex3D> = Vec::new();
-        let mut indices: Vec<u32> = Vec::new();
+        let mut vertices = Vec::with_capacity(scene.meshes.iter().map(|m| m.vertices.len()).sum());
+        let indices = scene.meshes.iter().flat_map(|m| m.faces.iter().flat_map(|face| face.0.iter().copied())).collect::<Vec<_>>();
 
         for mesh in scene.meshes {
-            vertices.reserve(mesh.vertices.len());
-
-            for vertex in mesh.vertices {
-                vertices.push(Vertex3D {
-                    _pos: [vertex.x, vertex.y, vertex.z],
-                    _tex_coord: [0.0, 0.0],
-                })
-            }
-
-            for face in mesh.faces {
-                for indicie in face.0 {
-                    indices.push(indicie);
-                }
-            }
+            vertices.extend(mesh.vertices.iter().map(|vertex| Vertex3D {
+                _pos: [vertex.x, vertex.y, vertex.z],
+                _tex_coord: [0.0, 0.0],
+            }));
         }
 
         Self { vertices, indices }
