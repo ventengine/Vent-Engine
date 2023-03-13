@@ -23,7 +23,11 @@ impl ModelLoader3D {
         .unwrap();
 
         let mut vertices = Vec::with_capacity(scene.meshes.iter().map(|m| m.vertices.len()).sum());
-        let indices = scene.meshes.iter().flat_map(|m| m.faces.iter().flat_map(|face| face.0.iter().copied())).collect::<Vec<_>>();
+        let indices = scene
+            .meshes
+            .iter()
+            .flat_map(|m| m.faces.iter().flat_map(|face| face.0.iter().copied()))
+            .collect::<Vec<_>>();
 
         for mesh in scene.meshes {
             vertices.extend(mesh.vertices.iter().map(|vertex| Vertex3D {

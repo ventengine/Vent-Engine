@@ -7,6 +7,8 @@ fn main() {
         version: env!("CARGO_PKG_VERSION").to_string(),
     };
 
-    project.deserialize(env!("CARGO_MANIFEST_DIR")).expect("Failed to write Vent Project");
+    project
+        .deserialize(env!("CARGO_MANIFEST_DIR"))
+        .expect("Failed to write Vent Project");
     VentApplication::default();
 }

@@ -1,6 +1,6 @@
 use crate::render::{Dimension, RuntimeRenderer};
-use std::time::Instant;
 use log::info;
+use std::time::Instant;
 
 use vent_common::component::components::camera_controller3d::CameraController3D;
 use vent_common::entities::camera::{Camera, Camera3D};
