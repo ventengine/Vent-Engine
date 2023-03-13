@@ -12,10 +12,9 @@ pub struct VentApplicationProject {
 
 impl VentApplicationProject {
     // Deserialize the project data from a .vent file
-    pub fn deserialize(&self) -> Result<(), std::io::Error> {
-        let path = Path::new(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/project.vent"));
+    pub fn deserialize(&self, path: &str) -> Result<(), std::io::Error> {
+        let path_str = format!("{}/project.vent", path);
+        let path = Path::new(&path_str);
         let file = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -29,10 +28,9 @@ impl VentApplicationProject {
     }
 
     // Serialize the project data from a .vent file
-    pub fn serialize() -> Result<Self, std::io::Error> {
-        let path = Path::new(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/project.vent"));
+    pub fn serialize(path: &str) -> Result<Self, std::io::Error> {
+        let path_str = format!("{}/project.vent", path);
+        let path = Path::new(&path_str);
         let file = File::open(path)?;
         let reader = BufReader::new(file);
 

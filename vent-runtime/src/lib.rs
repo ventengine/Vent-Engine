@@ -20,8 +20,10 @@ impl VentApplication {
     pub fn default() {
         env_logger::init();
 
-        let project = VentApplicationProject::serialize().expect("Failed to load Vent Project");
-        info!("Project: {} {}", project.name, project.version);
+        let project = VentApplicationProject {
+            name: "Placeholder".to_string(),
+            version: "1.0.0".to_string(),
+        };
         let app = VentApplication::new(project);
         app.start();
     }
