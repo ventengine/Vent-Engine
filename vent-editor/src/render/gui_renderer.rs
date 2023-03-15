@@ -1,5 +1,8 @@
+use crate::gui::EditorGUI;
+
 pub struct EguiRenderer {
     renderer: egui_wgpu::Renderer,
+    gui: EditorGUI,
     pub context: egui::Context,
     pub state: egui_winit::State,
 }
@@ -15,14 +18,15 @@ impl EguiRenderer {
         let state = egui_winit::State::new(event_loop);
         Self {
             renderer,
+            gui: EditorGUI::new(),
             context,
             state,
         }
     }
 
-    pub fn render<'r>(
-        &'r mut self,
-        renderpass: &mut wgpu::RenderPass<'r>,
+    pub fn render<'rp>(
+        &'rp mut self,
+        renderpass: &mut wgpu::RenderPass<'rp>,
         window: &winit::window::Window,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -30,9 +34,7 @@ impl EguiRenderer {
     ) {
         self.context.begin_frame(self.state.take_egui_input(window));
 
-        egui::Window::new("UwU").show(&self.context, |ui| {
-            ui.heading("My egui Application");
-        });
+        self.gui.update(&self.context);
 
         let output = self.context.end_frame();
 
@@ -47,10 +49,7 @@ impl EguiRenderer {
         }
 
         let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
-            size_in_pixels: [
-                window.inner_size().width as _,
-                window.inner_size().height as _,
-            ],
+            size_in_pixels: window.inner_size().into(),
             pixels_per_point: window.scale_factor() as _,
         };
 

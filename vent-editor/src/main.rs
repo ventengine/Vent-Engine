@@ -6,6 +6,7 @@ use wgpu::SurfaceError;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::window::WindowBuilder;
 
+mod gui;
 mod render;
 
 fn main() {

@@ -7,7 +7,7 @@ use vent_runtime::render::Dimension;
 mod gui_renderer;
 mod runtime_renderer;
 
-pub struct EditorRenderer {
+pub(crate) struct EditorRenderer {
     default_renderer: DefaultRenderer,
     pub egui: EguiRenderer,
 
