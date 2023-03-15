@@ -9,7 +9,7 @@
 Before merging, please make sure that the following commands have been run:
 
 - [ ] `cargo clippy --fix`
-- [ ] `cargo +nightly fmt`
+- [ ] `cargo fmt`
 
 ## Description
 
