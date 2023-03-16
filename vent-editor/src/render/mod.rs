@@ -1,6 +1,6 @@
+use vent_common::entity::camera::Camera;
 use crate::render::gui_renderer::EguiRenderer;
 use crate::render::runtime_renderer::EditorRuntimeRenderer;
-use vent_common::entity::camera::BasicCameraImpl;
 use vent_common::render::{DefaultRenderer, Renderer};
 use vent_runtime::render::Dimension;
 
@@ -18,7 +18,7 @@ impl EditorRenderer {
     pub fn new<T>(
         window: &winit::window::Window,
         event_loop: &winit::event_loop::EventLoopWindowTarget<T>,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) -> Self {
         let default_renderer: DefaultRenderer = Renderer::new(window);
         let egui = EguiRenderer::new(
@@ -49,7 +49,7 @@ impl EditorRenderer {
     pub fn render(
         &mut self,
         window: &winit::window::Window,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) -> Result<(), wgpu::SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
@@ -118,7 +118,7 @@ impl EditorRenderer {
         &mut self,
         window: &winit::window::Window,
         new_size: winit::dpi::PhysicalSize<u32>,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) {
         Renderer::resize(&mut self.default_renderer, window, new_size);
         // TODO

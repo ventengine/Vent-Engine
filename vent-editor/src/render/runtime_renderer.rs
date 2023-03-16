@@ -1,4 +1,3 @@
-use vent_common::entity::camera::BasicCameraImpl;
 use vent_common::render::DefaultRenderer;
 use vent_runtime::render::app_renderer::VentApplicationManager;
 use vent_runtime::render::Dimension;
@@ -6,6 +5,7 @@ use wgpu::{
     CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture,
     TextureDimension,
 };
+use vent_common::entity::camera::Camera;
 
 pub(crate) struct EditorRuntimeRenderer {
     texture: Texture,
@@ -18,7 +18,7 @@ impl EditorRuntimeRenderer {
         default_renderer: &DefaultRenderer,
         dimension: Dimension,
         extent: Extent3d,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) -> Self {
         let texture = default_renderer
             .device
@@ -45,7 +45,7 @@ impl EditorRuntimeRenderer {
         _window: &winit::window::Window,
         encoder: &mut CommandEncoder,
         queue: &Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) -> Result<(), SurfaceError> {
         let view = self.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("Runtime View"),
@@ -68,7 +68,7 @@ impl EditorRuntimeRenderer {
         queue: &Queue,
         config: &SurfaceConfiguration,
         new_size: &winit::dpi::PhysicalSize<u32>,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) {
         self.texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
