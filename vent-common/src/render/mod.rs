@@ -2,7 +2,7 @@ pub mod model;
 
 use pollster::block_on;
 use wgpu::{
-    Adapter, CreateSurfaceError, Device, Queue, RequestDeviceError, Surface, SurfaceCapabilities,
+    Adapter, Device, Queue, Surface, SurfaceCapabilities,
     SurfaceConfiguration, SurfaceError,
 };
 use winit::dpi::PhysicalSize;

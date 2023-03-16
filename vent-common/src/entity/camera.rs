@@ -1,5 +1,5 @@
 use glam::Vec3;
-use std::f32::consts;
+
 
 pub trait Camera {
     fn new() -> Self
@@ -42,7 +42,7 @@ impl Camera for Camera2D {
         }
     }
 
-    fn build_view_projection_matrix(&mut self, aspect_ratio: f32) -> glam::Mat4 {
+    fn build_view_projection_matrix(&mut self, _aspect_ratio: f32) -> glam::Mat4 {
         todo!()
     }
 }

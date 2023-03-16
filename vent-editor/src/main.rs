@@ -1,10 +1,10 @@
 use crate::render::EditorRenderer;
-use std::fmt::Display;
+
 use std::path::Path;
 use vent_common::entity::camera::{Camera, Camera3D};
 use vent_common::util::crash::crash;
 use vent_common::window::VentWindow;
-use wgpu::SurfaceError;
+
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::window::WindowBuilder;
 
