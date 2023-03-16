@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-vent-runtime = { path = "../../vent-runtime"}
-vent-common = { path = "../../vent-common"}
+vent-runtime = { path = "../../crates/vent-runtime"}
+vent-common = { path = "../../crates/vent-common"}

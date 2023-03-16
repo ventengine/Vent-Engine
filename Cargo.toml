@@ -1,9 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "vent-runtime",
-    "vent-common",
-    "vent-editor",
+    "crates/*",
     "test/*"
 ]
 
