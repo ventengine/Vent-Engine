@@ -19,6 +19,7 @@ fn main() {
 
     let window_builder = WindowBuilder::new()
         .with_title(format!("Vent-Editor v{}", env!("CARGO_PKG_VERSION")))
+        .with_inner_size(winit::dpi::LogicalSize::new(1400.0, 800.0))
         // TODO
         .with_window_icon(Some(VentWindow::load_icon(Path::new(path))));
     let vent_window = VentWindow::new(window_builder);
