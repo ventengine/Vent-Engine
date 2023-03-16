@@ -5,6 +5,9 @@ use std::mem;
 use vent_common::entity::camera::Camera;
 use vent_common::render::{DefaultRenderer, Vertex3D};
 use wgpu::util::DeviceExt;
+use vent_common::render::model::Mesh3D;
+use vent_common::world::World;
+use crate::render::mesh_renderer::MeshRenderer;
 
 pub struct VentApplicationManager {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
@@ -39,7 +42,7 @@ impl VentApplicationManager {
     pub fn update(&self) {}
 
     pub fn render(
-        &self,
+        &mut self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
@@ -68,7 +71,7 @@ fn vertex(pos: [i8; 3], tc: [i8; 2]) -> Vertex3D {
     }
 }
 
-fn create_vertices() -> (Vec<Vertex3D>, Vec<u16>) {
+fn create_vertices() -> (Vec<Vertex3D>, Vec<u32>) {
     let vertex_data = [
         // top (0, 0, 1)
         vertex([-1, -1, 1], [0, 0]),
@@ -102,7 +105,7 @@ fn create_vertices() -> (Vec<Vertex3D>, Vec<u16>) {
         vertex([1, -1, -1], [0, 1]),
     ];
 
-    let index_data: &[u16] = &[
+    let index_data: &[u32] = &[
         0, 1, 2, 2, 3, 0, // top
         4, 5, 6, 6, 7, 4, // bottom
         8, 9, 10, 10, 11, 8, // right
@@ -146,8 +149,8 @@ pub trait MultiDimensionRenderer {
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) -> Self
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 
     fn resize(
         &mut self,
@@ -158,7 +161,7 @@ pub trait MultiDimensionRenderer {
     );
 
     fn render(
-        &self,
+        &mut self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
@@ -177,8 +180,8 @@ impl MultiDimensionRenderer for Renderer2D {
         _queue: &wgpu::Queue,
         _camera: &mut dyn Camera,
     ) -> Self
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         Self {}
     }
@@ -194,7 +197,7 @@ impl MultiDimensionRenderer for Renderer2D {
     }
 
     fn render(
-        &self,
+        &mut self,
         _encoder: &mut wgpu::CommandEncoder,
         _view: &wgpu::TextureView,
         _queue: &wgpu::Queue,
@@ -206,9 +209,7 @@ impl MultiDimensionRenderer for Renderer2D {
 }
 
 pub struct Renderer3D {
-    vertex_buf: wgpu::Buffer,
-    index_buf: wgpu::Buffer,
-    index_count: usize,
+    mesh_renderer: MeshRenderer,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
@@ -223,25 +224,9 @@ impl MultiDimensionRenderer for Renderer3D {
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) -> Self
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
-        // Create the vertex and index buffers
-        let vertex_size = mem::size_of::<Vertex3D>();
-        let (vertex_data, index_data) = create_vertices();
-
-        let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(&vertex_data),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-
-        let index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(&index_data),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
         // Create pipeline layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
@@ -339,7 +324,7 @@ impl MultiDimensionRenderer for Renderer3D {
             "/assets/shaders/app/3D/shader.wgsl"
         )));
         let vertex_buffers = [wgpu::VertexBufferLayout {
-            array_stride: vertex_size as wgpu::BufferAddress,
+            array_stride: mem::size_of::<Vertex3D>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &[
                 wgpu::VertexAttribute {
@@ -420,12 +405,18 @@ impl MultiDimensionRenderer for Renderer3D {
             None
         };
 
-        // Done
+        let mut mesh_renderer = MeshRenderer::default();
+
+        // -------------- DEMO -------------------
+        let mut world = World::default();
+
+        let (vertex_data, index_data) = create_vertices();
+        mesh_renderer.insert(world.create_entity(), Mesh3D::new_from(device, vertex_data, index_data));
+
+        // -------------------------------
 
         Self {
-            vertex_buf,
-            index_buf,
-            index_count: index_data.len(),
+            mesh_renderer,
             bind_group,
             uniform_buf,
             pipeline,
@@ -447,7 +438,7 @@ impl MultiDimensionRenderer for Renderer3D {
     }
 
     fn render(
-        &self,
+        &mut self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
@@ -480,14 +471,12 @@ impl MultiDimensionRenderer for Renderer3D {
             rpass.push_debug_group("Prepare data for draw.");
             rpass.set_pipeline(&self.pipeline);
             rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.set_index_buffer(self.index_buf.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
             rpass.pop_debug_group();
             rpass.insert_debug_marker("Draw!");
-            rpass.draw_indexed(0..self.index_count as u32, 0, 0..1);
+            self.mesh_renderer.render(&mut rpass);
             if let Some(ref pipe) = self.pipeline_wire {
                 rpass.set_pipeline(pipe);
-                rpass.draw_indexed(0..self.index_count as u32, 0, 0..1);
+                self.mesh_renderer.render(&mut rpass);
             }
         }
     }

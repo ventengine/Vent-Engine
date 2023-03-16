@@ -26,7 +26,7 @@ impl EguiRenderer {
 
     pub fn render<'rp>(
         &'rp mut self,
-        renderpass: &mut wgpu::RenderPass<'rp>,
+        rpass: &mut wgpu::RenderPass<'rp>,
         window: &winit::window::Window,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -57,7 +57,7 @@ impl EguiRenderer {
             .update_buffers(device, queue, encoder, &clipped_meshes, &screen_descriptor);
 
         self.renderer
-            .render(renderpass, &clipped_meshes, &screen_descriptor);
+            .render(rpass, &clipped_meshes, &screen_descriptor);
     }
 
     #[inline]

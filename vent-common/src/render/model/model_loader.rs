@@ -2,12 +2,12 @@ use crate::render::Vertex3D;
 use russimp::scene::PostProcess;
 
 pub struct ModelLoader3D {
-    vertices: Vec<Vertex3D>,
-    indices: Vec<u32>,
+    pub vertices: Vec<Vertex3D>,
+    pub indices: Vec<u32>,
 }
 
 impl ModelLoader3D {
-    pub fn new(path: &str) -> Self {
+    pub fn load(path: &str) -> Self {
         let scene = russimp::scene::Scene::from_file(
             path,
             vec![
@@ -39,11 +39,5 @@ impl ModelLoader3D {
         Self { vertices, indices }
     }
 
-    pub fn vertices(self) -> Vec<Vertex3D> {
-        self.vertices
-    }
 
-    pub fn indicies(self) -> Vec<u32> {
-        self.indices
-    }
 }

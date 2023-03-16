@@ -41,7 +41,7 @@ impl EditorRuntimeRenderer {
     }
 
     pub fn render(
-        &self,
+        &mut self,
         _window: &winit::window::Window,
         encoder: &mut CommandEncoder,
         queue: &Queue,
