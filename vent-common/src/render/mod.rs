@@ -1,9 +1,7 @@
 pub mod model;
 
 use pollster::block_on;
-use wgpu::{
-    Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError,
-};
+use wgpu::{Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
@@ -63,7 +61,6 @@ pub struct Vertex3D {
 
 pub trait Renderer {
     fn new(window: &Window) -> Self;
-    fn render(&mut self, window: &Window, renderer: &DefaultRenderer) -> Result<(), SurfaceError>;
     fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>);
 }
 
@@ -175,7 +172,7 @@ impl Renderer for DefaultRenderer {
         let (device, queue) = match block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
-                features: wgpu::Features::empty(),
+                features: wgpu::Features::default(),
                 limits: if cfg!(target_arch = "wasm32") {
                     wgpu::Limits::downlevel_webgl2_defaults()
                 } else {
@@ -208,14 +205,6 @@ impl Renderer for DefaultRenderer {
             #[cfg(target_arch = "wasm32")]
             offscreen_canvas_setup,
         }
-    }
-
-    fn render(
-        &mut self,
-        _window: &Window,
-        _renderer: &DefaultRenderer,
-    ) -> Result<(), SurfaceError> {
-        Ok(())
     }
 
     fn resize(&mut self, _window: &Window, new_size: PhysicalSize<u32>) {

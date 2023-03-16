@@ -1,6 +1,7 @@
 use crate::component::{Component, Entity};
 use std::any::Any;
 
+#[derive(Default)]
 pub struct World {
     entities: Vec<Entity>,
     next_entity: Entity,
@@ -48,12 +49,4 @@ impl World {
     }
 }
 
-impl Default for World {
-    fn default() -> Self {
-        Self {
-            entities: Vec::new(),
-            next_entity: 0,
-            components: Vec::new(),
-        }
-    }
-}
+

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use vent_common::component::Entity;
 use vent_common::render::model::Mesh3D;
 
+#[derive(Default)]
 pub struct MeshRenderer {
     map: HashMap<Entity, Mesh3D>,
 }
@@ -40,10 +41,4 @@ impl MeshRenderer {
     }
 }
 
-impl Default for MeshRenderer {
-    fn default() -> Self {
-        Self {
-            map: HashMap::new(),
-        }
-    }
-}
+
