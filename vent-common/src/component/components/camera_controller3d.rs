@@ -1,7 +1,6 @@
 use crate::entity::camera::Camera3D;
 
-
-use winit::event::{VirtualKeyCode};
+use winit::event::VirtualKeyCode;
 
 #[derive(Debug)]
 pub struct CameraController3D {

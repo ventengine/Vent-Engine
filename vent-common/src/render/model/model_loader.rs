@@ -38,6 +38,4 @@ impl ModelLoader3D {
 
         Self { vertices, indices }
     }
-
-
 }

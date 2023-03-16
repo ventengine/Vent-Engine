@@ -31,7 +31,11 @@ impl RuntimeRenderer {
         }
     }
 
-    pub fn render(&mut self, _window: &Window, camera: &mut dyn Camera) -> Result<(), SurfaceError> {
+    pub fn render(
+        &mut self,
+        _window: &Window,
+        camera: &mut dyn Camera,
+    ) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor {

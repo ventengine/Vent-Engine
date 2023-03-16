@@ -1,6 +1,5 @@
 use glam::Vec3;
 
-
 pub trait Camera {
     fn new() -> Self
     where

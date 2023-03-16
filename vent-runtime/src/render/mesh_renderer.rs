@@ -31,17 +31,13 @@ impl MeshRenderer {
         self.map.iter_mut()
     }
 
-    pub fn render<'rp>(
-        &'rp self,
-        rpass: &mut wgpu::RenderPass<'rp>,
-    ) {
+    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         for map in self.iter() {
             let mesh = map.1;
             mesh.bind(rpass);
             mesh.draw(rpass);
         }
     }
-
 }
 
 impl Default for MeshRenderer {

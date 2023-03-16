@@ -1,13 +1,13 @@
 use crate::render::Dimension;
 use bytemuck::{Pod, Zeroable};
 
+use crate::render::mesh_renderer::MeshRenderer;
 use std::mem;
 use vent_common::entity::camera::Camera;
-use vent_common::render::{DefaultRenderer, Vertex3D};
-use wgpu::util::DeviceExt;
 use vent_common::render::model::Mesh3D;
+use vent_common::render::{DefaultRenderer, Vertex3D};
 use vent_common::world::World;
-use crate::render::mesh_renderer::MeshRenderer;
+use wgpu::util::DeviceExt;
 
 pub struct VentApplicationManager {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
@@ -149,8 +149,8 @@ pub trait MultiDimensionRenderer {
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) -> Self
-        where
-            Self: Sized;
+    where
+        Self: Sized;
 
     fn resize(
         &mut self,
@@ -180,8 +180,8 @@ impl MultiDimensionRenderer for Renderer2D {
         _queue: &wgpu::Queue,
         _camera: &mut dyn Camera,
     ) -> Self
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         Self {}
     }
@@ -224,8 +224,8 @@ impl MultiDimensionRenderer for Renderer3D {
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) -> Self
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         // Create pipeline layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -411,7 +411,10 @@ impl MultiDimensionRenderer for Renderer3D {
         let mut world = World::default();
 
         let (vertex_data, index_data) = create_vertices();
-        mesh_renderer.insert(world.create_entity(), Mesh3D::new_from(device, vertex_data, index_data));
+        mesh_renderer.insert(
+            world.create_entity(),
+            Mesh3D::new_from(device, vertex_data, index_data),
+        );
 
         // -------------------------------
 

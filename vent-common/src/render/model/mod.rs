@@ -1,7 +1,7 @@
-use wgpu::Device;
-use wgpu::util::DeviceExt;
 use crate::render::model::model_loader::ModelLoader3D;
 use crate::render::Vertex3D;
+use wgpu::util::DeviceExt;
+use wgpu::Device;
 
 pub mod model_loader;
 
@@ -37,22 +37,16 @@ impl Mesh3D {
         Self {
             vertex_buf,
             index_buf,
-            index_count
+            index_count,
         }
     }
 
-    pub fn bind<'rp>(
-        &'rp self,
-        rpass: &mut wgpu::RenderPass<'rp>,
-    ) {
+    pub fn bind<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         rpass.set_index_buffer(self.index_buf.slice(..), wgpu::IndexFormat::Uint32);
         rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
     }
 
-    pub fn draw<'rp>(
-        &'rp self,
-        rpass: &mut wgpu::RenderPass<'rp>,
-    ) {
+    pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         rpass.draw_indexed(0..self.index_count as u32, 0, 0..1);
     }
 }
