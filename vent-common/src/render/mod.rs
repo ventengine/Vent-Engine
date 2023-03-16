@@ -2,7 +2,8 @@ pub mod model;
 
 use pollster::block_on;
 use wgpu::{
-    Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError,
+    Adapter, CreateSurfaceError, Device, Queue, RequestDeviceError, Surface, SurfaceCapabilities,
+    SurfaceConfiguration, SurfaceError,
 };
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
@@ -12,6 +13,7 @@ use log::debug;
 #[cfg(target_arch = "wasm32")]
 use std::str::FromStr;
 
+use crate::util::crash::crash;
 #[cfg(target_arch = "wasm32")]
 use web_sys::{ImageBitmapRenderingContext, OffscreenCanvas};
 
@@ -131,7 +133,13 @@ impl Renderer for DefaultRenderer {
 
         let surface = unsafe {
             #[cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))]
-            let surface = instance.create_surface(&window).unwrap();
+            let surface = match instance.create_surface(&window) {
+                Ok(t) => t,
+                Err(e) => {
+                    crash(format!("{e}"), 102);
+                    panic!()
+                }
+            };
             #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
             let surface = {
                 if let Some(offscreen_canvas_setup) = &offscreen_canvas_setup {
@@ -165,7 +173,7 @@ impl Renderer for DefaultRenderer {
         }
 
         let trace_dir = std::env::var("WGPU_TRACE");
-        let (device, queue) = block_on(adapter.request_device(
+        let (device, queue) = match block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
                 features: wgpu::Features::empty(),
@@ -176,8 +184,13 @@ impl Renderer for DefaultRenderer {
                 },
             },
             trace_dir.ok().as_ref().map(std::path::Path::new),
-        ))
-        .expect("Unable to find a suitable GPU adapter!");
+        )) {
+            Ok(t) => t,
+            Err(e) => {
+                crash(format!("{e}"), 102);
+                panic!()
+            }
+        };
 
         let size = window.inner_size();
         let config = surface

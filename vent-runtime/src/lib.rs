@@ -3,9 +3,10 @@ use crate::render::{Dimension, RuntimeRenderer};
 use std::time::Instant;
 
 use vent_common::component::components::camera_controller3d::CameraController3D;
-use vent_common::entities::camera::{Camera, Camera3D};
+use vent_common::entity::camera::{Camera, Camera3D};
 use vent_common::project::VentApplicationProject;
 use vent_common::render::Renderer;
+use vent_common::util::crash::crash;
 use vent_common::window::VentWindow;
 use winit::event::{Event, KeyboardInput, WindowEvent};
 use winit::window::WindowBuilder;
@@ -83,11 +84,12 @@ impl VentApplication {
                     last = now;
                     match renderer.render(&vent_window.window, &mut cam) {
                         Ok(_) => {}
-                        // Reconfigure the surface if it's lost or outdated
-                        // Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => render.resize(render.size),
-                        // The system is out of memory, we should probably quit
-                        Err(wgpu::SurfaceError::OutOfMemory) => control_flow.set_exit(),
-                        _ => {}
+                        Err(err) => {
+                            if err == wgpu::SurfaceError::OutOfMemory {
+                                control_flow.set_exit();
+                                crash(format!("{err}"), 101);
+                            }
+                        }
                     }
                 }
                 Event::MainEventsCleared => {

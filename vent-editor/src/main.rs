@@ -1,6 +1,8 @@
 use crate::render::EditorRenderer;
+use std::fmt::Display;
 use std::path::Path;
-use vent_common::entities::camera::{Camera, Camera3D};
+use vent_common::entity::camera::{Camera, Camera3D};
+use vent_common::util::crash::crash;
 use vent_common::window::VentWindow;
 use wgpu::SurfaceError;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
@@ -61,11 +63,13 @@ fn main() {
             Event::RedrawRequested(window_id) if window_id == vent_window.window.id() => {
                 match renderer.render(&vent_window.window, &mut camera) {
                     Ok(_) => {}
-                    // Reconfigure the surface if it's lost or outdated
-                    // Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => render.resize(render.size),
-                    // The system is out of memory, we should probably quit
-                    Err(SurfaceError::OutOfMemory) => control_flow.set_exit(),
-                    _ => {}
+                    Err(err) => match err {
+                        wgpu::SurfaceError::OutOfMemory => {
+                            control_flow.set_exit();
+                            crash(format!("{err}"), 101);
+                        }
+                        _ => {}
+                    },
                 }
             }
             Event::MainEventsCleared => {

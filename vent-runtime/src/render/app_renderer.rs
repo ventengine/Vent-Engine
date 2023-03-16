@@ -2,7 +2,7 @@ use crate::render::Dimension;
 use bytemuck::{Pod, Zeroable};
 
 use std::mem;
-use vent_common::entities::camera::BasicCameraImpl;
+use vent_common::entity::camera::BasicCameraImpl;
 use vent_common::render::{DefaultRenderer, Vertex3D};
 use wgpu::util::DeviceExt;
 

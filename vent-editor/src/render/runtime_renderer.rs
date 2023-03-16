@@ -1,4 +1,4 @@
-use vent_common::entities::camera::BasicCameraImpl;
+use vent_common::entity::camera::BasicCameraImpl;
 use vent_common::render::DefaultRenderer;
 use vent_runtime::render::app_renderer::VentApplicationManager;
 use vent_runtime::render::Dimension;

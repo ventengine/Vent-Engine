@@ -1,4 +1,4 @@
-use vent_common::entities::camera::BasicCameraImpl;
+use vent_common::entity::camera::BasicCameraImpl;
 use vent_common::render::{DefaultRenderer, Renderer};
 use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;

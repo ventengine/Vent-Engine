@@ -1,4 +1,4 @@
-use crate::entities::camera::Camera3D;
+use crate::entity::camera::Camera3D;
 use glam::Vec3;
 use std::time::Duration;
 use winit::event::{ElementState, VirtualKeyCode};

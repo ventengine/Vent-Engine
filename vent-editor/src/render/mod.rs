@@ -1,6 +1,6 @@
 use crate::render::gui_renderer::EguiRenderer;
 use crate::render::runtime_renderer::EditorRuntimeRenderer;
-use vent_common::entities::camera::BasicCameraImpl;
+use vent_common::entity::camera::BasicCameraImpl;
 use vent_common::render::{DefaultRenderer, Renderer};
 use vent_runtime::render::Dimension;
 
@@ -101,10 +101,12 @@ impl EditorRenderer {
             .queue
             .submit(std::iter::once(encoder.finish()));
 
-        self.editor_runtime_renderer
-            .render(window, &mut encoder2, &self.default_renderer.queue, camera)
-            .expect("Failed to Render Runtime inside Editor");
-
+        self.editor_runtime_renderer.render(
+            window,
+            &mut encoder2,
+            &self.default_renderer.queue,
+            camera,
+        )?;
         self.default_renderer
             .queue
             .submit(std::iter::once(encoder2.finish()));

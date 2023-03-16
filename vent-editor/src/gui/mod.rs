@@ -1,8 +1,5 @@
 use egui::epaint::ahash::{HashSet, HashSetExt};
-use egui::{
-    CentralPanel, Color32, Frame, RichText, TextBuffer, TopBottomPanel, Ui,
-    WidgetText,
-};
+use egui::{CentralPanel, Color32, Frame, RichText, TextBuffer, TopBottomPanel, Ui, WidgetText};
 use egui_dock::{DockArea, Node, NodeIndex, TabViewer, Tree};
 
 pub(crate) struct EditorViewer {
