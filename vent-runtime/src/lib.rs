@@ -1,6 +1,6 @@
 use crate::render::{Dimension, RuntimeRenderer};
 
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use vent_common::component::components::camera_controller3d::CameraController3D;
 use vent_common::entity::camera::{Camera, Camera3D};
@@ -8,7 +8,7 @@ use vent_common::project::VentApplicationProject;
 use vent_common::render::Renderer;
 use vent_common::util::crash::crash;
 use vent_common::window::VentWindow;
-use winit::event::{Event, KeyboardInput, WindowEvent};
+use winit::event::{DeviceEvent, ElementState, Event, KeyboardInput, WindowEvent};
 use winit::window::WindowBuilder;
 
 pub mod render;
@@ -43,9 +43,10 @@ impl VentApplication {
         let mut renderer =
             RuntimeRenderer::new(Dimension::D3, Renderer::new(&vent_window.window), &mut cam);
 
-        let mut controller = CameraController3D::new(1.0, 10.0);
+        let mut controller = CameraController3D::new(50.0, 10.0);
 
         let mut last = Instant::now();
+        let mut delta = Duration::ZERO;
         vent_window.event_loop.run(move |event, _, control_flow| {
             control_flow.set_wait();
 
@@ -58,14 +59,14 @@ impl VentApplication {
                         WindowEvent::CloseRequested => control_flow.set_exit(),
                         WindowEvent::KeyboardInput {
                             input:
-                                KeyboardInput {
-                                    state,
-                                    virtual_keycode: Some(key),
-                                    ..
-                                },
+                            KeyboardInput {
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(key),
+                                ..
+                            },
                             ..
                         } => {
-                            controller.process_keyboard(key, *state);
+                            controller.process_keyboard(&mut cam, key, delta.as_secs_f32());
                         }
                         WindowEvent::Resized(physical_size) => {
                             renderer.resize(&vent_window.window, *physical_size, &mut cam);
@@ -77,10 +78,15 @@ impl VentApplication {
                         _ => {}
                     }
                 }
+                Event::DeviceEvent {
+                    event: DeviceEvent::MouseMotion { delta, },
+                    .. // We're not using device_id currently
+                } => {
+                   controller.process_mouse(&mut cam, delta.0, delta.1)
+                }
                 Event::RedrawRequested(window_id) if window_id == vent_window.window.id() => {
                     let now = Instant::now();
-                    let delta = now - last;
-                    controller.update_camera(&mut cam, delta);
+                    delta = now - last;
                     last = now;
                     match renderer.render(&vent_window.window, &mut cam) {
                         Ok(_) => {}

@@ -1,4 +1,4 @@
-use vent_common::entity::camera::BasicCameraImpl;
+use vent_common::entity::camera::Camera;
 use vent_common::render::{DefaultRenderer, Renderer};
 use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;
@@ -22,7 +22,7 @@ impl RuntimeRenderer {
     pub fn new(
         dimension: Dimension,
         default_renderer: DefaultRenderer,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) -> Self {
         Self {
             app_renderer: VentApplicationManager::new(dimension, &default_renderer, camera),
@@ -30,11 +30,7 @@ impl RuntimeRenderer {
         }
     }
 
-    pub fn render(
-        &self,
-        _window: &Window,
-        camera: &mut dyn BasicCameraImpl,
-    ) -> Result<(), SurfaceError> {
+    pub fn render(&self, _window: &Window, camera: &mut dyn Camera) -> Result<(), SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
@@ -83,7 +79,7 @@ impl RuntimeRenderer {
         &mut self,
         window: &Window,
         new_size: PhysicalSize<u32>,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) {
         Renderer::resize(&mut self.default_renderer, window, new_size);
         self.app_renderer.resize(

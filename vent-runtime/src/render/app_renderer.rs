@@ -2,7 +2,7 @@ use crate::render::Dimension;
 use bytemuck::{Pod, Zeroable};
 
 use std::mem;
-use vent_common::entity::camera::BasicCameraImpl;
+use vent_common::entity::camera::Camera;
 use vent_common::render::{DefaultRenderer, Vertex3D};
 use wgpu::util::DeviceExt;
 
@@ -14,7 +14,7 @@ impl VentApplicationManager {
     pub fn new(
         dimension: Dimension,
         default_renderer: &DefaultRenderer,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) -> Self {
         Self {
             multi_renderer: match dimension {
@@ -43,7 +43,7 @@ impl VentApplicationManager {
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
         aspect_ratio: f32,
     ) {
         self.multi_renderer
@@ -55,7 +55,7 @@ impl VentApplicationManager {
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) {
         self.multi_renderer.resize(config, _device, queue, camera);
     }
@@ -144,7 +144,7 @@ pub trait MultiDimensionRenderer {
         _adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) -> Self
     where
         Self: Sized;
@@ -154,7 +154,7 @@ pub trait MultiDimensionRenderer {
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     );
 
     fn render(
@@ -162,7 +162,7 @@ pub trait MultiDimensionRenderer {
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
         aspect_ratio: f32,
     );
 }
@@ -175,7 +175,7 @@ impl MultiDimensionRenderer for Renderer2D {
         _adapter: &wgpu::Adapter,
         _device: &wgpu::Device,
         _queue: &wgpu::Queue,
-        _camera: &mut dyn BasicCameraImpl,
+        _camera: &mut dyn Camera,
     ) -> Self
     where
         Self: Sized,
@@ -188,7 +188,7 @@ impl MultiDimensionRenderer for Renderer2D {
         _config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         _queue: &wgpu::Queue,
-        _camera: &mut dyn BasicCameraImpl,
+        _camera: &mut dyn Camera,
     ) {
         todo!()
     }
@@ -198,7 +198,7 @@ impl MultiDimensionRenderer for Renderer2D {
         _encoder: &mut wgpu::CommandEncoder,
         _view: &wgpu::TextureView,
         _queue: &wgpu::Queue,
-        _camera: &mut dyn BasicCameraImpl,
+        _camera: &mut dyn Camera,
         _aspect_ratio: f32,
     ) {
         todo!()
@@ -221,7 +221,7 @@ impl MultiDimensionRenderer for Renderer3D {
         _adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) -> Self
     where
         Self: Sized,
@@ -438,7 +438,7 @@ impl MultiDimensionRenderer for Renderer3D {
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
     ) {
         let mx_total =
             camera.build_view_projection_matrix(config.width as f32 / config.height as f32);
@@ -451,7 +451,7 @@ impl MultiDimensionRenderer for Renderer3D {
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
-        camera: &mut dyn BasicCameraImpl,
+        camera: &mut dyn Camera,
         aspect_ratio: f32,
     ) {
         let mx_total = camera.build_view_projection_matrix(aspect_ratio);
