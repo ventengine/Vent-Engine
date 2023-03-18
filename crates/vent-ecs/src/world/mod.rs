@@ -1,5 +1,5 @@
-use std::any::Any;
 use crate::component::{Component, Entity};
+use std::any::Any;
 
 #[derive(Default)]
 pub struct World {
@@ -48,5 +48,3 @@ impl World {
         self.entities.iter()
     }
 }
-
-

@@ -2,6 +2,7 @@ use crate::render::{Dimension, RuntimeRenderer};
 
 use std::time::{Duration, Instant};
 
+use vent_common::components::camera_controller3d::CameraController3D;
 use vent_common::entity::camera::{Camera, Camera3D};
 use vent_common::project::VentApplicationProject;
 use vent_common::render::Renderer;
@@ -9,7 +10,6 @@ use vent_common::util::crash::crash;
 use vent_common::window::VentWindow;
 use winit::event::{DeviceEvent, ElementState, Event, KeyboardInput, WindowEvent};
 use winit::window::WindowBuilder;
-use vent_common::components::camera_controller3d::CameraController3D;
 
 pub mod render;
 
