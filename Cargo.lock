@@ -2535,6 +2535,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "vent-ecs"
+version = "0.1.0"
+dependencies = [
+ "winit",
+]
+
+[[package]]
 name = "vent-editor"
 version = "0.1.0"
 dependencies = [
@@ -2562,6 +2569,7 @@ dependencies = [
  "log",
  "pollster",
  "vent-common",
+ "vent-ecs",
  "wgpu",
  "winit",
 ]

@@ -6,8 +6,8 @@ use std::mem;
 use vent_common::entity::camera::Camera;
 use vent_common::render::model::Mesh3D;
 use vent_common::render::{DefaultRenderer, Vertex3D};
-use vent_common::world::World;
 use wgpu::util::DeviceExt;
+use vent_ecs::world::World;
 
 pub struct VentApplicationManager {
     multi_renderer: Box<dyn MultiDimensionRenderer>,

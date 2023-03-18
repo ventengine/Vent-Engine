@@ -1,5 +1,5 @@
-use crate::component::{Component, Entity};
 use std::any::Any;
+use crate::component::{Component, Entity};
 
 #[derive(Default)]
 pub struct World {

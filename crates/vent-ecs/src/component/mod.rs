@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-pub mod components;
 mod input_component;
 
 pub type Entity = usize;

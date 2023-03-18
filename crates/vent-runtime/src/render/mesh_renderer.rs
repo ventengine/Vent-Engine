@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use vent_common::component::Entity;
 use vent_common::render::model::Mesh3D;
+use vent_ecs::component::Entity;
 
 #[derive(Default)]
 pub struct MeshRenderer {
