@@ -4,7 +4,9 @@ struct VertexOutput {
 };
 
 struct UBO {
-    view_proj: mat4x4<f32>
+    projection: mat4x4<f32>,
+    view: mat4x4<f32>,
+    transformation: mat4x4<f32>,
 }
 
 @group(0)
@@ -18,7 +20,7 @@ fn vs_main(
 ) -> VertexOutput {
     var result: VertexOutput;
     result.tex_coord = tex_coord;
-    result.position = ubo.view_proj * vec4(position, 1.0);
+    result.position = ubo.projection * ubo.view * ubo.transformation * vec4(position, 1.0);
     return result;
 }
 

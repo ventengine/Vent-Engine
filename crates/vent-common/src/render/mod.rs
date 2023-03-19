@@ -54,6 +54,20 @@ pub struct DefaultRenderer {
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
+pub struct UBO3D {
+    pub projection: [[f32; 4]; 4],
+    pub(crate) view: [[f32; 4]; 4],
+    pub(crate) transformation: [[f32; 4]; 4],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct UBO2D {
+}
+
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
 pub struct Vertex3D {
     pub _pos: [f32; 3],
     pub _tex_coord: [f32; 2],
@@ -95,7 +109,7 @@ impl Renderer for DefaultRenderer {
         }
 
         #[cfg(target_arch = "wasm32")]
-        let mut offscreen_canvas_setup: Option<OffscreenCanvasSetup> = None;
+            let mut offscreen_canvas_setup: Option<OffscreenCanvasSetup> = None;
         #[cfg(target_arch = "wasm32")]
         {
             use wasm_bindgen::JsCast;
@@ -129,7 +143,7 @@ impl Renderer for DefaultRenderer {
 
         let surface = unsafe {
             #[cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))]
-            let surface = match instance.create_surface(&window) {
+                let surface = match instance.create_surface(&window) {
                 Ok(t) => t,
                 Err(e) => {
                     crash(format!("{e}"), 102);
@@ -137,7 +151,7 @@ impl Renderer for DefaultRenderer {
                 }
             };
             #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
-            let surface = {
+                let surface = {
                 if let Some(offscreen_canvas_setup) = &offscreen_canvas_setup {
                     log::info!("Creating surface from OffscreenCanvas");
                     instance.create_surface_from_offscreen_canvas(
@@ -147,7 +161,7 @@ impl Renderer for DefaultRenderer {
                     instance.create_surface(&window)
                 }
             }
-            .unwrap();
+                .unwrap();
 
             surface
         };
@@ -156,7 +170,7 @@ impl Renderer for DefaultRenderer {
             backends,
             Some(&surface),
         ))
-        .expect("No suitable GPU adapters found on the system!");
+            .expect("No suitable GPU adapters found on the system!");
 
         #[cfg(not(target_arch = "wasm32"))]
         {

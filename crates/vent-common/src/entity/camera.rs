@@ -1,10 +1,14 @@
-use glam::Vec3;
+use glam::{Mat4, Vec3, Vec4};
+use crate::render::{UBO2D, UBO3D};
 
 pub trait Camera {
     fn new() -> Self
-    where
-        Self: Sized;
-    fn build_view_projection_matrix(&mut self, aspect_ratio: f32) -> glam::Mat4;
+        where
+            Self: Sized;
+    // ugly i know :c
+    fn build_view_matrix_2d(&mut self, aspect_ratio: f32) -> UBO2D;
+
+    fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D;
 }
 
 pub struct BasicCamera {
@@ -32,8 +36,8 @@ pub struct Camera2D {
 
 impl Camera for Camera2D {
     fn new() -> Self
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         Self {
             basic_cam: BasicCamera::default(),
@@ -41,7 +45,11 @@ impl Camera for Camera2D {
         }
     }
 
-    fn build_view_projection_matrix(&mut self, _aspect_ratio: f32) -> glam::Mat4 {
+    fn build_view_matrix_2d(&mut self, aspect_ratio: f32) -> UBO2D {
+        todo!()
+    }
+
+    fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
         todo!()
     }
 }
@@ -53,8 +61,8 @@ pub struct Camera3D {
 
 impl Camera for Camera3D {
     fn new() -> Self
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         Self {
             basic_cam: BasicCamera::default(),
@@ -62,7 +70,11 @@ impl Camera for Camera3D {
         }
     }
 
-    fn build_view_projection_matrix(&mut self, aspect_ratio: f32) -> glam::Mat4 {
+    fn build_view_matrix_2d(&mut self, aspect_ratio: f32) -> UBO2D {
+        todo!()
+    }
+
+    fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
         let projection = glam::Mat4::perspective_lh(
             self.basic_cam.fovy.to_radians(),
             aspect_ratio,
@@ -75,8 +87,11 @@ impl Camera for Camera3D {
             self.position + self.direction_from_rotation(),
             glam::Vec3::Y,
         );
-
-        projection * view
+       UBO3D {
+            projection: projection.to_cols_array_2d(),
+            view: view.to_cols_array_2d(),
+            transformation: Mat4::from_cols(Vec4::ONE, Vec4::ONE, Vec4::ONE, Vec4::ONE).to_cols_array_2d(),
+        }
     }
 }
 

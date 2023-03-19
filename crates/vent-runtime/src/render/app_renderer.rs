@@ -5,7 +5,7 @@ use crate::render::mesh_renderer::MeshRenderer;
 use std::mem;
 use vent_common::entity::camera::Camera;
 use vent_common::render::model::Mesh3D;
-use vent_common::render::{DefaultRenderer, Vertex3D};
+use vent_common::render::{DefaultRenderer, UBO3D, Vertex3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
@@ -133,12 +133,6 @@ fn create_texels(size: usize) -> Vec<u8> {
             count
         })
         .collect()
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-struct UBO3D {
-    view_proj: [[f32; 4]; 4],
 }
 
 pub trait MultiDimensionRenderer {
@@ -292,11 +286,8 @@ impl MultiDimensionRenderer for Renderer3D {
         );
 
         // Create other resources
-        let mx_total =
-            camera.build_view_projection_matrix(config.width as f32 / config.height as f32);
-        let ubo = UBO3D {
-            view_proj: mx_total.to_cols_array_2d(),
-        };
+        let ubo =
+            camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents: bytemuck::bytes_of(&ubo),
@@ -413,8 +404,10 @@ impl MultiDimensionRenderer for Renderer3D {
         let (vertex_data, index_data) = create_vertices();
         mesh_renderer.insert(
             world.create_entity(),
-            Mesh3D::new_from(device, vertex_data, index_data),
-        );
+            Mesh3D::new(device, concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/models/test/Sponza/sponza.obj"
+            )));
 
         // -------------------------------
 
@@ -434,9 +427,9 @@ impl MultiDimensionRenderer for Renderer3D {
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) {
-        let mx_total =
-            camera.build_view_projection_matrix(config.width as f32 / config.height as f32);
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
+        let ubo =
+            camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
+        let mx_ref: &[[f32; 4]] = ubo.projection.as_ref();
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }
 
@@ -448,10 +441,7 @@ impl MultiDimensionRenderer for Renderer3D {
         camera: &mut dyn Camera,
         aspect_ratio: f32,
     ) {
-        let mx_total = camera.build_view_projection_matrix(aspect_ratio);
-        let ubo = UBO3D {
-            view_proj: mx_total.to_cols_array_2d(),
-        };
+        let ubo = camera.build_view_matrix_3d(aspect_ratio);
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
