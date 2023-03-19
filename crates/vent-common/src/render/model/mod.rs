@@ -1,11 +1,16 @@
 use crate::render::model::model_loader::ModelLoader3D;
 use crate::render::Vertex3D;
+use glam::Vec3;
 use wgpu::util::DeviceExt;
 use wgpu::Device;
 
 pub mod model_loader;
 
 pub struct Mesh3D {
+    pub position: glam::Vec3,
+    pub rotation: glam::Vec3,
+    pub scale: glam::Vec3,
+
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
 
@@ -35,6 +40,9 @@ impl Mesh3D {
         let index_count = indices.len();
 
         Self {
+            position: Vec3::ZERO,
+            rotation: Vec3::ZERO,
+            scale: Vec3::ONE,
             vertex_buf,
             index_buf,
             index_count,

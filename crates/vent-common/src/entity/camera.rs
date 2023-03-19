@@ -1,10 +1,10 @@
-use glam::{Mat4, Vec3, Vec4};
 use crate::render::{UBO2D, UBO3D};
+use glam::{Mat4, Vec3, Vec4};
 
 pub trait Camera {
     fn new() -> Self
-        where
-            Self: Sized;
+    where
+        Self: Sized;
     // ugly i know :c
     fn build_view_matrix_2d(&mut self, aspect_ratio: f32) -> UBO2D;
 
@@ -36,8 +36,8 @@ pub struct Camera2D {
 
 impl Camera for Camera2D {
     fn new() -> Self
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         Self {
             basic_cam: BasicCamera::default(),
@@ -61,8 +61,8 @@ pub struct Camera3D {
 
 impl Camera for Camera3D {
     fn new() -> Self
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         Self {
             basic_cam: BasicCamera::default(),
@@ -87,10 +87,11 @@ impl Camera for Camera3D {
             self.position + self.direction_from_rotation(),
             glam::Vec3::Y,
         );
-       UBO3D {
+        UBO3D {
             projection: projection.to_cols_array_2d(),
             view: view.to_cols_array_2d(),
-            transformation: Mat4::from_cols(Vec4::ONE, Vec4::ONE, Vec4::ONE, Vec4::ONE).to_cols_array_2d(),
+            transformation: Mat4::from_cols(Vec4::ONE, Vec4::ONE, Vec4::ONE, Vec4::ONE)
+                .to_cols_array_2d(),
         }
     }
 }
@@ -100,6 +101,6 @@ impl Camera3D {
         let rot = self.basic_cam.rotation;
         let cos_y = self.basic_cam.rotation.y.cos();
 
-        Vec3::new(rot.x.sin() * cos_y, rot.y.sin(), rot.x.cos() * cos_y)
+        glam::vec3(rot.x.sin() * cos_y, rot.y.sin(), rot.x.cos() * cos_y)
     }
 }

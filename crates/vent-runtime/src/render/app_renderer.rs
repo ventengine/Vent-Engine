@@ -1,11 +1,11 @@
 use crate::render::Dimension;
 use bytemuck::{Pod, Zeroable};
 
-use crate::render::mesh_renderer::MeshRenderer;
+use crate::render::mesh_renderer::MeshRenderer3D;
 use std::mem;
 use vent_common::entity::camera::Camera;
 use vent_common::render::model::Mesh3D;
-use vent_common::render::{DefaultRenderer, UBO3D, Vertex3D};
+use vent_common::render::{DefaultRenderer, Vertex3D, UBO3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
@@ -203,7 +203,7 @@ impl MultiDimensionRenderer for Renderer2D {
 }
 
 pub struct Renderer3D {
-    mesh_renderer: MeshRenderer,
+    mesh_renderer: MeshRenderer3D,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
@@ -286,8 +286,7 @@ impl MultiDimensionRenderer for Renderer3D {
         );
 
         // Create other resources
-        let ubo =
-            camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
+        let ubo = camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents: bytemuck::bytes_of(&ubo),
@@ -396,7 +395,7 @@ impl MultiDimensionRenderer for Renderer3D {
             None
         };
 
-        let mut mesh_renderer = MeshRenderer::default();
+        let mut mesh_renderer = MeshRenderer3D::default();
 
         // -------------- DEMO -------------------
         let mut world = World::default();
@@ -404,10 +403,14 @@ impl MultiDimensionRenderer for Renderer3D {
         let (vertex_data, index_data) = create_vertices();
         mesh_renderer.insert(
             world.create_entity(),
-            Mesh3D::new(device, concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/models/test/Sponza/sponza.obj"
-            )));
+            Mesh3D::new(
+                device,
+                concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/assets/models/test/Sponza/sponza.obj"
+                ),
+            ),
+        );
 
         // -------------------------------
 
@@ -427,8 +430,7 @@ impl MultiDimensionRenderer for Renderer3D {
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) {
-        let ubo =
-            camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
+        let ubo = camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
         let mx_ref: &[[f32; 4]] = ubo.projection.as_ref();
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }

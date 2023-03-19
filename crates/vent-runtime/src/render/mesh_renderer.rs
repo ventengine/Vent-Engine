@@ -1,13 +1,15 @@
+use glam::Vec3;
 use std::collections::HashMap;
 use vent_common::render::model::Mesh3D;
+use vent_common::render::UBO3D;
 use vent_ecs::component::Entity;
 
 #[derive(Default)]
-pub struct MeshRenderer {
+pub struct MeshRenderer3D {
     map: HashMap<Entity, Mesh3D>,
 }
 
-impl MeshRenderer {
+impl MeshRenderer3D {
     pub fn insert(&mut self, entity: Entity, mesh: Mesh3D) {
         self.map.insert(entity, mesh);
     }
@@ -39,4 +41,12 @@ impl MeshRenderer {
             mesh.draw(rpass);
         }
     }
+
+    //  pub fn update_trans_matrix(&self, object: Mesh3D, ubo: &mut UBO3D) {
+    //      // TODO: Scale
+    //
+    //      ubo.transformation = glm::rotate(ubo_vs.trans, object.rotation.x.to_radians(), glm::vec3(1.0f, 0.0f, 0.0f));
+    //    ubo.transformation = glm::rotate(ubo_vs.trans, object.rotation.y.to_radians(), glm::vec3(0.0f, 1.0f, 0.0f));
+    //    ubo.transformation = glm::rotate(ubo_vs.trans, object.rotation.z.to_radians(), glm::vec3(0.0f, 0.0f, 1.0f));
+    //}
 }

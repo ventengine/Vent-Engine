@@ -2541,6 +2541,7 @@ dependencies = [
  "russimp",
  "serde",
  "serde_json",
+ "vent-ecs",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
