@@ -1,5 +1,5 @@
 use crate::render::{UBO2D, UBO3D};
-use glam::{Mat4, Vec3, Vec4};
+use glam::{Mat4, Vec4};
 
 pub trait Camera {
     fn new() -> Self
@@ -45,11 +45,11 @@ impl Camera for Camera2D {
         }
     }
 
-    fn build_view_matrix_2d(&mut self, aspect_ratio: f32) -> UBO2D {
+    fn build_view_matrix_2d(&mut self, _aspect_ratio: f32) -> UBO2D {
         todo!()
     }
 
-    fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
+    fn build_view_matrix_3d(&mut self, _aspect_ratio: f32) -> UBO3D {
         todo!()
     }
 }
@@ -70,7 +70,7 @@ impl Camera for Camera3D {
         }
     }
 
-    fn build_view_matrix_2d(&mut self, aspect_ratio: f32) -> UBO2D {
+    fn build_view_matrix_2d(&mut self, _aspect_ratio: f32) -> UBO2D {
         todo!()
     }
 

@@ -1,5 +1,5 @@
 use crate::render::Dimension;
-use bytemuck::{Pod, Zeroable};
+
 
 use crate::render::mesh_renderer::MeshRenderer3D;
 use std::mem;
@@ -400,7 +400,7 @@ impl MultiDimensionRenderer for Renderer3D {
         // -------------- DEMO -------------------
         let mut world = World::default();
 
-        let (vertex_data, index_data) = create_vertices();
+        let (_vertex_data, _index_data) = create_vertices();
         mesh_renderer.insert(
             world.create_entity(),
             Mesh3D::new(

@@ -1,7 +1,7 @@
-use glam::Vec3;
+
 use std::collections::HashMap;
 use vent_common::render::model::Mesh3D;
-use vent_common::render::UBO3D;
+
 use vent_ecs::component::Entity;
 
 #[derive(Default)]
