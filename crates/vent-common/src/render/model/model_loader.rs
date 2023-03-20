@@ -7,6 +7,8 @@ pub struct ModelLoader3D {
 }
 
 impl ModelLoader3D {
+    #[inline]
+    #[must_use]
     pub fn load(path: &str) -> Self {
         let scene = russimp::scene::Scene::from_file(
             path,

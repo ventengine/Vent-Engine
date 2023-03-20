@@ -58,6 +58,7 @@ pub struct UBO3D {
     pub projection: [[f32; 4]; 4],
     pub(crate) view: [[f32; 4]; 4],
     pub transformation: [[f32; 4]; 4],
+    // [[f32; 4]; 4]
 }
 
 #[repr(C)]

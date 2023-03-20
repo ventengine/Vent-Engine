@@ -1,6 +1,5 @@
 use crate::render::Dimension;
 
-
 use crate::render::mesh_renderer::MeshRenderer3D;
 use std::mem;
 use vent_common::entity::camera::Camera;

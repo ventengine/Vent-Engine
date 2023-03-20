@@ -6,8 +6,10 @@ pub trait Camera {
     where
         Self: Sized;
     // ugly i know :c
+    #[must_use]
     fn build_view_matrix_2d(&mut self, aspect_ratio: f32) -> UBO2D;
 
+    #[must_use]
     fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D;
 }
 
@@ -19,6 +21,7 @@ pub struct BasicCamera {
 }
 
 impl Default for BasicCamera {
+    #[inline]
     fn default() -> Self {
         Self {
             fovy: 60.0,
@@ -35,6 +38,8 @@ pub struct Camera2D {
 }
 
 impl Camera for Camera2D {
+    #[inline]
+    #[must_use]
     fn new() -> Self
     where
         Self: Sized,
@@ -45,10 +50,12 @@ impl Camera for Camera2D {
         }
     }
 
+    #[must_use]
     fn build_view_matrix_2d(&mut self, _aspect_ratio: f32) -> UBO2D {
         todo!()
     }
 
+    #[must_use]
     fn build_view_matrix_3d(&mut self, _aspect_ratio: f32) -> UBO3D {
         todo!()
     }
@@ -60,6 +67,8 @@ pub struct Camera3D {
 }
 
 impl Camera for Camera3D {
+    #[inline]
+    #[must_use]
     fn new() -> Self
     where
         Self: Sized,
@@ -70,10 +79,12 @@ impl Camera for Camera3D {
         }
     }
 
+    #[must_use]
     fn build_view_matrix_2d(&mut self, _aspect_ratio: f32) -> UBO2D {
         todo!()
     }
 
+    #[must_use]
     fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
         let projection = glam::Mat4::perspective_lh(
             self.basic_cam.fovy.to_radians(),
@@ -97,6 +108,8 @@ impl Camera for Camera3D {
 }
 
 impl Camera3D {
+    #[inline]
+    #[must_use]
     fn direction_from_rotation(&self) -> glam::Vec3 {
         let rot = self.basic_cam.rotation;
         let cos_y = self.basic_cam.rotation.y.cos();

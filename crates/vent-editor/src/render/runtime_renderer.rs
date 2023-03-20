@@ -7,7 +7,7 @@ use wgpu::{
     TextureDimension,
 };
 
-pub(crate) struct EditorRuntimeRenderer {
+pub struct EditorRuntimeRenderer {
     texture: Texture,
     app_renderer: VentApplicationManager,
     extent: Extent3d,

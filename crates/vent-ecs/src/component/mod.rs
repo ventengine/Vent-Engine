@@ -35,6 +35,7 @@ impl<T> Component<T> {
 }
 
 impl<T> Default for Component<T> {
+    #[inline]
     fn default() -> Self {
         Self {
             map: HashMap::new(),

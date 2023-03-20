@@ -9,6 +9,8 @@ pub struct CameraController3D {
 }
 
 impl CameraController3D {
+    #[inline]
+    #[must_use]
     pub fn new(speed: f32, sensitivity: f32) -> Self {
         Self {
             speed,

@@ -13,6 +13,7 @@ impl VentWindow {
         Self { window, event_loop }
     }
 
+    #[must_use]
     pub fn load_icon(path: &Path) -> winit::window::Icon {
         let (icon_rgba, icon_width, icon_height) = {
             let image = image::open(path)

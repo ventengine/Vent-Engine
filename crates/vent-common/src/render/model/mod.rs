@@ -18,6 +18,7 @@ pub struct Mesh3D {
 }
 
 impl Mesh3D {
+    #[inline(always)]
     pub fn new(device: &Device, path: &str) -> Self {
         let model = ModelLoader3D::load(path);
 
