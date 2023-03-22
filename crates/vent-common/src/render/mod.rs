@@ -78,6 +78,7 @@ pub trait Renderer {
 }
 
 impl Renderer for DefaultRenderer {
+    #[must_use]
     fn new(window: &Window) -> Self {
         let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
         let dx12_shader_compiler = wgpu::util::dx12_shader_compiler_from_env().unwrap_or_default();
