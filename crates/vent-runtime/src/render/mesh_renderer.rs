@@ -12,13 +12,11 @@ pub struct MeshRenderer3D {
 
 impl MeshRenderer3D {
     #[inline]
-    #[must_use]
     pub fn insert(&mut self, entity: Entity, mesh: Mesh3D) {
         self.map.insert(entity, mesh);
     }
 
     #[inline]
-    #[must_use]
     pub fn remove(&mut self, entity: Entity) {
         self.map.remove(&entity);
     }
