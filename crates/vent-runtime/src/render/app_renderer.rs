@@ -399,16 +399,14 @@ impl MultiDimensionRenderer for Renderer3D {
         // -------------- DEMO -------------------
         let mut world = World::default();
 
-        let (_vertex_data, _index_data) = create_vertices();
+        let (vertex_data, index_data) = create_vertices();
+        let _i = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/models/test/Sponza/sponza.obj"
+        );
         mesh_renderer.insert(
             world.create_entity(),
-            Mesh3D::new(
-                device,
-                concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/assets/models/test/Sponza/sponza.obj"
-                ),
-            ),
+            Mesh3D::new_from(device, vertex_data, index_data),
         );
 
         // -------------------------------
@@ -442,7 +440,7 @@ impl MultiDimensionRenderer for Renderer3D {
         camera: &mut dyn Camera,
         aspect_ratio: f32,
     ) {
-        let ubo = camera.build_view_matrix_3d(aspect_ratio);
+        let mut ubo = camera.build_view_matrix_3d(aspect_ratio);
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -465,12 +463,10 @@ impl MultiDimensionRenderer for Renderer3D {
             rpass.push_debug_group("Prepare data for draw.");
             rpass.set_pipeline(&self.pipeline);
             rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.pop_debug_group();
-            rpass.insert_debug_marker("Draw!");
-            self.mesh_renderer.render(&mut rpass);
+            self.mesh_renderer.render(&mut rpass, &mut ubo);
             if let Some(ref pipe) = self.pipeline_wire {
                 rpass.set_pipeline(pipe);
-                self.mesh_renderer.render(&mut rpass);
+                self.mesh_renderer.render(&mut rpass, &mut ubo);
             }
         }
     }
