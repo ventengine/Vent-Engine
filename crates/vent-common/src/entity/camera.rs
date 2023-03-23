@@ -1,5 +1,5 @@
 use crate::render::{UBO2D, UBO3D};
-use glam::{Mat4, Vec4};
+use glam::{Mat4, Vec3, Vec4};
 
 pub trait Camera {
     fn new() -> Self
@@ -75,7 +75,7 @@ impl Camera for Camera3D {
     {
         Self {
             basic_cam: BasicCamera::default(),
-            position: glam::vec3(1.5, 1.0, -6.0),
+            position: Vec3::ZERO,
         }
     }
 
@@ -86,6 +86,7 @@ impl Camera for Camera3D {
 
     #[must_use]
     fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
+        println!("{}", self.position);
         let projection = glam::Mat4::perspective_lh(
             self.basic_cam.fovy.to_radians(),
             aspect_ratio,
