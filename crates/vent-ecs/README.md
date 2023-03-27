@@ -1,0 +1,21 @@
+### Vent-ECS
+
+Vent-ECS is a lightweight and
+flexible [Entity Component System](https://en.wikipedia.org/wiki/Entity_component_system) (ECS) library designed for
+game development in Rust. It allows game developers to create entities and components, and easily handle their
+relationships and interactions with each other.
+
+### 🏆 Goals
+
+- Lightweight and fast
+- Flexible and customizable
+- Supports both single-threaded and multi-threaded systems
+- Designed to be used with the Vent Engine but can be used independently in other Rust projects
+
+## Contributing
+
+If you're interested in contributing to Vent-ECS, please fork the repository and submit a pull request. We welcome
+contributions of all kinds, including bug fixes, new features, and documentation improvements.
+License
+
+Vent-ECS is licensed under the MIT license. See the LICENSE file for more details.

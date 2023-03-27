@@ -11,13 +11,13 @@
 
 ### 🏆 Goals
 
-- [X] **Built in Rust:** At Vent-Engine, we believe in the power of Rust and strive to avoid any bindings to other
+- **Built in Rust:** At Vent-Engine, we believe in the power of Rust and strive to avoid any bindings to other
   languages.
-- [X] **Optimized for Performance:** Our engine places a strong emphasis on performance. By utilizing WGPU, we leverage
+- **Optimized for Performance:** Our engine places a strong emphasis on performance. By utilizing WGPU, we leverage
   native APIs to deliver top-tier results.
-- [X] **Designed for Accessibility:** Our engine is designed to be user-friendly, making it easy for you to focus on
+- **Designed for Accessibility:** Our engine is designed to be user-friendly, making it easy for you to focus on
   your work instead of getting bogged down in the details.
-- [X] **Cross-Platform Support:** We Support a variety
+- **Cross-Platform Support:** We Support a variety
   of [Platforms](https://github.com/Snowiiii/Vent-Engine#-platforms), you can be confident that your creation will run
   seamlessly across different devices, making it accessible to all.
 
@@ -44,7 +44,8 @@ We welcome contributions in any way shape or form. Here's how you can get starte
 - Run ```cargo run --release --bin vent-editor``` to start the editor.
 - Make your changes and submit a pull request.
 
-We also have [GitHub Issues](https://github.com/Snowiiii/Vent-Engine/issues) where you can report bugs, request features, or discuss ideas.
+We also have [GitHub Issues](https://github.com/Snowiiii/Vent-Engine/issues) where you can report bugs, request
+features, or discuss ideas.
 
 ### 🎮 Platforms
 
