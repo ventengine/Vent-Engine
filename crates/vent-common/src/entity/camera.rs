@@ -86,7 +86,6 @@ impl Camera for Camera3D {
 
     #[must_use]
     fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
-        println!("{}", self.position);
         let projection = glam::Mat4::perspective_lh(
             self.basic_cam.fovy.to_radians(),
             aspect_ratio,
