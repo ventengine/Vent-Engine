@@ -101,8 +101,7 @@ impl Camera for Camera3D {
         UBO3D {
             projection: projection.to_cols_array_2d(),
             view: view.to_cols_array_2d(),
-            transformation: Mat4::from_cols(Vec4::ONE, Vec4::ONE, Vec4::ONE, Vec4::ONE)
-                .to_cols_array_2d(),
+            transformation: Mat4::IDENTITY.to_cols_array_2d()
         }
     }
 }
