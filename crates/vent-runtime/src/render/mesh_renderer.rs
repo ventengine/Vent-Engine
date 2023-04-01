@@ -1,4 +1,4 @@
-use glam::{Mat4, Quat, Vec3};
+use glam::{Mat4, Quat};
 use std::collections::HashMap;
 
 use vent_common::render::model::Mesh3D;
@@ -46,10 +46,9 @@ impl MeshRenderer3D {
         self.map.iter_mut()
     }
 
-    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, ubo: &mut UBO3D) {
+    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, _ubo: &mut UBO3D) {
         for map in self.iter() {
             let mesh = map.1;
-            Self::update_trans_matrix(mesh, ubo);
             mesh.bind(rpass);
             rpass.pop_debug_group();
             rpass.insert_debug_marker("Draw!");
@@ -57,33 +56,15 @@ impl MeshRenderer3D {
         }
     }
 
-    fn update_trans_matrix(object: &Mesh3D, ubo: &mut UBO3D) {
-        // TODO:
-        let rotation_quat = Quat::from_rotation_x(object.rotation.x)
-            * Quat::from_rotation_y(object.rotation.y)
-            * Quat::from_rotation_z(object.rotation.z);
-        let transformation_matrix = Mat4::from_scale_rotation_translation(
-            Vec3::new(20.0, 20.0, 20.0),
-            rotation_quat,
-            object.position,
-        );
-        // ubo.transformation = transformation_matrix.to_cols_array_2d();
-
-        // ubo.transformation = glam::Vec2::rotate(
-        //     ubo.transformation,
-        //     object.rotation.x.to_radians(),
-        //     glm::vec3(1.0f, 0.0f, 0.0f),
-        // );
-        // ubo.transformation = glm::rotate(
-        //     ubo.transformation,
-        //     object.rotation.y.to_radians(),
-        //     glm::vec3(0.0f, 1.0f, 0.0f),
-        // );
-        // ubo.transformation = ubo.transformation.add().p
-        // ubo.transformation = glm::rotate(
-        //     ubo.transformation,
-        //     object.rotation.z.to_radians(),
-        //     glm::vec3(0.0f, 0.0f, 1.0f),
-        // );
+    pub fn update_trans_matrix(&self, ubo: &mut UBO3D) {
+        for map in self.iter() {
+            let object = map.1;
+            let rotation_quat = Quat::from_rotation_x(object.rotation.x)
+                * Quat::from_rotation_y(object.rotation.y)
+                * Quat::from_rotation_z(object.rotation.z);
+            let transformation_matrix =
+                Mat4::from_scale_rotation_translation(object.scale, rotation_quat, object.position);
+            ubo.transformation = transformation_matrix.to_cols_array_2d();
+        }
     }
 }

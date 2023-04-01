@@ -1,5 +1,5 @@
 use crate::render::{UBO2D, UBO3D};
-use glam::{Mat4, Vec3, Vec4};
+use glam::{Mat4, Vec3};
 
 pub trait Camera {
     fn new() -> Self
@@ -101,7 +101,7 @@ impl Camera for Camera3D {
         UBO3D {
             projection: projection.to_cols_array_2d(),
             view: view.to_cols_array_2d(),
-            transformation: Mat4::IDENTITY.to_cols_array_2d()
+            transformation: Mat4::IDENTITY.to_cols_array_2d(),
         }
     }
 }
