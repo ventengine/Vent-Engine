@@ -18,4 +18,4 @@ If you're interested in contributing to Vent-ECS, please fork the repository and
 contributions of all kinds, including bug fixes, new features, and documentation improvements.
 License
 
-Vent-ECS is licensed under the MIT license. See the LICENSE file for more details.
+Vent-ECS is licensed under the [Apache 2.0 License](../../LICENSE)

@@ -67,7 +67,7 @@ impl MeshRenderer3D {
             rotation_quat,
             object.position,
         );
-        ubo.transformation = transformation_matrix.to_cols_array_2d();
+        // ubo.transformation = transformation_matrix.to_cols_array_2d();
 
         // ubo.transformation = glam::Vec2::rotate(
         //     ubo.transformation,
