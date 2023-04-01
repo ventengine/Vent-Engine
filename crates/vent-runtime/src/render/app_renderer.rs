@@ -8,8 +8,6 @@ use vent_common::render::{DefaultRenderer, Vertex3D, UBO3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
-
-
 pub struct VentApplicationManager {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
 }
@@ -401,12 +399,12 @@ impl MultiDimensionRenderer for Renderer3D {
         // -------------- DEMO -------------------
         let mut world = World::default();
 
-        let (vertex_data, index_data) = create_vertices();
-        let _i = concat!(
+        //  let (vertex_data, index_data) = create_vertices();
+        let sponza_model = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/models/test/Sponza/sponza.obj"
+            "/assets/models/test/Bunny/stanford-bunny.obj"
         );
-        let mut mesh = Mesh3D::new_from(device, vertex_data, index_data);
+        let mut mesh = Mesh3D::new(device, sponza_model);
 
         mesh.rotation.x += 150.0;
         mesh.rotation.z += 150.0;

@@ -43,7 +43,7 @@ impl VentApplication {
         let mut renderer =
             RuntimeRenderer::new(Dimension::D3, Renderer::new(&vent_window.window), &mut cam);
 
-        let mut controller = CameraController3D::new(50.0, 10.0);
+        let mut controller = CameraController3D::new(100.0, 10.0);
 
         let mut last = Instant::now();
         let mut delta = Duration::ZERO;
