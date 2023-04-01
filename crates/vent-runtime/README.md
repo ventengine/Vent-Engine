@@ -13,4 +13,4 @@ contributions of all kinds, including bug fixes, new features, and documentation
 
 ## License
 
-Vent-ECS is licensed under the [Apache 2.0 License](../../LICENSE)
+Vent-Runtime is licensed under the [Apache 2.0 License](../../LICENSE)
