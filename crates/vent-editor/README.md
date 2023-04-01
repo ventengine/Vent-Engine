@@ -10,7 +10,7 @@ So if you're looking for a versatile and powerful game editor that can help you 
 
 ## Contributing
 
-If you're interested in contributing to Vent-ECS, please fork the repository and submit a pull request. We welcome
+If you're interested in contributing to Vent-Editor, please fork the repository and submit a pull request. We welcome
 contributions of all kinds, including bug fixes, new features, and documentation improvements.
 
 ## License

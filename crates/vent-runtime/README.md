@@ -8,7 +8,7 @@ If you want to create amazing applications and experiences, Vent-Runtime is an e
 
 ## Contributing
 
-If you're interested in contributing to Vent-ECS, please fork the repository and submit a pull request. We welcome
+If you're interested in contributing to Vent-Runtime, please fork the repository and submit a pull request. We welcome
 contributions of all kinds, including bug fixes, new features, and documentation improvements.
 
 ## License

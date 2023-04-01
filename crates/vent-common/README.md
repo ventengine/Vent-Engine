@@ -4,7 +4,7 @@ Vent-Common is a temporary crate that serves as a code delivery mechanism to be 
 
 ## Contributing
 
-If you're interested in contributing to Vent-ECS, please fork the repository and submit a pull request. We welcome
+If you're interested in contributing to Vent-Common, please fork the repository and submit a pull request. We welcome
 contributions of all kinds, including bug fixes, new features, and documentation improvements.
 
 ## License
