@@ -4,6 +4,8 @@ use russimp::scene::PostProcess;
 pub struct ModelLoader3D {
     pub vertices: Vec<Vertex3D>,
     pub indices: Vec<u32>,
+
+    pub materials: Vec<russimp::material::Material>,
 }
 
 impl ModelLoader3D {
@@ -36,7 +38,14 @@ impl ModelLoader3D {
                 _tex_coord: [0.0, 0.0],
             }));
         }
-
-        Self { vertices, indices }
+        let mats = scene.materials;
+        
+        Self {
+            vertices,
+            indices,
+            materials: mats,
+        }
     }
+
+   
 }
