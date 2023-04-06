@@ -39,13 +39,11 @@ impl ModelLoader3D {
             }));
         }
         let mats = scene.materials;
-        
+
         Self {
             vertices,
             indices,
             materials: mats,
         }
     }
-
-   
 }

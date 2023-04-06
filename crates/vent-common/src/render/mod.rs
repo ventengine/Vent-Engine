@@ -10,7 +10,6 @@ use log::debug;
 #[cfg(target_arch = "wasm32")]
 use std::str::FromStr;
 
-use crate::util::crash::crash;
 #[cfg(target_arch = "wasm32")]
 use web_sys::{ImageBitmapRenderingContext, OffscreenCanvas};
 
@@ -146,8 +145,7 @@ impl Renderer for DefaultRenderer {
             let surface = match instance.create_surface(&window) {
                 Ok(t) => t,
                 Err(e) => {
-                    crash(format!("{e}"), 102);
-                    panic!()
+                    panic!("{}", format!("{e}"));
                 }
             };
             #[cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))]
@@ -197,8 +195,7 @@ impl Renderer for DefaultRenderer {
         )) {
             Ok(t) => t,
             Err(e) => {
-                crash(format!("{e}"), 102);
-                panic!()
+                panic!("{}", format!("{e}"));
             }
         };
 

@@ -15,7 +15,6 @@ pub struct Mesh3D {
     index_buf: wgpu::Buffer,
 
     index_count: usize,
-
 }
 
 impl Mesh3D {
@@ -26,11 +25,7 @@ impl Mesh3D {
         Self::new_from(device, model.vertices, model.indices)
     }
 
-    pub fn new_from(
-        device: &Device,
-        vertices: Vec<Vertex3D>,
-        indices: Vec<u32>
-    ) -> Self {
+    pub fn new_from(device: &Device, vertices: Vec<Vertex3D>, indices: Vec<u32>) -> Self {
         let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&vertices),

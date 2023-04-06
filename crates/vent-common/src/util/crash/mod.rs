@@ -1,12 +1,15 @@
 use rfd::MessageLevel;
-use std::process::exit;
+use std::panic::{self, PanicInfo};
 
-pub fn crash(desc: String, code: i32) {
+pub fn init_panic_hook() {
+    panic::set_hook(Box::new(panic_handler));
+}
+
+fn panic_handler(pi: &PanicInfo) {
     rfd::MessageDialog::new()
         .set_level(MessageLevel::Error)
-        .set_description(desc.as_str())
+        .set_description(format!("{pi}").as_str())
         .show();
-    exit(code);
 }
 
 fn log_crash() {

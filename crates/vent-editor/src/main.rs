@@ -2,7 +2,7 @@ use crate::render::EditorRenderer;
 
 use std::path::Path;
 use vent_common::entity::camera::{Camera, Camera3D};
-use vent_common::util::crash::crash;
+use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
 
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
@@ -12,6 +12,7 @@ mod gui;
 mod render;
 
 fn main() {
+    init_panic_hook();
     env_logger::init();
 
     let path = concat!(
@@ -66,7 +67,7 @@ fn main() {
                     Err(err) => match err {
                         wgpu::SurfaceError::OutOfMemory => {
                             control_flow.set_exit();
-                            crash(format!("{err}"), 101);
+                            panic!("{}", format!("{err}"));
                         }
                         _ => {}
                     },

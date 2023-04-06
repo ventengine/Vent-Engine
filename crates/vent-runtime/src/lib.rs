@@ -6,7 +6,7 @@ use vent_common::components::camera_controller3d::CameraController3D;
 use vent_common::entity::camera::{Camera, Camera3D};
 use vent_common::project::VentApplicationProject;
 use vent_common::render::Renderer;
-use vent_common::util::crash::crash;
+use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
 use winit::event::{DeviceEvent, ElementState, Event, KeyboardInput, WindowEvent};
 use winit::window::WindowBuilder;
@@ -19,6 +19,7 @@ pub struct VentApplication {
 
 impl VentApplication {
     pub fn default() {
+        init_panic_hook();
         env_logger::init();
 
         let project = VentApplicationProject {
@@ -93,7 +94,7 @@ impl VentApplication {
                         Err(err) => {
                             if err == wgpu::SurfaceError::OutOfMemory {
                                 control_flow.set_exit();
-                                crash(format!("{err}"), 101);
+                                panic!("{}", format!("{err}"));
                             }
                         }
                     }
