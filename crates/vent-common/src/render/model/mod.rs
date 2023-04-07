@@ -21,7 +21,6 @@ impl Mesh3D {
     #[inline(always)]
     pub fn new(device: &Device, path: &str) -> Self {
         let model = ModelLoader3D::load(path);
-
         Self::new_from(device, model.vertices, model.indices)
     }
 

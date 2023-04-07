@@ -34,8 +34,8 @@ impl ModelLoader3D {
             indices.extend(mesh.faces.iter().flat_map(|face| face.0.iter().copied()));
 
             vertices.extend(mesh.vertices.iter().map(|vertex| Vertex3D {
-                _pos: [vertex.x, vertex.y, vertex.z],
-                _tex_coord: [0.0, 0.0],
+                pos: [vertex.x, vertex.y, vertex.z],
+                tex_coord: [0.0, 0.0],
             }));
         }
         let mats = scene.materials;

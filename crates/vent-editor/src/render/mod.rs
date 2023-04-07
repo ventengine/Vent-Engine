@@ -11,7 +11,7 @@ pub struct EditorRenderer {
     default_renderer: DefaultRenderer,
     pub egui: EguiRenderer,
 
-    pub editor_runtime_renderer: EditorRuntimeRenderer,
+    editor_runtime_renderer: EditorRuntimeRenderer,
 }
 
 impl EditorRenderer {

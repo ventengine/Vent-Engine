@@ -35,12 +35,8 @@ impl Texture {
         let texture = device.create_texture(&desc);
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: Default::default(),
-            address_mode_v: Default::default(),
-            address_mode_w: Default::default(),
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: Default::default(),
             compare: Some(wgpu::CompareFunction::LessEqual),
             lod_min_clamp: 0.0,
             lod_max_clamp: 100.0,
@@ -77,13 +73,6 @@ impl Texture {
         let texture = device.create_texture(&desc);
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: Default::default(),
-            address_mode_v: Default::default(),
-            address_mode_w: Default::default(),
-            mag_filter: Default::default(),
-            min_filter: Default::default(),
-            mipmap_filter: Default::default(),
-            compare: Default::default(),
             lod_min_clamp: 0.0,
             lod_max_clamp: 100.0,
             ..Default::default()
@@ -134,7 +123,7 @@ impl Texture {
 
         queue.write_texture(
             wgpu::ImageCopyTexture {
-                aspect: wgpu::TextureAspect::All,
+                aspect: Default::default(),
                 texture: &texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
@@ -150,12 +139,7 @@ impl Texture {
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: Default::default(),
-            address_mode_v: Default::default(),
-            address_mode_w: Default::default(),
             mag_filter: wgpu::FilterMode::Linear,
-            min_filter: Default::default(),
-            mipmap_filter: Default::default(),
             ..Default::default()
         });
 

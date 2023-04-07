@@ -3,8 +3,8 @@ use crate::gui::EditorGUI;
 pub struct EguiRenderer {
     renderer: egui_wgpu::Renderer,
     gui: EditorGUI,
-    pub context: egui::Context,
-    pub state: egui_winit::State,
+    context: egui::Context,
+    state: egui_winit::State,
 }
 
 impl EguiRenderer {
@@ -69,5 +69,9 @@ impl EguiRenderer {
     ) -> egui::TextureId {
         //   self.renderer.update_egui_texture_from_wgpu_texture(device, texture, filter)
         todo!()
+    }
+
+    pub fn progress_event(&mut self, event: &winit::event::WindowEvent<'_>) {
+        let _ = self.state.on_event(&self.context, event);
     }
 }

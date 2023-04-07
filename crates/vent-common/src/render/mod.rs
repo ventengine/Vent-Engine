@@ -69,8 +69,8 @@ pub struct UBO2D {}
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct Vertex3D {
-    pub _pos: [f32; 3],
-    pub _tex_coord: [f32; 2],
+    pub pos: [f32; 3],
+    pub tex_coord: [f32; 2],
 }
 
 pub trait Renderer {
