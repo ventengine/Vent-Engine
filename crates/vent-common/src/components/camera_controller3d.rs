@@ -39,13 +39,13 @@ impl CameraController3D {
                 true
             }
             VirtualKeyCode::A | VirtualKeyCode::Left => {
-                camera.position.x += cos_pitch * self.speed * delta_time;
-                camera.position.z -= sin_pitch * self.speed * delta_time;
+                camera.position.x -= cos_pitch * self.speed * delta_time;
+                camera.position.z += sin_pitch * self.speed * delta_time;
                 true
             }
             VirtualKeyCode::D | VirtualKeyCode::Right => {
-                camera.position.x -= cos_pitch * self.speed * delta_time;
-                camera.position.z += sin_pitch * self.speed * delta_time;
+                camera.position.x += cos_pitch * self.speed * delta_time;
+                camera.position.z -= sin_pitch * self.speed * delta_time;
                 true
             }
             VirtualKeyCode::Space => {
