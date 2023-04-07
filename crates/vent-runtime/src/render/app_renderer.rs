@@ -411,6 +411,7 @@ impl MultiDimensionRenderer for Renderer3D {
             rpass.push_debug_group("Prepare data for draw.");
             rpass.set_pipeline(&self.pipeline);
             rpass.set_bind_group(0, &self.bind_group, &[]);
+            rpass.pop_debug_group();
             self.mesh_renderer.render(&mut rpass);
             if let Some(ref pipe) = self.pipeline_wire {
                 rpass.set_pipeline(pipe);
