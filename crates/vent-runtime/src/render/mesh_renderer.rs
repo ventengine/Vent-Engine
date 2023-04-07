@@ -46,7 +46,7 @@ impl MeshRenderer3D {
         self.map.iter_mut()
     }
 
-    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, _ubo: &mut UBO3D) {
+    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         for map in self.iter() {
             let mesh = map.1;
             mesh.bind(rpass);
