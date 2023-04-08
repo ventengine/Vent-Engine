@@ -169,7 +169,7 @@ impl MultiDimensionRenderer for Renderer3D {
     {
         // Create pipeline layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
+            label: Some("3D Bind Group Layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -196,7 +196,7 @@ impl MultiDimensionRenderer for Renderer3D {
             ],
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
+            label: Some("3D Pipeline Layout"),
             bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
         });
@@ -210,7 +210,7 @@ impl MultiDimensionRenderer for Renderer3D {
             depth_or_array_layers: 1,
         };
         let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("3D Test Texture"),
             size: texture_extent,
             mip_level_count: 1,
             sample_count: 1,
@@ -252,7 +252,7 @@ impl MultiDimensionRenderer for Renderer3D {
                     resource: wgpu::BindingResource::TextureView(&texture_view),
                 },
             ],
-            label: None,
+            label: Some("3D Bind Group"),
         });
 
         let shader = device.create_shader_module(wgpu::include_wgsl!(concat!(
@@ -277,7 +277,7 @@ impl MultiDimensionRenderer for Renderer3D {
         }];
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: None,
+            label: Some("3D Renderer Pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
@@ -303,7 +303,7 @@ impl MultiDimensionRenderer for Renderer3D {
             .contains(wgpu::Features::POLYGON_MODE_LINE)
         {
             let pipeline_wire = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None,
+                label: Some("3D Pipeline Pipewire"),
                 layout: Some(&pipeline_layout),
                 vertex: wgpu::VertexState {
                     module: &shader,
@@ -392,7 +392,7 @@ impl MultiDimensionRenderer for Renderer3D {
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
+                label: Some("3D Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view,
                     resolve_target: None,
