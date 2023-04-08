@@ -46,9 +46,10 @@ impl MeshRenderer3D {
         self.map.iter_mut()
     }
 
-    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
+    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, bind_group: &wgpu::BindGroup) {
         for map in self.iter() {
             let mesh = map.1;
+
             rpass.push_debug_group("Bind Mesh");
             mesh.bind(rpass);
             rpass.pop_debug_group();

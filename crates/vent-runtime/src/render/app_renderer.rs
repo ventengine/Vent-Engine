@@ -4,6 +4,7 @@ use crate::render::mesh_renderer::MeshRenderer3D;
 use std::mem;
 use vent_common::entity::camera::Camera;
 use vent_common::render::model::Mesh3D;
+use vent_common::render::texture::Texture;
 use vent_common::render::{DefaultRenderer, Vertex3D, UBO3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
@@ -154,6 +155,7 @@ pub struct Renderer3D {
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
+    depth_texture: Texture,
 }
 
 impl MultiDimensionRenderer for Renderer3D {
@@ -293,7 +295,13 @@ impl MultiDimensionRenderer for Renderer3D {
                 cull_mode: Some(wgpu::Face::Back),
                 ..Default::default()
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: Texture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less, // 1.
+                stencil: wgpu::StencilState::default(),     // 2.
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
         });
@@ -356,7 +364,14 @@ impl MultiDimensionRenderer for Renderer3D {
         mesh.rotation.z += 150.0;
         mesh_renderer.insert(world.create_entity(), mesh);
 
+        let mut mesh_2 = Mesh3D::new(device, model);
+
+        mesh_2.position.x += 1.0;
+        mesh_renderer.insert(world.create_entity(), mesh_2);
+
         // -------------------------------
+
+        let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
 
         Self {
             mesh_renderer,
@@ -364,16 +379,19 @@ impl MultiDimensionRenderer for Renderer3D {
             uniform_buf,
             pipeline,
             pipeline_wire,
+            depth_texture,
         }
     }
 
     fn resize(
         &mut self,
         config: &wgpu::SurfaceConfiguration,
-        _device: &wgpu::Device,
+        device: &wgpu::Device,
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) {
+        self.depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+
         let ubo = camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
         let mx_ref: &[[f32; 4]] = ubo.projection.as_ref();
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
@@ -406,16 +424,21 @@ impl MultiDimensionRenderer for Renderer3D {
                         store: true,
                     },
                 })],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
             });
-            rpass.push_debug_group("Prepare data for draw.");
             rpass.set_pipeline(&self.pipeline);
             rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.pop_debug_group();
-            self.mesh_renderer.render(&mut rpass);
+            self.mesh_renderer.render(&mut rpass, &self.bind_group);
             if let Some(ref pipe) = self.pipeline_wire {
                 rpass.set_pipeline(pipe);
-                self.mesh_renderer.render(&mut rpass);
+                self.mesh_renderer.render(&mut rpass, &self.bind_group);
             }
         }
     }
