@@ -1,0 +1,15 @@
+name: Pull Reqeust
+
+on:
+  pull_request:
+    branches: [ "master" ]
+    types:
+      - labeled
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Rust
+    uses: ./.github/workflows/rust.yml

@@ -5,15 +5,12 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-    types:
-      - labeled
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-    if: ${{ github.event.label.name == 'rust' }}
     strategy:
       fail-fast: false
       matrix:
