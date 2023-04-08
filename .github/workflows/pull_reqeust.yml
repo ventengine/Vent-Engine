@@ -11,5 +11,6 @@ env:
 
 jobs:
   build:
+    if: ${{ github.event.label.name == 'rust' }}
     name: Rust
     uses: ./.github/workflows/rust.yml
