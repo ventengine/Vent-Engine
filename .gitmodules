@@ -3,4 +3,4 @@
 	url = https://github.com/jimmiebergmann/Sponza
 [submodule "crates/vent-runtime/assets/models/test/Bunny"]
 	path = crates/vent-runtime/assets/models/test/Bunny
-	url = https://github.com/alecjacobson/common-3d-test-models/blob/master/data/stanford-bunny.obj
+	url = https://github.com/alecjacobson/common-3d-test-models
