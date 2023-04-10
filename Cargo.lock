@@ -2101,9 +2101,9 @@ dependencies = [
 
 [[package]]
 name = "russimp"
-version = "2.0.2"
+version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c129eb6d5058d95dbbda9841342d09af8e77a456cf1f723286721bb17129bea"
+checksum = "7ad6ae751c076d33e1b619565f3b09d18790f8b95a558e3e563b233ed9b1a52e"
 dependencies = [
  "derivative",
  "num-derive",
