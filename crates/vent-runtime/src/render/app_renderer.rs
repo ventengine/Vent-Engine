@@ -371,7 +371,7 @@ impl MultiDimensionRenderer for Renderer3D {
 
         // -------------------------------
 
-        let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+        let depth_texture = Texture::create_depth_texture(device, config, "depth_texture");
 
         Self {
             mesh_renderer,
@@ -390,7 +390,7 @@ impl MultiDimensionRenderer for Renderer3D {
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) {
-        self.depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+        self.depth_texture = Texture::create_depth_texture(device, config, "depth_texture");
 
         let ubo = camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
         let mx_ref: &[[f32; 4]] = ubo.projection.as_ref();
@@ -435,10 +435,10 @@ impl MultiDimensionRenderer for Renderer3D {
             });
             rpass.set_pipeline(&self.pipeline);
             rpass.set_bind_group(0, &self.bind_group, &[]);
-            self.mesh_renderer.render(&mut rpass, &self.bind_group);
+            self.mesh_renderer.render(&mut rpass);
             if let Some(ref pipe) = self.pipeline_wire {
                 rpass.set_pipeline(pipe);
-                self.mesh_renderer.render(&mut rpass, &self.bind_group);
+                self.mesh_renderer.render(&mut rpass);
             }
         }
     }
