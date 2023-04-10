@@ -32,8 +32,8 @@ impl EditorRenderer {
             // TODO
             Dimension::D3,
             wgpu::Extent3d {
-                width: &default_renderer.config.width / 2,
-                height: &default_renderer.config.height / 2,
+                width: default_renderer.config.width as u32,
+                height: default_renderer.config.height as u32,
                 depth_or_array_layers: 1,
             },
             camera,
