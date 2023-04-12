@@ -1,5 +1,5 @@
 use vent_common::entity::camera::Camera;
-use vent_common::render::{DefaultRenderer, Renderer};
+use vent_common::render::DefaultRenderer;
 use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
@@ -86,7 +86,7 @@ impl RuntimeRenderer {
         new_size: PhysicalSize<u32>,
         camera: &mut dyn Camera,
     ) {
-        Renderer::resize(&mut self.default_renderer, window, new_size);
+        DefaultRenderer::resize(&mut self.default_renderer, window, new_size);
         self.app_renderer.resize(
             &self.default_renderer.config,
             &self.default_renderer.device,

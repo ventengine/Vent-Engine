@@ -6,6 +6,7 @@ pub struct VentWindow {
 }
 
 impl VentWindow {
+    #[must_use]
     pub fn new(builder: winit::window::WindowBuilder) -> Self {
         let event_loop = winit::event_loop::EventLoop::new();
         let window = builder.build(&event_loop).unwrap();

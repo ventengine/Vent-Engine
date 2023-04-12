@@ -73,14 +73,9 @@ pub struct Vertex3D {
     pub tex_coord: [f32; 2],
 }
 
-pub trait Renderer {
-    fn new(window: &Window) -> Self;
-    fn resize(&mut self, window: &Window, new_size: PhysicalSize<u32>);
-}
-
-impl Renderer for DefaultRenderer {
+impl DefaultRenderer {
     #[must_use]
-    fn new(window: &Window) -> Self {
+    pub fn new(window: &Window) -> Self {
         let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);
         let dx12_shader_compiler = wgpu::util::dx12_shader_compiler_from_env().unwrap_or_default();
 
@@ -220,7 +215,7 @@ impl Renderer for DefaultRenderer {
         }
     }
 
-    fn resize(&mut self, _window: &Window, new_size: PhysicalSize<u32>) {
+    pub fn resize(&mut self, _window: &Window, new_size: PhysicalSize<u32>) {
         self.config.width = new_size.width.max(1);
         self.config.height = new_size.height.max(1);
         self.surface.configure(&self.device, &self.config);

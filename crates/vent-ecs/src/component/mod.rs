@@ -17,18 +17,22 @@ impl<T> Component<T> {
         self.map.remove(&entity);
     }
 
+    #[must_use]
     pub fn get(&self, entity: Entity) -> Option<&T> {
         self.map.get(&entity)
     }
 
+    #[must_use]
     pub fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
         self.map.get_mut(&entity)
     }
 
+    #[must_use]
     pub fn iter(&self) -> std::collections::hash_map::Iter<Entity, T> {
         self.map.iter()
     }
 
+    #[must_use]
     pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<Entity, T> {
         self.map.iter_mut()
     }

@@ -1,7 +1,7 @@
 use crate::render::gui_renderer::EguiRenderer;
 use crate::render::runtime_renderer::EditorRuntimeRenderer;
 use vent_common::entity::camera::Camera;
-use vent_common::render::{DefaultRenderer, Renderer};
+use vent_common::render::DefaultRenderer;
 use vent_runtime::render::Dimension;
 
 mod gui_renderer;
@@ -20,7 +20,7 @@ impl EditorRenderer {
         event_loop: &winit::event_loop::EventLoopWindowTarget<T>,
         camera: &mut dyn Camera,
     ) -> Self {
-        let default_renderer: DefaultRenderer = Renderer::new(window);
+        let default_renderer = DefaultRenderer::new(window);
         let egui = EguiRenderer::new(
             event_loop,
             &default_renderer.device,
@@ -120,7 +120,7 @@ impl EditorRenderer {
         new_size: winit::dpi::PhysicalSize<u32>,
         camera: &mut dyn Camera,
     ) {
-        Renderer::resize(&mut self.default_renderer, window, new_size);
+        DefaultRenderer::resize(&mut self.default_renderer, window, new_size);
         // TODO
         self.editor_runtime_renderer.resize(
             &self.default_renderer.device,

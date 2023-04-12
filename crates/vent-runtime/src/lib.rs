@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use vent_common::components::camera_controller3d::CameraController3D;
 use vent_common::entity::camera::{Camera, Camera3D};
 use vent_common::project::VentApplicationProject;
-use vent_common::render::Renderer;
+use vent_common::render::DefaultRenderer;
 use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
 use winit::event::{DeviceEvent, ElementState, Event, KeyboardInput, WindowEvent};
@@ -41,8 +41,11 @@ impl VentApplication {
         // TODO
         let mut cam = Camera3D::new();
 
-        let mut renderer =
-            RuntimeRenderer::new(Dimension::D3, Renderer::new(&vent_window.window), &mut cam);
+        let mut renderer = RuntimeRenderer::new(
+            Dimension::D3,
+            DefaultRenderer::new(&vent_window.window),
+            &mut cam,
+        );
 
         let mut controller = CameraController3D::new(100.0, 10.0);
 
