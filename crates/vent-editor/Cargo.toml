@@ -11,7 +11,7 @@ vent-common = { path = "../vent-common"}
 
 # egui
 egui = "0.21.0"
-egui_dock = "0.4.1"
+egui_dock = "0.5.0"
 
 egui-wgpu = "0.21.0"
 egui-winit = "0.21.1"
