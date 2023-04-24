@@ -7,7 +7,7 @@ To use Vent-Assets in your project, simply include the Vent-Assets library in yo
 
 ### Simple Graph
 
-![Image](/docs/simple_graph.png)
+![Image](docs/simple_graph.png)
 
 ## Contributing
 
