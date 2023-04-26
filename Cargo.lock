@@ -2838,7 +2838,6 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "wgpu 0.15.1",
  "wgpu 0.16.0",
  "winit",
 ]
