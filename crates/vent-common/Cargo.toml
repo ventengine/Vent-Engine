@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 vent-ecs = { path = "../vent-ecs"}
 
-winit = "0.28.3"
+winit = "0.28.4"
 wgpu = "0.16.0"
 pollster = "0.3.0"
 
