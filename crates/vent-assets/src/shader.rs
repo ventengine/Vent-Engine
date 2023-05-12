@@ -1,7 +1,6 @@
-use crate::pool::{Asset};
+use crate::pool::Asset;
 
-struct Shader {
-}
+struct Shader {}
 
 impl Shader {}
 
