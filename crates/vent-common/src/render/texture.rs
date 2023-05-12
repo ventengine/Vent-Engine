@@ -1,4 +1,3 @@
-
 use image::{GenericImageView, ImageError};
 
 pub struct Texture {
