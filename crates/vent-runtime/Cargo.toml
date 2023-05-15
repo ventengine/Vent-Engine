@@ -9,7 +9,7 @@ edition = "2021"
 vent-common = { path = "../vent-common"}
 vent-ecs = { path = "../vent-ecs"}
 
-winit = "0.28.5"
+winit = "0.28.6"
 wgpu = "0.16.0"
 pollster = "0.3.0"
 
