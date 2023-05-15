@@ -19,14 +19,17 @@ impl World {
     }
 
     /// Deletes an entity from the world.
-    pub fn delete_entity(&mut self, entity: Entity) {
-        let index = self.entities.iter().position(|&e| e == entity).unwrap();
-        self.entities.swap_remove(index);
-        for component in &mut self.components {
-            component
-                .downcast_mut::<Component<Entity>>()
-                .unwrap()
-                .remove(entity);
+    pub fn delete_entity(&mut self, entity: Entity) -> Result<(), String> {
+        if let Some(index) = self.entities.iter().position(|&e| e == entity) {
+            self.entities.swap_remove(index);
+            for component in &mut self.components {
+                if let Some(component) = component.downcast_mut::<Component<Entity>>() {
+                    component.remove(entity);
+                }
+            }
+            Ok(())
+        } else {
+            Err(format!("Entity with ID {} does not exist", entity))
         }
     }
 
@@ -37,17 +40,21 @@ impl World {
     }
 
     /// Retrieves a component by its component ID.
-    pub fn get_component<T: 'static>(&self, component_id: usize) -> &Component<T> {
-        self.components[component_id]
-            .downcast_ref::<Component<T>>()
-            .unwrap()
+    pub fn get_component<T: 'static>(&self, component_id: usize) -> Result<&Component<T>, String> {
+        self.components
+            .get(component_id)
+            .and_then(|component| component.downcast_ref::<Component<T>>())
+            .ok_or_else(|| format!("Component with ID {} does not exist", component_id))
     }
 
-    /// Retrieves a mutable reference to a component by its component ID.
-    pub fn get_component_mut<T: 'static>(&mut self, component_id: usize) -> &mut Component<T> {
-        self.components[component_id]
-            .downcast_mut::<Component<T>>()
-            .unwrap()
+    pub fn get_component_mut<T: 'static>(
+        &mut self,
+        component_id: usize,
+    ) -> Result<&mut Component<T>, String> {
+        self.components
+            .get_mut(component_id)
+            .and_then(|component| component.downcast_mut::<Component<T>>())
+            .ok_or_else(|| format!("Component with ID {} does not exist", component_id))
     }
 
     /// Returns an iterator over the entities in the world.
