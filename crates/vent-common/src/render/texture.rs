@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-=======
 use std::num::NonZeroU32;
 
->>>>>>> parent of 4d4fa28 (Update: wgpu 0.15 -> 0.16)
 use image::{GenericImageView, ImageError};
 
 pub struct Texture {
