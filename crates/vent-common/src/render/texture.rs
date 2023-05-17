@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+use std::num::NonZeroU32;
+
+>>>>>>> parent of 4d4fa28 (Update: wgpu 0.15 -> 0.16)
 use image::{GenericImageView, ImageError};
 
 pub struct Texture {
@@ -133,8 +138,8 @@ impl Texture {
             &rgba,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * dimensions.0),
-                rows_per_image: Some(dimensions.1),
+                bytes_per_row: NonZeroU32::new(4 * dimensions.0),
+                rows_per_image: NonZeroU32::new(dimensions.1),
             },
             size,
         );
