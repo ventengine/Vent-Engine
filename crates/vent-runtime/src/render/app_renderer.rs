@@ -352,7 +352,7 @@ impl MultiDimensionRenderer for Renderer3D {
         let mut mesh_renderer = MeshRenderer3D::default();
 
         // -------------- DEMO -------------------
-        let mut world = World::default();
+        let mut world = World::new();
 
         let model = concat!(
             env!("CARGO_MANIFEST_DIR"),

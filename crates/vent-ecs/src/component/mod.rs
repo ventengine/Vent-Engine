@@ -1,48 +1,6 @@
-use std::collections::HashMap;
+use std::any::Any;
 
-mod input_component;
+/// The `Component` trait represents a component in an ECS.
+pub trait Component: Any + 'static {}
 
-pub type Entity = usize;
-
-pub struct Component<T> {
-    map: HashMap<Entity, T>,
-}
-
-impl<T> Component<T> {
-    pub fn insert(&mut self, entity: Entity, component: T) {
-        self.map.insert(entity, component);
-    }
-
-    pub fn remove(&mut self, entity: Entity) {
-        self.map.remove(&entity);
-    }
-
-    #[must_use]
-    pub fn get(&self, entity: Entity) -> Option<&T> {
-        self.map.get(&entity)
-    }
-
-    #[must_use]
-    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
-        self.map.get_mut(&entity)
-    }
-
-    #[must_use]
-    pub fn iter(&self) -> std::collections::hash_map::Iter<Entity, T> {
-        self.map.iter()
-    }
-
-    #[must_use]
-    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<Entity, T> {
-        self.map.iter_mut()
-    }
-}
-
-impl<T> Default for Component<T> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            map: HashMap::new(),
-        }
-    }
-}
+// Soon ...
