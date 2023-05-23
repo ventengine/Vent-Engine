@@ -7,10 +7,6 @@ This allows mod makers and designers to effortlessly modify various aspects of t
 
 To use Vent-Assets in your project, simply include the Vent-Assets library in your project and start using the provided functions to load and access your assets. You can also use the built-in asset pool to manage your assets and improve performance.
 
-### Simple Graph
-
-![Image](docs/simple_graph.png)
-
 ## Contributing
 
 If you're interested in contributing to Vent-Assets, please fork the repository and submit a pull request. We welcome
