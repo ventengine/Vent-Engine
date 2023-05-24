@@ -2870,7 +2870,7 @@ dependencies = [
 name = "vent-editor"
 version = "0.1.0"
 dependencies = [
- "egui 0.21.0",
+ "egui 0.22.0",
  "egui-wgpu",
  "egui-winit",
  "egui_dock",
