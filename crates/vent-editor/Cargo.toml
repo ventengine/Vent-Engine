@@ -14,7 +14,7 @@ egui = "0.21.0"
 egui_dock = "0.5.1"
 
 egui-wgpu = "0.21.0"
-egui-winit = "0.21.1"
+egui-winit = "0.22.0"
 
 winit = "0.28.6"
 wgpu = "0.15.0"
