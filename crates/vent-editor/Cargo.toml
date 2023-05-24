@@ -10,7 +10,7 @@ vent-runtime = { path = "../vent-runtime"}
 vent-common = { path = "../vent-common"}
 
 # egui
-egui = "0.21.0"
+egui = "0.22.0"
 egui_dock = "0.5.1"
 
 egui-wgpu = "0.21.0"
