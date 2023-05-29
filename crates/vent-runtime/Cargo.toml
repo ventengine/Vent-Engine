@@ -13,7 +13,7 @@ winit = "0.28.6"
 wgpu = "0.15.0"
 pollster = "0.3.0"
 
-log = "0.4.17"
+log = "0.4.18"
 
 glam = "0.24.0"
 bytemuck = { version = "1.13.0", features = ["derive"] }
