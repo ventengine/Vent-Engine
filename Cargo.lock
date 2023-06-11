@@ -2816,6 +2816,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "wgpu 0.15.1",
+ "wgpu 0.16.1",
  "winit",
 ]
 
@@ -2840,7 +2841,7 @@ dependencies = [
  "rfd",
  "vent-common",
  "vent-runtime",
- "wgpu 0.15.1",
+ "wgpu 0.16.1",
  "winit",
 ]
 
@@ -2855,7 +2856,7 @@ dependencies = [
  "pollster",
  "vent-common",
  "vent-ecs",
- "wgpu 0.15.1",
+ "wgpu 0.16.1",
  "winit",
 ]
 
