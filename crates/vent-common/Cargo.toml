@@ -32,7 +32,7 @@ env_logger = "0.10.0"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 wgpu = { version = "0.15.1", features = ["webgl"]}
-wasm-bindgen = "0.2.85"
+wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "0.4.34"
 web-sys = { version = "0.3.61", features = [
     "Document",
