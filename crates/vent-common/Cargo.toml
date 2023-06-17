@@ -13,10 +13,10 @@ wgpu = "0.16.0"
 pollster = "0.3.0"
 
 glam = "0.24.0"
-image = "0.24.5"
-bytemuck = { version = "1.13.0", features = ["derive"] }
+image = "0.24.6"
+bytemuck = { version = "1.13.1", features = ["derive"] }
 
-log = "0.4.18"
+log = "0.4"
 russimp = { version = "2.0.5", features = ["prebuilt"] }
 
 
@@ -30,9 +30,9 @@ env_logger = "0.10.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
-console_log = "1.0.0"
+console_log = "1"
 wgpu = { version = "0.16,0", features = ["webgl"]}
-wasm-bindgen = "0.2.85"
+wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "0.4.37"
 web-sys = { version = "0.3.64", features = [
     "Document",

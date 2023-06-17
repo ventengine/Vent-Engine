@@ -13,10 +13,10 @@ winit = "0.28.6"
 wgpu = "0.16.0"
 pollster = "0.3.0"
 
-log = "0.4.18"
+log = "0.4"
 
 glam = "0.24.0"
-bytemuck = { version = "1.13.0", features = ["derive"] }
+bytemuck = { version = "1.13.1", features = ["derive"] }
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
 env_logger = "0.10.0"
