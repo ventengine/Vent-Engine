@@ -11,6 +11,8 @@ vent-ecs = { path = "../vent-ecs"}
 winit = "0.28.6"
 wgpu = "0.16.0"
 pollster = "0.3.0"
+sysinfo = "0.21"
+chrono = "0.4"
 
 glam = "0.24.0"
 image = "0.24.6"
