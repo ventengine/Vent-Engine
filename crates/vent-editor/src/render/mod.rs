@@ -15,9 +15,9 @@ pub struct EditorRenderer {
 }
 
 impl EditorRenderer {
-    pub fn new<T>(
+    pub fn new(
         window: &winit::window::Window,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<T>,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
         let default_renderer = DefaultRenderer::new(window);
@@ -114,13 +114,8 @@ impl EditorRenderer {
         Ok(())
     }
 
-    pub fn resize(
-        &mut self,
-        window: &winit::window::Window,
-        new_size: winit::dpi::PhysicalSize<u32>,
-        camera: &mut dyn Camera,
-    ) {
-        DefaultRenderer::resize(&mut self.default_renderer, window, new_size);
+    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>, camera: &mut dyn Camera) {
+        DefaultRenderer::resize(&mut self.default_renderer, new_size);
         // TODO
         self.editor_runtime_renderer.resize(
             &self.default_renderer.device,
@@ -130,5 +125,13 @@ impl EditorRenderer {
             camera,
         );
         // egui does Automatically resize
+    }
+
+    pub fn resize_current(&mut self, camera: &mut dyn Camera) {
+        let size = winit::dpi::PhysicalSize {
+            width: self.default_renderer.config.width,
+            height: self.default_renderer.config.height,
+        };
+        Self::resize(self, size, camera)
     }
 }

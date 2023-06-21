@@ -73,11 +73,11 @@ impl VentApplication {
                             controller.process_keyboard(&mut cam, key, delta.as_secs_f32());
                         }
                         WindowEvent::Resized(physical_size) => {
-                            renderer.resize(&vent_window.window, *physical_size, &mut cam);
+                            renderer.resize( *physical_size, &mut cam);
                         }
                         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                             // new_inner_size is &mut so w have to dereference it twice
-                            renderer.resize(&vent_window.window, **new_inner_size, &mut cam);
+                            renderer.resize( **new_inner_size, &mut cam);
                         }
                         _ => {}
                     }

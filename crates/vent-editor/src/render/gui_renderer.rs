@@ -8,8 +8,8 @@ pub struct EguiRenderer {
 }
 
 impl EguiRenderer {
-    pub fn new<T>(
-        event_loop: &winit::event_loop::EventLoopWindowTarget<T>,
+    pub fn new(
+        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         device: &wgpu::Device,
         surface_format: wgpu::TextureFormat,
     ) -> Self {
@@ -61,6 +61,7 @@ impl EguiRenderer {
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn register_texture(
         &mut self,
         _device: &wgpu::Device,

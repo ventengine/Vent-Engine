@@ -22,7 +22,7 @@ pollster = "0.3.0"
 
 log = "0.4"
 
-rfd = "0.11.4"
+rfd = { version="0.11.4",  default-features = false}
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
 env_logger = "0.10.0"

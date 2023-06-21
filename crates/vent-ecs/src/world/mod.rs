@@ -11,7 +11,6 @@ pub struct World {
 }
 
 impl World {
-    /// Creates a new world.
     pub fn new() -> Self {
         World {
             entities: Vec::new(),
@@ -91,7 +90,7 @@ impl World {
             let archetype_key = vec![component_id];
             if let Some(archetype) = self.archetypes.get_mut(&archetype_key) {
                 archetype.remove_entity(entity);
-                archetype.remove_component::<T>(component_id, entity);
+                archetype.remove_component(component_id, entity);
                 return Ok(());
             }
         }
@@ -147,5 +146,11 @@ impl World {
     /// Returns an iterator over the entities in the world.
     pub fn iter_entities(&self) -> impl Iterator<Item = &Entity> {
         self.entities.iter()
+    }
+}
+
+impl Default for World {
+    fn default() -> Self {
+        Self::new()
     }
 }

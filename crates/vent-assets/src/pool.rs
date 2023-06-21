@@ -10,6 +10,7 @@ struct AssetPool {
     assets: HashMap<String, Box<dyn Asset>>,
 }
 
+#[allow(dead_code)]
 impl AssetPool {
     fn new() -> AssetPool {
         AssetPool {

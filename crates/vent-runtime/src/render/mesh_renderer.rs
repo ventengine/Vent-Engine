@@ -10,6 +10,7 @@ pub struct MeshRenderer3D {
     map: HashMap<Entity, Mesh3D>,
 }
 
+#[allow(dead_code)]
 impl MeshRenderer3D {
     #[inline]
     pub fn insert(&mut self, entity: Entity, mesh: Mesh3D) {

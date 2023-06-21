@@ -38,7 +38,7 @@ impl Archetype {
     }
 
     /// Removes a component from the archetype.
-    pub fn remove_component<T: Component>(&mut self, component_id: usize, entity: Entity) {
+    pub fn remove_component(&mut self, component_id: usize, entity: Entity) {
         if let Some(component_data) = self.component_data.get_mut(&component_id) {
             if let Some(index) = self.entities.iter().position(|&e| e == entity) {
                 component_data.swap_remove(index);
@@ -75,6 +75,7 @@ impl Archetype {
     }
 
     /// Returns an iterator over the entities in the archetype.
+    #[allow(dead_code)]
     pub fn iter_entities(&self) -> impl Iterator<Item = &Entity> {
         self.entities.iter()
     }

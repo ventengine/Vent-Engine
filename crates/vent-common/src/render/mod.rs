@@ -215,7 +215,7 @@ impl DefaultRenderer {
         }
     }
 
-    pub fn resize(&mut self, _window: &Window, new_size: PhysicalSize<u32>) {
+    pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         self.config.width = new_size.width.max(1);
         self.config.height = new_size.height.max(1);
         self.surface.configure(&self.device, &self.config);

@@ -28,7 +28,7 @@ fn log_crash(pi: &PanicInfo) -> std::io::Result<()> {
 
     // Create and write crash information to the log file
 
-    let mut f = File::create(&log_file_name)?;
+    let mut f = File::create(log_file_name)?;
     let mut perms = f.metadata()?.permissions();
     perms.set_readonly(true);
     f.set_permissions(perms)?;

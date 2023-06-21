@@ -1,5 +1,5 @@
 use egui::epaint::ahash::{HashSet, HashSetExt};
-use egui::{CentralPanel, Color32, Frame, RichText, TextBuffer, TopBottomPanel, Ui, WidgetText};
+use egui::{CentralPanel, Color32, Frame, RichText, TopBottomPanel, Ui, WidgetText};
 use egui_dock::{DockArea, Node, NodeIndex, TabViewer, Tree};
 
 pub(crate) struct EditorViewer {
@@ -9,6 +9,7 @@ pub(crate) struct EditorViewer {
 impl TabViewer for EditorViewer {
     type Tab = String;
 
+    #[allow(clippy::single_match)]
     fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
         match tab.as_str() {
             "Console" => self.view_console(ui),
@@ -26,6 +27,7 @@ impl TabViewer for EditorViewer {
     }
 }
 
+#[allow(dead_code)]
 impl EditorViewer {
     // TODO:
     fn view_console(&mut self, ui: &mut Ui) {
@@ -52,6 +54,7 @@ pub(crate) struct EditorGUI {
     viewer: EditorViewer,
 }
 
+#[allow(dead_code)]
 impl EditorGUI {
     pub fn new() -> Self {
         let mut tree = Tree::new(vec!["Vent-Engine Placeholder".to_owned()]);

@@ -52,11 +52,11 @@ fn main() {
                         ..
                     } => control_flow.set_exit(),
                     WindowEvent::Resized(physical_size) => {
-                        renderer.resize(&vent_window.window, *physical_size, &mut camera);
+                        renderer.resize(*physical_size, &mut camera);
                     }
                     WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                         // new_inner_size is &mut so w have to dereference it twice
-                        renderer.resize(&vent_window.window, **new_inner_size, &mut camera);
+                        renderer.resize(**new_inner_size, &mut camera);
                     }
                     _ => {}
                 }
@@ -69,6 +69,7 @@ fn main() {
                             control_flow.set_exit();
                             panic!("{}", format!("{err}"));
                         }
+                        wgpu::SurfaceError::Lost => renderer.resize_current(&mut camera),
                         _ => {}
                     },
                 }
