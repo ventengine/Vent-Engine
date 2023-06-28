@@ -1,10 +1,8 @@
-use crate::render::model::model_loader::ModelLoader3D;
-use crate::render::Vertex3D;
+use crate::Asset;
 use glam::{Quat, Vec3};
+use vent_common::render::Vertex3D;
 use wgpu::util::DeviceExt;
 use wgpu::Device;
-
-pub mod model_loader;
 
 pub struct Mesh3D {
     pub position: glam::Vec3,
@@ -56,5 +54,60 @@ impl Mesh3D {
 
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         rpass.draw_indexed(0..self.index_count as u32, 0, 0..1);
+    }
+}
+
+impl Asset for Mesh3D {
+    fn get_file_extensions() -> &'static str {
+        ""
+    }
+}
+
+use russimp::scene::PostProcess;
+
+pub struct ModelLoader3D {
+    pub vertices: Vec<Vertex3D>,
+    pub indices: Vec<u32>,
+
+    pub materials: Vec<russimp::material::Material>,
+}
+
+impl ModelLoader3D {
+    #[inline]
+    #[must_use]
+    pub fn load(path: &str) -> Self {
+        let scene = russimp::scene::Scene::from_file(
+            path,
+            vec![
+                PostProcess::CalculateTangentSpace,
+                PostProcess::Triangulate,
+                PostProcess::JoinIdenticalVertices,
+                PostProcess::SortByPrimitiveType,
+                PostProcess::OptimizeMeshes,
+                PostProcess::OptimizeGraph,
+                PostProcess::ImproveCacheLocality,
+            ],
+        )
+        .unwrap();
+
+        let mut vertices = Vec::with_capacity(scene.meshes.iter().map(|m| m.vertices.len()).sum());
+        let mut indices = Vec::new();
+        indices.reserve(scene.meshes.iter().map(|m| m.faces.len() * 3).sum());
+
+        for mesh in &scene.meshes {
+            indices.extend(mesh.faces.iter().flat_map(|face| face.0.iter().copied()));
+
+            vertices.extend(mesh.vertices.iter().map(|vertex| Vertex3D {
+                pos: [vertex.x, vertex.y, vertex.z],
+                tex_coord: [0.0, 0.0],
+            }));
+        }
+        let mats = scene.materials;
+
+        Self {
+            vertices,
+            indices,
+            materials: mats,
+        }
     }
 }

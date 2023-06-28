@@ -1,11 +1,6 @@
 use std::collections::HashMap;
 
-pub trait Asset {
-    fn get_file_extensions() -> &'static str
-    where
-        Self: Sized;
-}
-
+use crate::Asset;
 struct AssetPool {
     assets: HashMap<String, Box<dyn Asset>>,
 }

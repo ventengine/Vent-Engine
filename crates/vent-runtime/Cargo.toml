@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 vent-common = { path = "../vent-common"}
+vent-assets = { path = "../vent-assets" }
 vent-ecs = { path = "../vent-ecs"}
 
 winit = "0.28.6"

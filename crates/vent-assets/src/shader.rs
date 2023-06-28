@@ -1,4 +1,4 @@
-use crate::pool::Asset;
+use crate::Asset;
 
 struct Shader {}
 

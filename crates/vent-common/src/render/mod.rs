@@ -1,5 +1,3 @@
-pub mod model;
-
 pub mod texture;
 
 use pollster::block_on;

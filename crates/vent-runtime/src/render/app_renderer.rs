@@ -2,8 +2,8 @@ use crate::render::Dimension;
 
 use crate::render::mesh_renderer::MeshRenderer3D;
 use std::mem;
+use vent_assets::mesh::Mesh3D;
 use vent_common::entity::camera::Camera;
-use vent_common::render::model::Mesh3D;
 use vent_common::render::texture::Texture;
 use vent_common::render::{DefaultRenderer, Vertex3D, UBO3D};
 use vent_ecs::world::World;

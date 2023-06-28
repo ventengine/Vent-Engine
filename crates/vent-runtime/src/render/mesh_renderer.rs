@@ -1,8 +1,8 @@
 use glam::{Mat4, Quat};
 use std::collections::HashMap;
+use vent_assets::mesh::Mesh3D;
 use vent_ecs::entity::Entity;
 
-use vent_common::render::model::Mesh3D;
 use vent_common::render::UBO3D;
 
 #[derive(Default)]
