@@ -46,27 +46,25 @@ impl MeshRenderer3D {
         self.map.iter_mut()
     }
 
-    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
+    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, ubo: &mut UBO3D) {
         for map in self.iter() {
             let mesh = map.1;
 
             rpass.push_debug_group("Bind Mesh");
             mesh.bind(rpass);
+            Self::update_trans_matrix(&self, mesh, ubo);
             rpass.pop_debug_group();
             rpass.insert_debug_marker("Draw!");
             mesh.draw(rpass);
         }
     }
 
-    pub fn update_trans_matrix(&self, ubo: &mut UBO3D) {
-        for map in self.iter() {
-            let object = map.1;
-            let rotation_quat = Quat::from_rotation_x(object.rotation.x)
-                * Quat::from_rotation_y(object.rotation.y)
-                * Quat::from_rotation_z(object.rotation.z);
-            let transformation_matrix =
-                Mat4::from_scale_rotation_translation(object.scale, rotation_quat, object.position);
-            ubo.transformation = transformation_matrix.to_cols_array_2d();
-        }
+    fn update_trans_matrix(&self, mesh: &Mesh3D, ubo: &mut UBO3D) {
+        let rotation_quat = Quat::from_rotation_x(mesh.rotation.x)
+            * Quat::from_rotation_y(mesh.rotation.y)
+            * Quat::from_rotation_z(mesh.rotation.z);
+        let transformation_matrix =
+            Mat4::from_scale_rotation_translation(mesh.scale, rotation_quat, mesh.position);
+        ubo.transformation = transformation_matrix.to_cols_array_2d();
     }
 }

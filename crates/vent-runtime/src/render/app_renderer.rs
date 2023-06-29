@@ -5,7 +5,7 @@ use std::mem;
 use vent_assets::mesh::Mesh3D;
 use vent_common::entity::camera::Camera;
 use vent_common::render::texture::Texture;
-use vent_common::render::{DefaultRenderer, Vertex3D, UBO3D};
+use vent_common::render::{DefaultRenderer, Vertex, Vertex3D, UBO3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
@@ -261,22 +261,7 @@ impl MultiDimensionRenderer for Renderer3D {
             env!("CARGO_MANIFEST_DIR"),
             "/assets/shaders/app/3D/shader.wgsl"
         )));
-        let vertex_buffers = [wgpu::VertexBufferLayout {
-            array_stride: mem::size_of::<Vertex3D>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x4,
-                    offset: 0,
-                    shader_location: 0,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: 4 * 4,
-                    shader_location: 1,
-                },
-            ],
-        }];
+        let vertex_buffers = [Vertex3D::layout()];
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("3D Renderer Pipeline"),
@@ -311,7 +296,7 @@ impl MultiDimensionRenderer for Renderer3D {
             .contains(wgpu::Features::POLYGON_MODE_LINE)
         {
             let pipeline_wire = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("3D Pipeline Pipewire"),
+                label: Some("3D Pipeline Wireframe"),
                 layout: Some(&pipeline_layout),
                 vertex: wgpu::VertexState {
                     module: &shader,
@@ -366,7 +351,7 @@ impl MultiDimensionRenderer for Renderer3D {
 
         let mut mesh_2 = Mesh3D::new(device, model);
 
-        mesh_2.position.x += 1.0;
+        mesh_2.position.x += 2.0;
         mesh_renderer.insert(world.create_entity(), mesh_2);
 
         // -------------------------------
@@ -406,7 +391,7 @@ impl MultiDimensionRenderer for Renderer3D {
         aspect_ratio: f32,
     ) {
         let mut ubo = camera.build_view_matrix_3d(aspect_ratio);
-        self.mesh_renderer.update_trans_matrix(&mut ubo);
+        //  self.mesh_renderer.update_trans_matrix(&mut ubo);
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -435,11 +420,10 @@ impl MultiDimensionRenderer for Renderer3D {
             });
             rpass.set_pipeline(&self.pipeline);
             rpass.set_bind_group(0, &self.bind_group, &[]);
-            self.mesh_renderer.render(&mut rpass);
             if let Some(ref pipe) = self.pipeline_wire {
                 rpass.set_pipeline(pipe);
-                self.mesh_renderer.render(&mut rpass);
             }
+            self.mesh_renderer.render(&mut rpass, &mut ubo);
         }
     }
 }

@@ -12,7 +12,7 @@ pub struct Mesh3D {
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
 
-    index_count: usize,
+    index_count: u32,
 }
 
 impl Mesh3D {
@@ -35,7 +35,7 @@ impl Mesh3D {
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let index_count = indices.len();
+        let index_count = indices.len() as u32;
 
         Self {
             position: Vec3::ZERO,
@@ -53,7 +53,7 @@ impl Mesh3D {
     }
 
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
-        rpass.draw_indexed(0..self.index_count as u32, 0, 0..1);
+        rpass.draw_indexed(0..self.index_count, 0, 0..1);
     }
 }
 
@@ -79,10 +79,12 @@ impl ModelLoader3D {
         let scene = russimp::scene::Scene::from_file(
             path,
             vec![
-                PostProcess::CalculateTangentSpace,
-                PostProcess::Triangulate,
+                PostProcess::GenerateSmoothNormals,
                 PostProcess::JoinIdenticalVertices,
+                PostProcess::Triangulate,
+                PostProcess::FixInfacingNormals,
                 PostProcess::SortByPrimitiveType,
+                PostProcess::PreTransformVertices,
                 PostProcess::OptimizeMeshes,
                 PostProcess::OptimizeGraph,
                 PostProcess::ImproveCacheLocality,

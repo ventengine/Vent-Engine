@@ -7,6 +7,7 @@ use winit::window::Window;
 
 use bytemuck::{Pod, Zeroable};
 use log::debug;
+use std::mem;
 #[cfg(target_arch = "wasm32")]
 use std::str::FromStr;
 
@@ -64,11 +65,36 @@ pub struct UBO3D {
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct UBO2D {}
 
+pub trait Vertex {
+    fn layout() -> wgpu::VertexBufferLayout<'static>;
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct Vertex3D {
     pub pos: [f32; 3],
     pub tex_coord: [f32; 2],
+}
+
+impl Vertex for Vertex3D {
+    fn layout() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: mem::size_of::<Vertex3D>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 4 * 4,
+                    shader_location: 1,
+                },
+            ],
+        }
+    }
 }
 
 impl DefaultRenderer {
