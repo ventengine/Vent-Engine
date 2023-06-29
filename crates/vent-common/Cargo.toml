@@ -23,7 +23,7 @@ log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-rfd = "0.11.4"
+rfd = { version="0.11.4",  default-features = false, features = ["xdg-portal"]}
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
 env_logger = "0.10.0"
