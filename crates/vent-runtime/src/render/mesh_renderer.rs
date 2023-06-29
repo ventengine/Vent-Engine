@@ -52,7 +52,7 @@ impl MeshRenderer3D {
 
             rpass.push_debug_group("Bind Mesh");
             mesh.bind(rpass);
-            Self::update_trans_matrix(&self, mesh, ubo);
+            Self::update_trans_matrix(self, mesh, ubo);
             rpass.pop_debug_group();
             rpass.insert_debug_marker("Draw!");
             mesh.draw(rpass);
