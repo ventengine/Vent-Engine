@@ -76,6 +76,15 @@ pub struct Vertex3D {
     pub tex_coord: [f32; 2],
 }
 
+impl Vertex3D {
+    pub fn empty() -> Self {
+        Self {
+            pos: [0.0, 0.0, 0.0],
+            tex_coord: [0.0, 0.0],
+        }
+    }
+}
+
 impl Vertex for Vertex3D {
     fn layout() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
@@ -83,13 +92,13 @@ impl Vertex for Vertex3D {
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &[
                 wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x4,
+                    format: wgpu::VertexFormat::Float32x3,
                     offset: 0,
                     shader_location: 0,
                 },
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x2,
-                    offset: 4 * 4,
+                    offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
                     shader_location: 1,
                 },
             ],

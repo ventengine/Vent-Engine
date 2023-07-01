@@ -1,4 +1,4 @@
-pub mod mesh;
+pub mod model;
 pub mod pool;
 pub mod shader;
 
