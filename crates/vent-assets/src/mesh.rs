@@ -98,7 +98,7 @@ impl ModelLoader3D {
 
         for mesh in &scene.meshes {
             indices.extend(mesh.faces.iter().flat_map(|face| face.0.iter().copied()));
-
+            
             vertices.extend(mesh.vertices.iter().map(|vertex| Vertex3D {
                 pos: [vertex.x, vertex.y, vertex.z],
                 tex_coord: [0.0, 0.0],

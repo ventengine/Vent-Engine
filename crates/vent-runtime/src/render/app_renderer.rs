@@ -341,7 +341,7 @@ impl MultiDimensionRenderer for Renderer3D {
 
         let model = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/models/test/Bunny/stanford-bunny.obj"
+            "/assets/models/test/Sponza/Sponza.gltf"
         );
         let mut mesh = Mesh3D::new(device, model);
 
