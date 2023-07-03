@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 vent-common = { path = "../vent-common"}
 wgpu = "0.16.0"
-russimp = { version = "2.0.5", features = ["prebuilt"] }
+russimp = { version = "2.0.6", features = ["prebuilt"] }
 bytemuck = { version = "1.13.1", features = ["derive"] }
 glam = "0.24.1"
