@@ -6,12 +6,12 @@ use vent_ecs::entity::Entity;
 use vent_common::render::UBO3D;
 
 #[derive(Default)]
-pub struct MeshRenderer3D {
+pub struct ModelRenderer3D {
     map: HashMap<Entity, Model3D>,
 }
 
 #[allow(dead_code)]
-impl MeshRenderer3D {
+impl ModelRenderer3D {
     #[inline]
     pub fn insert(&mut self, entity: Entity, mesh: Model3D) {
         self.map.insert(entity, mesh);
@@ -47,19 +47,13 @@ impl MeshRenderer3D {
     }
 
     pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, ubo: &mut UBO3D) {
-        for map in self.iter() {
-            let mesh = map.1;
-
-            rpass.push_debug_group("Bind Mesh");
-            mesh.bind(rpass);
-            Self::update_trans_matrix(self, mesh, ubo);
-            rpass.pop_debug_group();
-            rpass.insert_debug_marker("Draw!");
-            mesh.draw(rpass);
+        for (_, model) in self.map.iter() {
+            Self::update_trans_matrix(model, ubo);
+            model.draw(rpass);
         }
     }
 
-    fn update_trans_matrix(&self, mesh: &Model3D, ubo: &mut UBO3D) {
+    fn update_trans_matrix(mesh: &Model3D, ubo: &mut UBO3D) {
         let rotation_quat = Quat::from_rotation_x(mesh.rotation.x)
             * Quat::from_rotation_y(mesh.rotation.y)
             * Quat::from_rotation_z(mesh.rotation.z);

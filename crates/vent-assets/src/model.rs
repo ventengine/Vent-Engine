@@ -5,6 +5,7 @@ use glam::{Quat, Vec3};
 use russimp::mesh::Mesh;
 use russimp::node::Node;
 use vent_common::render::Vertex3D;
+use vent_dev::utils::stopwatch::Stopwatch;
 use wgpu::util::DeviceExt;
 use wgpu::Device;
 
@@ -18,30 +19,22 @@ pub struct Model3D {
 impl Model3D {
     #[inline(always)]
     pub fn new(device: &Device, path: &str) -> Self {
-        let model = RawMesh::load_full(path);
-        let mut meshes = Vec::new();
-        println!("{}", model.len());
-        for mesh in model {
-            meshes.push(Mesh3D::new(device, mesh.vertices, mesh.indices));
-        }
+        let scene = RawMesh::load_full(path);
 
         Self {
             position: Vec3::ZERO,
             rotation: Quat::IDENTITY,
             scale: Vec3::ONE,
-            meshes,
-        }
-    }
-
-    pub fn bind<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
-        for mesh in &self.meshes {
-            mesh.bind(rpass)
+            meshes: RawMesh::to_meshes(device, scene),
         }
     }
 
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         for mesh in &self.meshes {
-            mesh.draw(rpass)
+            rpass.push_debug_group("Bind Mesh");
+            mesh.bind(rpass);
+            rpass.insert_debug_marker("Draw!");
+            mesh.draw(rpass);
         }
     }
 }
@@ -60,31 +53,29 @@ pub struct Mesh3D {
 }
 
 impl Mesh3D {
-    pub fn new(device: &Device, vertices: Vec<Vertex3D>, indices: Vec<u32>) -> Self {
+    pub fn new(device: &Device, vertices: Vec<Vertex3D>, indices: Vec<u32>, name: String) -> Self {
         let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
+            label: Some(&format!("{:?} Vertex Buffer", name)),
             contents: bytemuck::cast_slice(&vertices),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
         let index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
+            label: Some(&format!("{:?} Index Buffer", name)),
             contents: bytemuck::cast_slice(&indices),
             usage: wgpu::BufferUsages::INDEX,
         });
 
-        let index_count = indices.len() as u32;
-
         Self {
             vertex_buf,
             index_buf,
-            index_count,
+            index_count: indices.len() as u32,
         }
     }
 
     pub fn bind<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
-        rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
         rpass.set_index_buffer(self.index_buf.slice(..), wgpu::IndexFormat::Uint32);
+        rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
     }
 
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
@@ -92,74 +83,86 @@ impl Mesh3D {
     }
 }
 
-use russimp::scene::PostProcess;
+use russimp::scene::{PostProcess, Scene};
 
-pub struct RawMesh {
-    pub vertices: Vec<Vertex3D>,
-    pub indices: Vec<u32>,
+struct RawMesh {
+    pub name: String,
+    vertices: Vec<Vertex3D>,
+    indices: Vec<u32>,
 }
 
 impl RawMesh {
     #[inline]
     #[must_use]
     pub fn load_full(path: &str) -> Vec<Self> {
+        let sw = Stopwatch::new_and_start();
+
         let scene = russimp::scene::Scene::from_file(
             path,
             vec![
-                PostProcess::GenerateSmoothNormals,
-                PostProcess::JoinIdenticalVertices,
+                PostProcess::CalculateTangentSpace,
                 PostProcess::Triangulate,
-                PostProcess::FixInfacingNormals,
-                PostProcess::SortByPrimitiveType,
-                PostProcess::PreTransformVertices,
-                PostProcess::OptimizeMeshes,
-                PostProcess::OptimizeGraph,
-                PostProcess::ImproveCacheLocality,
+                PostProcess::JoinIdenticalVertices,
+                PostProcess::SortByPrimitiveType, 
             ],
         )
-        .unwrap();
+        .expect("Failed to Load Scene");
 
+        let mut meshes = Vec::with_capacity(scene.meshes.len());
         Self::load_node(
-            scene.root.expect("Failed to get Scene Root Node"),
-            &scene.meshes,
-        )
+            &scene.root.clone().expect("Failed to get Scene Root Node"),
+            &scene,
+            &mut meshes,
+        );
+        log::debug!("Scene {} took {}ms to load", path, sw.elapsed_ms());
+        meshes
     }
 
-    fn load_node(node: Rc<Node>, scene_meshes: &Vec<Mesh>) -> Vec<Self> {
-        let mut meshes = Vec::with_capacity(node.meshes.len());
-        for i in 0..node.meshes.len() {
-            meshes.push(Self::load_mesh(&scene_meshes[i]))
+    pub fn to_meshes(device: &Device, rawmeshes: Vec<Self>) -> Vec<Mesh3D> {
+        rawmeshes
+            .into_iter()
+            .map(|mesh| Mesh3D::new(device, mesh.vertices, mesh.indices, mesh.name))
+            .collect()
+    }
+
+    fn load_node(node: &Rc<Node>, scene: &Scene, meshes: &mut Vec<RawMesh>) {
+        log::debug!("Loading Model Node: {}", node.name);
+        for mesh in &node.meshes {
+            meshes.push(Self::load_mesh(&scene.meshes[*mesh as usize]))
         }
-        for i in 0..node.children.borrow().len() {
-            meshes.extend(Self::load_node(
-                node.children.borrow()[i].clone(),
-                scene_meshes,
-            ));
+
+        for node in node.children.borrow().iter() {
+            Self::load_node(node, scene, meshes);
         }
-        meshes
     }
 
     fn load_mesh(mesh: &Mesh) -> Self {
         let mut vertices = Vec::with_capacity(mesh.vertices.len());
-        let indices = mesh
-            .faces
-            .iter()
-            .flat_map(|face| face.0.iter().copied())
-            .collect();
 
         for i in 0..mesh.vertices.len() {
             let mut vertex = Vertex3D::empty();
 
-            let mesh_vertex = &mesh.vertices[i];
-            vertex.pos = [mesh_vertex.x, mesh_vertex.y, mesh_vertex.z];
+            vertex.pos = [mesh.vertices[i].x, mesh.vertices[i].y, mesh.vertices[i].z];
 
             if mesh.texture_coords[0].is_some() {
-                let coord = mesh.texture_coords[0].as_ref().unwrap()[i];
+                let coord = &mesh.texture_coords[0]
+                    .as_ref()
+                    .expect("Failed to get texture coords")[i];
                 vertex.tex_coord = [coord.x, coord.y]
             }
             vertices.push(vertex);
         }
 
-        Self { vertices, indices }
+        let indices: Vec<u32> = mesh
+            .faces
+            .iter()
+            .flat_map(|face| face.0.iter().copied())
+            .collect();
+
+        Self {
+            name: mesh.name.clone(),
+            vertices,
+            indices,
+        }
     }
 }

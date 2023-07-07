@@ -17,7 +17,7 @@ pub struct BasicCamera {
     fovy: f32,
     znear: f32,
     zfar: f32,
-    pub rotation: glam::Vec2,
+    pub rotation: glam::Quat,
 }
 
 impl Default for BasicCamera {
@@ -26,8 +26,8 @@ impl Default for BasicCamera {
         Self {
             fovy: 60.0,
             znear: 0.1,
-            zfar: 1000.0,
-            rotation: glam::Vec2::ZERO,
+            zfar: 10000.0,
+            rotation: glam::Quat::IDENTITY,
         }
     }
 }
@@ -95,7 +95,7 @@ impl Camera for Camera3D {
 
         let view = glam::Mat4::look_at_lh(
             self.position,
-            self.position + self.direction_from_rotation(),
+            self.direction_from_rotation(),
             glam::Vec3::Y,
         );
         UBO3D {

@@ -1,6 +1,6 @@
 use crate::render::Dimension;
 
-use crate::render::mesh_renderer::MeshRenderer3D;
+use crate::render::model_renderer::ModelRenderer3D;
 use std::mem;
 use vent_assets::model::Model3D;
 use vent_common::entity::camera::Camera;
@@ -150,7 +150,7 @@ impl MultiDimensionRenderer for Renderer2D {
 }
 
 pub struct Renderer3D {
-    mesh_renderer: MeshRenderer3D,
+    mesh_renderer: ModelRenderer3D,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
@@ -283,8 +283,8 @@ impl MultiDimensionRenderer for Renderer3D {
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: Texture::DEPTH_FORMAT,
                 depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less, // 1.
-                stencil: wgpu::StencilState::default(),     // 2.
+                depth_compare: wgpu::CompareFunction::LessEqual, 
+                stencil: wgpu::StencilState::default(),    
                 bias: wgpu::DepthBiasState::default(),
             }),
             multisample: wgpu::MultisampleState::default(),
@@ -320,7 +320,6 @@ impl MultiDimensionRenderer for Renderer3D {
                     })],
                 }),
                 primitive: wgpu::PrimitiveState {
-                    front_face: wgpu::FrontFace::Ccw,
                     cull_mode: Some(wgpu::Face::Back),
                     polygon_mode: wgpu::PolygonMode::Line,
                     ..Default::default()
@@ -334,7 +333,7 @@ impl MultiDimensionRenderer for Renderer3D {
             None
         };
 
-        let mut mesh_renderer = MeshRenderer3D::default();
+        let mut mesh_renderer = ModelRenderer3D::default();
 
         // -------------- DEMO -------------------
         let mut world = World::new();

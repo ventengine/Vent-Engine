@@ -25,9 +25,6 @@ serde_json = "1.0"
 
 rfd = { version="0.11.4",  default-features = false, features = ["xdg-portal"]}
 
-[target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
-env_logger = "0.10.0"
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
 console_log = "1"

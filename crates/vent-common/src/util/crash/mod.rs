@@ -11,7 +11,7 @@ pub fn init_panic_hook() {
 }
 
 fn panic_handler(pi: &PanicInfo) {
-    log::warn!("Crashing...");
+    eprintln!("Crash: {}", pi);
     log_crash(pi).expect("Failed to Log Crash File");
     show_error_dialog(pi);
 }

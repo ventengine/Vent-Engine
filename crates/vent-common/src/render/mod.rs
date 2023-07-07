@@ -58,7 +58,6 @@ pub struct UBO3D {
     pub projection: [[f32; 4]; 4],
     pub(crate) view: [[f32; 4]; 4],
     pub transformation: [[f32; 4]; 4],
-    // [[f32; 4]; 4]
 }
 
 #[repr(C)]
@@ -88,7 +87,7 @@ impl Vertex3D {
 impl Vertex for Vertex3D {
     fn layout() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
-            array_stride: mem::size_of::<Vertex3D>() as wgpu::BufferAddress,
+            array_stride: mem::size_of::<Self>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &[
                 wgpu::VertexAttribute {

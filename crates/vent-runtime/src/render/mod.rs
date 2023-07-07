@@ -7,7 +7,7 @@ use winit::window::Window;
 use crate::render::app_renderer::VentApplicationManager;
 
 pub mod app_renderer;
-mod mesh_renderer;
+mod model_renderer;
 
 pub struct RuntimeRenderer {
     default_renderer: DefaultRenderer,
@@ -57,9 +57,7 @@ impl RuntimeRenderer {
             self.default_renderer.config.width as f32 / self.default_renderer.config.height as f32,
         );
 
-        self.default_renderer
-            .queue
-            .submit(std::iter::once(encoder.finish()));
+        self.default_renderer.queue.submit(Some(encoder.finish()));
         output.present();
 
         #[cfg(target_arch = "wasm32")]

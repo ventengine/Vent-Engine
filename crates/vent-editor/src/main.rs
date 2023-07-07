@@ -1,5 +1,6 @@
 use crate::render::EditorRenderer;
 
+use simple_logger::SimpleLogger;
 use std::path::Path;
 use vent_common::entity::camera::{Camera, Camera3D};
 use vent_common::util::crash::init_panic_hook;
@@ -13,7 +14,10 @@ mod render;
 
 fn main() {
     init_panic_hook();
-    env_logger::init();
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        SimpleLogger::new().init().unwrap();
+    };
 
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -69,7 +73,9 @@ fn main() {
                             control_flow.set_exit();
                             panic!("{}", format!("{err}"));
                         }
-                        wgpu::SurfaceError::Lost => renderer.resize_current(&mut camera),
+                        wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated => {
+                            renderer.resize_current(&mut camera)
+                        }
                         _ => {}
                     },
                 }

@@ -20,4 +20,4 @@ glam = "0.24.1"
 bytemuck = { version = "1.13.1", features = ["derive"] }
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
-env_logger = "0.10.0"
+simple_logger = "4.2.0"
