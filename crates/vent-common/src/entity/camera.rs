@@ -93,11 +93,8 @@ impl Camera for Camera3D {
             self.basic_cam.zfar,
         );
 
-        let view = glam::Mat4::look_at_lh(
-            self.position,
-            self.direction_from_rotation(),
-            glam::Vec3::Y,
-        );
+        let view =
+            glam::Mat4::look_at_lh(self.position, self.direction_from_rotation(), glam::Vec3::Y);
         UBO3D {
             projection: projection.to_cols_array_2d(),
             view: view.to_cols_array_2d(),

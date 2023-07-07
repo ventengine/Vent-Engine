@@ -283,8 +283,8 @@ impl MultiDimensionRenderer for Renderer3D {
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: Texture::DEPTH_FORMAT,
                 depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::LessEqual, 
-                stencil: wgpu::StencilState::default(),    
+                depth_compare: wgpu::CompareFunction::LessEqual,
+                stencil: wgpu::StencilState::default(),
                 bias: wgpu::DepthBiasState::default(),
             }),
             multisample: wgpu::MultisampleState::default(),
@@ -370,8 +370,7 @@ impl MultiDimensionRenderer for Renderer3D {
         self.depth_texture = Texture::create_depth_texture(device, config, "depth_texture");
 
         let ubo = camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
-        let mx_ref: &[[f32; 4]] = ubo.projection.as_ref();
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
     }
 
     fn render(

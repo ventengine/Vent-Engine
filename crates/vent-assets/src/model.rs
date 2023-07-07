@@ -103,7 +103,7 @@ impl RawMesh {
                 PostProcess::CalculateTangentSpace,
                 PostProcess::Triangulate,
                 PostProcess::JoinIdenticalVertices,
-                PostProcess::SortByPrimitiveType, 
+                PostProcess::SortByPrimitiveType,
             ],
         )
         .expect("Failed to Load Scene");

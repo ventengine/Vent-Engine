@@ -60,7 +60,13 @@ impl CameraController3D {
         }
     }
 
-    pub fn process_mouse(&mut self, camera: &mut Camera3D, mouse_dx: f64, mouse_dy: f64, delta_time: f32) {
+    pub fn process_mouse(
+        &mut self,
+        camera: &mut Camera3D,
+        mouse_dx: f64,
+        mouse_dy: f64,
+        delta_time: f32,
+    ) {
         let deltaposition = glam::vec2(mouse_dx as f32, mouse_dy as f32);
 
         let moveposition =

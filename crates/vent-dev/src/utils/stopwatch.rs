@@ -30,16 +30,16 @@ impl Stopwatch {
     pub fn elapsed(&self) -> Duration {
         match self.start {
             Some(t1) => {
-                return t1.elapsed() + self.elapsed;
+                t1.elapsed() + self.elapsed
             }
             None => {
-                return self.elapsed;
+                self.elapsed
             }
         }
     }
 
     pub fn elapsed_ms(&self) -> i64 {
         let dur = self.elapsed();
-        return (dur.as_secs() * 1000 + (dur.subsec_nanos() / 1000000) as u64) as i64;
+        (dur.as_secs() * 1000 + dur.subsec_millis() as u64) as i64
     }
 }

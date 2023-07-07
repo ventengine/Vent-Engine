@@ -23,7 +23,10 @@ impl VentApplication {
         init_panic_hook();
         #[cfg(not(target_arch = "wasm32"))]
         {
-            SimpleLogger::new().with_level(log::LevelFilter::Info).init().unwrap();
+            SimpleLogger::new()
+                .with_level(log::LevelFilter::Info)
+                .init()
+                .unwrap();
         };
 
         let project = VentApplicationProject {
@@ -67,31 +70,29 @@ impl VentApplication {
                         WindowEvent::CloseRequested => control_flow.set_exit(),
                         WindowEvent::KeyboardInput {
                             input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(key),
-                                ..
-                            },
+                                KeyboardInput {
+                                    state: ElementState::Pressed,
+                                    virtual_keycode: Some(key),
+                                    ..
+                                },
                             ..
                         } => {
                             controller.process_keyboard(&mut cam, key, delta_time.as_secs_f32());
                         }
                         WindowEvent::Resized(physical_size) => {
-                            renderer.resize( *physical_size, &mut cam);
+                            renderer.resize(*physical_size, &mut cam);
                         }
                         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                             // new_inner_size is &mut so w have to dereference it twice
-                            renderer.resize( **new_inner_size, &mut cam);
+                            renderer.resize(**new_inner_size, &mut cam);
                         }
                         _ => {}
                     }
                 }
                 Event::DeviceEvent {
-                    event: DeviceEvent::MouseMotion { delta, },
-                    .. 
-                } => {
-                   controller.process_mouse(&mut cam, delta.0, delta.1, delta_time.as_secs_f32())
-                }
+                    event: DeviceEvent::MouseMotion { delta },
+                    ..
+                } => controller.process_mouse(&mut cam, delta.0, delta.1, delta_time.as_secs_f32()),
                 Event::RedrawRequested(window_id) if window_id == vent_window.window.id() => {
                     let now = Instant::now();
                     delta_time = now - last;
