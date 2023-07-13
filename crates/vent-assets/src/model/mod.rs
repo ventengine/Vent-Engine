@@ -67,7 +67,7 @@ pub struct Mesh3D {
 }
 
 impl Mesh3D {
-    pub fn new(device: &Device, vertices: &Vec<Vertex3D>, indices: &Vec<u32>, name: &str) -> Self {
+    pub fn new(device: &Device, vertices: &[Vertex3D], indices: &Vec<u32>, name: &str) -> Self {
         let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("{:?} Vertex Buffer", name)),
             contents: bytemuck::cast_slice(vertices),
