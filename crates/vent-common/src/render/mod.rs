@@ -71,14 +71,14 @@ pub trait Vertex {
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct Vertex3D {
-    pub pos: [f32; 3],
+    pub position: [f32; 3],
     pub tex_coord: [f32; 2],
 }
 
 impl Vertex3D {
     pub fn empty() -> Self {
         Self {
-            pos: [0.0, 0.0, 0.0],
+            position: [0.0, 0.0, 0.0],
             tex_coord: [0.0, 0.0],
         }
     }
