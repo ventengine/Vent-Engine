@@ -1,4 +1,4 @@
-use std::{path::Path};
+use std::path::Path;
 
 use glam::{Quat, Vec3};
 use vent_common::render::Vertex3D;

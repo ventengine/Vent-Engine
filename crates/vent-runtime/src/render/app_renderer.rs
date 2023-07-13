@@ -343,8 +343,8 @@ impl MultiDimensionRenderer for Renderer3D {
             env!("CARGO_MANIFEST_DIR"),
             "/assets/models/test/Sponza-OBJ/sponza.obj"
         );
-        let mesh = Model3D::new(device, Path::new(model));
-
+        let mut mesh = Model3D::new(device, Path::new(model));
+        mesh.rotation.x += 250.0;
         mesh_renderer.insert(world.create_entity(), mesh);
 
         // -------------------------------
@@ -383,7 +383,6 @@ impl MultiDimensionRenderer for Renderer3D {
         aspect_ratio: f32,
     ) {
         let mut ubo = camera.build_view_matrix_3d(aspect_ratio);
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("3D Render Pass"),
@@ -416,5 +415,6 @@ impl MultiDimensionRenderer for Renderer3D {
             }
             self.mesh_renderer.render(&mut rpass, &mut ubo);
         }
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
     }
 }
