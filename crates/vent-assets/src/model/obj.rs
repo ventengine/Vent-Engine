@@ -8,7 +8,7 @@ pub struct OBJLoader {}
 
 impl OBJLoader {
     pub fn load(device: &wgpu::Device, path: &Path) -> Vec<Mesh3D> {
-        let (models, materials) =
+        let (models, _materials) =
             tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS).expect("Failed to Load OBJ");
 
         let mut meshes = Vec::new();

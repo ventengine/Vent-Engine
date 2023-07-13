@@ -1,8 +1,8 @@
-use std::{path::Path, rc::Rc};
+use std::{path::Path};
 
 use glam::{Quat, Vec3};
 use vent_common::render::Vertex3D;
-use vent_dev::utils::stopwatch::Stopwatch;
+
 use wgpu::util::DeviceExt;
 use wgpu::Device;
 
