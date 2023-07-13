@@ -75,15 +75,6 @@ pub struct Vertex3D {
     pub tex_coord: [f32; 2],
 }
 
-impl Vertex3D {
-    pub fn empty() -> Self {
-        Self {
-            position: [0.0, 0.0, 0.0],
-            tex_coord: [0.0, 0.0],
-        }
-    }
-}
-
 impl Vertex for Vertex3D {
     fn layout() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {

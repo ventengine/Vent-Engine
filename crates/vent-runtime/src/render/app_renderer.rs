@@ -2,6 +2,7 @@ use crate::render::Dimension;
 
 use crate::render::model_renderer::ModelRenderer3D;
 use std::mem;
+use std::path::Path;
 use vent_assets::model::Model3D;
 use vent_common::entity::camera::Camera;
 use vent_common::render::texture::Texture;
@@ -340,9 +341,9 @@ impl MultiDimensionRenderer for Renderer3D {
 
         let model = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/models/test/Sponza/Sponza.gltf"
+            "/assets/models/test/Sponza-OBJ/sponza.obj"
         );
-        let mesh = Model3D::new(device, model);
+        let mesh = Model3D::new(device, Path::new(model));
 
         mesh_renderer.insert(world.create_entity(), mesh);
 

@@ -4,6 +4,4 @@ struct Shader {}
 
 impl Shader {}
 
-impl Asset for Shader {
- 
-}
+impl Asset for Shader {}

@@ -10,7 +10,9 @@ vent-common = { path = "../vent-common"}
 vent-dev = { path = "../vent-dev" }
 
 wgpu = "0.16.2"
-russimp = { version = "2.0.5", features = ["prebuilt"] }
 bytemuck = { version = "1.13.1", features = ["derive"] }
 glam = "0.24.1"
 log = "0.4"
+
+# model
+tobj = { version = "4.0.0", features = ["async"] }

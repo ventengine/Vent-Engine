@@ -29,12 +29,8 @@ impl Stopwatch {
 
     pub fn elapsed(&self) -> Duration {
         match self.start {
-            Some(t1) => {
-                t1.elapsed() + self.elapsed
-            }
-            None => {
-                self.elapsed
-            }
+            Some(t1) => t1.elapsed() + self.elapsed,
+            None => self.elapsed,
         }
     }
 
