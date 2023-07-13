@@ -39,12 +39,6 @@ impl Model3D {
     }
 }
 
-impl Asset for Model3D {
-    fn get_file_extensions() -> &'static str {
-        ""
-    }
-}
-
 pub struct Mesh3D {
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
