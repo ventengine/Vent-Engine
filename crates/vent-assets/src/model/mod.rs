@@ -54,7 +54,7 @@ fn load_model_from_path(device: &wgpu::Device, path: &Path) -> Result<Vec<Mesh3D
 
     // Very Pretty, I know
     match path.extension().unwrap().to_str().unwrap() {
-        "obj" => Ok(OBJLoader::load(device, path)),
+        "obj" => Ok(OBJLoader::load(device, path)?),
         _ => Err(ModelError::UnsupportedFormat),
     }
 }
