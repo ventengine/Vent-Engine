@@ -9,7 +9,7 @@ edition = "2021"
 vent-ecs = { path = "../vent-ecs"}
 
 winit = "0.28.6"
-wgpu = "0.16.2"
+wgpu = "0.16.3"
 pollster = "0.3.0"
 sysinfo = "0.29"
 chrono = "0.4"
