@@ -5,7 +5,7 @@ use winit::window::Window;
 
 use bytemuck::{Pod, Zeroable};
 use log::debug;
-use std::mem;
+
 #[cfg(target_arch = "wasm32")]
 use std::str::FromStr;
 

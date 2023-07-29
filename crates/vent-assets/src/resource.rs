@@ -1,5 +1,5 @@
 pub struct ResourceLocation {}
 
 impl ResourceLocation {
-    pub fn new(base_path: &str) {}
+    pub fn new(_base_path: &str) {}
 }

@@ -2,7 +2,7 @@ use std::path::Path;
 
 use wgpu::BindGroupLayout;
 
-use crate::{Vertex3D, Texture};
+use crate::{Vertex3D};
 
 use super::{Mesh3D, ModelError};
 
@@ -50,11 +50,11 @@ impl OBJLoader {
 
     fn load_mesh(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
         name: &str,
         mesh: &tobj::Mesh,
-        material: Option<&tobj::Material>,
-        texture_bind_group_layout: &BindGroupLayout,
+        _material: Option<&tobj::Material>,
+        _texture_bind_group_layout: &BindGroupLayout,
     ) -> Mesh3D {
         let vertices = (0..mesh.positions.len() / 3)
             .map(|i| Vertex3D {
