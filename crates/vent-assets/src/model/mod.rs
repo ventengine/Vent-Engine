@@ -1,10 +1,13 @@
+use std::io;
 use std::path::Path;
 
+use cfg_if::cfg_if;
 use glam::{Quat, Vec3};
-use vent_common::render::Vertex3D;
 
 use wgpu::util::DeviceExt;
-use wgpu::Device;
+use wgpu::{BindGroupLayout, Device};
+
+use crate::{Mesh3D, Model3D, Vertex3D};
 
 use self::obj::OBJLoader;
 
@@ -17,17 +20,11 @@ pub enum ModelError {
     LoadingError(String),
 }
 
-pub struct Model3D {
-    pub position: glam::Vec3,
-    pub rotation: glam::Quat,
-    pub scale: glam::Vec3,
-    meshes: Vec<Mesh3D>,
-}
-
 impl Model3D {
     #[inline(always)]
-    pub fn new(device: &Device, path: &Path) -> Self {
-        let meshes = load_model_from_path(device, path).expect("Failed to Load 3D Model");
+    pub fn new(device: &Device, queue: &wgpu::Queue, path: &Path, texture_bind_group_layout: BindGroupLayout) -> Self {
+        let meshes = load_model_from_path(device, queue, path, texture_bind_group_layout)
+            .expect("Failed to Load 3D Model");
 
         Self {
             position: Vec3::ZERO,
@@ -47,27 +44,25 @@ impl Model3D {
     }
 }
 
-fn load_model_from_path(device: &wgpu::Device, path: &Path) -> Result<Vec<Mesh3D>, ModelError> {
+fn load_model_from_path(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    path: &Path,
+    texture_bind_group_layout: BindGroupLayout,
+) -> Result<Vec<Mesh3D>, ModelError> {
     if !path.exists() {
         return Err(ModelError::FileNotExists);
     }
 
     // Very Pretty, I know
     match path.extension().unwrap().to_str().unwrap() {
-        "obj" => Ok(OBJLoader::load(device, path)?),
+        "obj" => Ok(OBJLoader::load(device, queue, path, texture_bind_group_layout)?),
         _ => Err(ModelError::UnsupportedFormat),
     }
 }
 
-pub struct Mesh3D {
-    vertex_buf: wgpu::Buffer,
-    index_buf: wgpu::Buffer,
-
-    index_count: u32,
-}
-
 impl Mesh3D {
-    pub fn new(device: &Device, vertices: &[Vertex3D], indices: &Vec<u32>, name: &str) -> Self {
+    pub fn new(device: &Device, vertices: &[Vertex3D], indices: &[u32], name: &str) -> Self {
         let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&format!("{:?} Vertex Buffer", name)),
             contents: bytemuck::cast_slice(vertices),
@@ -95,4 +90,24 @@ impl Mesh3D {
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         rpass.draw_indexed(0..self.index_count, 0, 0..1);
     }
+}
+
+pub(crate) async fn load_binary(dir: &Path, file_name: &str) -> io::Result<Vec<u8>> {
+    cfg_if! {
+        if #[cfg(target_arch = "wasm32")] {
+            let url = format_url(file_name);
+            let data = reqwest::get(url)
+                .await?
+                .bytes()
+                .await?
+                .to_vec();
+        } else {
+            let path = dir
+                .join("res")
+                .join(file_name);
+            let data = std::fs::read(path)?;
+        }
+    }
+
+    Ok(data)
 }

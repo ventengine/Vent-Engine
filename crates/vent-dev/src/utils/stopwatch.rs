@@ -34,8 +34,8 @@ impl Stopwatch {
         }
     }
 
-    pub fn elapsed_ms(&self) -> i64 {
+    pub fn elapsed_ms(&self) -> u64 {
         let dur = self.elapsed();
-        (dur.as_secs() * 1000 + dur.subsec_millis() as u64) as i64
+        (dur.as_secs() * 1000 + dur.subsec_millis() as u64)
     }
 }

@@ -6,13 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-vent-common = { path = "../vent-common"}
 vent-dev = { path = "../vent-dev" }
 
 wgpu = "0.16.2"
 bytemuck = { version = "1.13.1", features = ["derive"] }
 glam = "0.24.1"
 log = "0.4"
+cfg-if = "1"
 
 # model
 tobj = { version = "4.0.0", features = ["async"] }
+image = "0.24.6"

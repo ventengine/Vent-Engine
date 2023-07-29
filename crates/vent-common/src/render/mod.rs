@@ -1,5 +1,3 @@
-pub mod texture;
-
 use pollster::block_on;
 use wgpu::{Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration};
 use winit::dpi::PhysicalSize;
@@ -63,38 +61,6 @@ pub struct UBO3D {
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct UBO2D {}
-
-pub trait Vertex {
-    fn layout() -> wgpu::VertexBufferLayout<'static>;
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub struct Vertex3D {
-    pub position: [f32; 3],
-    pub tex_coord: [f32; 2],
-}
-
-impl Vertex for Vertex3D {
-    fn layout() -> wgpu::VertexBufferLayout<'static> {
-        wgpu::VertexBufferLayout {
-            array_stride: mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x3,
-                    offset: 0,
-                    shader_location: 0,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                    shader_location: 1,
-                },
-            ],
-        }
-    }
-}
 
 impl DefaultRenderer {
     #[must_use]

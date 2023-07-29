@@ -1,6 +1,6 @@
 use glam::{Mat4, Quat};
 use std::collections::HashMap;
-use vent_assets::model::Model3D;
+use vent_assets::Model3D;
 use vent_ecs::entity::Entity;
 
 use vent_common::render::UBO3D;

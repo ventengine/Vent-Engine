@@ -24,15 +24,17 @@ fn vs_main(
     return result;
 }
 
+
+@group(0)
+@binding(0)
+var texture_diffuse: texture_2d<f32>;
 @group(0)
 @binding(1)
-var r_color: texture_2d<u32>;
+var sampler_diffuse: sampler;
 
 @fragment
 fn fs_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
-    let tex = textureLoad(r_color, vec2<i32>(vertex.tex_coord * 256.0), 0);
-    let v = f32(tex.x) / 255.0;
-    return vec4<f32>(1.0 - (v * 5.0), 1.0 - (v * 15.0), 1.0 - (v * 50.0), 1.0);
+    return textureSample(texture_diffuse, sampler_diffuse, vertex.tex_coord);
 }
 
 @fragment

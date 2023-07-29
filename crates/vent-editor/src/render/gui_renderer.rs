@@ -32,11 +32,11 @@ impl EguiRenderer {
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
     ) {
-        self.context.begin_frame(self.state.take_egui_input(window));
-
-        self.gui.update(&self.context);
-
-        let output = self.context.end_frame();
+        //  self.context.begin_frame(self.state.take_egui_input(window));
+        let input = self.state.take_egui_input(window);
+        let output = self.context.run(input, |ctx| {
+            self.gui.update(ctx);
+        });
 
         self.state
             .handle_platform_output(window, &self.context, output.platform_output);
