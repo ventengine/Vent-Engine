@@ -92,6 +92,7 @@ impl Mesh3D {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) async fn load_binary(dir: &Path, file_name: &str) -> io::Result<Vec<u8>> {
     cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
