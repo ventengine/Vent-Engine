@@ -299,11 +299,15 @@ impl MultiDimensionRenderer for Renderer3D {
 
         let model = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/models/test/Sponza-OBJ/sponza.obj"
+            "/res/models/test/Sponza-OBJ/sponza.obj"
         );
-        let mut mesh = Model3D::new(device, queue, Path::new(model), texture_bind_group_layout);
-        mesh.rotation.x += 250.0;
-        mesh_renderer.insert(world.create_entity(), mesh);
+
+        pollster::block_on(async {
+            let mut mesh =
+                Model3D::new(device, queue, Path::new(model), &texture_bind_group_layout).await;
+            mesh.rotation.x += 100.0;
+            mesh_renderer.insert(world.create_entity(), mesh);
+        });
 
         // -------------------------------
 

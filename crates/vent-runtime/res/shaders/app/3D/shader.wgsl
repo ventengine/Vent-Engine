@@ -25,10 +25,10 @@ fn vs_main(
 }
 
 
-@group(0)
+@group(1)
 @binding(0)
 var texture_diffuse: texture_2d<f32>;
-@group(0)
+@group(1)
 @binding(1)
 var sampler_diffuse: sampler;
 

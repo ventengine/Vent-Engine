@@ -81,15 +81,15 @@ impl Texture {
         }
     }
 
-    pub fn from_bytes(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        bytes: &[u8],
-        label: &str,
-    ) -> Result<Self, ImageError> {
-        let img = image::load_from_memory(bytes)?;
-        Self::from_image(device, queue, &img, Some(label))
-    }
+    // pub fn from_image(
+    //     device: &wgpu::Device,
+    //     queue: &wgpu::Queue,
+    //     bytes: &[u8],
+    //     label: Option<&str>,
+    // ) -> Result<Self, ImageError> {
+    //     let img = image::load_from_memory(bytes)?;
+    //     Self::from_image(device, queue, &img, label)
+    // }
 
     pub fn from_image(
         device: &wgpu::Device,
@@ -97,12 +97,49 @@ impl Texture {
         img: &image::DynamicImage,
         label: Option<&str>,
     ) -> Result<Self, ImageError> {
-        let rgba = img.to_rgba8();
         let dimensions = img.dimensions();
+        Self::create(
+            device,
+            queue,
+            &img.to_rgba8(),
+            dimensions.0,
+            dimensions.1,
+            label,
+        )
+    }
 
+    pub fn from_color(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        colors: [u8; 4],
+        width: u32,
+        height: u32,
+        label: Option<&str>
+    ) -> Result<Self, ImageError> {
+        let mut bytes = Vec::with_capacity((width * height) as usize);
+        for _y in 0..height {
+            for _x in 0..width {
+                bytes.push(colors[0]);
+                bytes.push(colors[1]);
+                bytes.push(colors[2]);
+                bytes.push(colors[3]);
+            }
+        }
+        let bytes: &[u8] = bytes.as_ref();
+        Self::create(device, queue, &bytes, width, height, label)
+    }
+
+    pub fn create(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        bytes: &[u8],
+        width: u32,
+        height: u32,
+        label: Option<&str>,
+    ) -> Result<Self, ImageError> {
         let size = wgpu::Extent3d {
-            width: dimensions.0,
-            height: dimensions.1,
+            width,
+            height,
             depth_or_array_layers: 1,
         };
         let format = wgpu::TextureFormat::Rgba8UnormSrgb;
@@ -124,11 +161,11 @@ impl Texture {
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
-            &rgba,
+            &bytes,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * dimensions.0),
-                rows_per_image: Some(dimensions.1),
+                bytes_per_row: Some(4 * width),
+                rows_per_image: Some(height),
             },
             size,
         );

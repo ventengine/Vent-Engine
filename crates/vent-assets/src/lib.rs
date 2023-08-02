@@ -48,64 +48,24 @@ pub struct Model3D {
     pub position: glam::Vec3,
     pub rotation: glam::Quat,
     pub scale: glam::Vec3,
-    meshes: Vec<Mesh3D>,
-}
 
+    meshes: Vec<Mesh3D>,
+    materials: Vec<wgpu::BindGroup>,
+}
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
 
 /// By using this simple mesh, you can easily define custom shapes or provide default objects for your application. It is particularly handy when you want to avoid loading external model files and instead directly embed the 3D data within your code.
 
 /// Note that this simple mesh implementation does not support advanced features such as normal mapping, skeletal animation, or material properties. It serves as a basic foundation for representing 3D geometry and can be extended or customized according to your specific requirements.
 
-/// # Examples
-///
-/// Drawing a Cube!:
-///
-/// ```
-/// ...
-/// let vertices = [
-///     -1, -1,  0.5,
-///      1, -1,  0.5,
-///     -1,  1,  0.5,
-///      1,  1,  0.5,
-///     -1, -1, -0.5,
-///      1, -1, -0.5,
-///     -1,  1, -0.5,
-///      1,  1, -0.5];
-/// let indices = [
-///     2, 6, 7,
-///     2, 3, 7,
-///
-///     0, 4, 5,
-///     0, 1, 5,
-///
-///     0, 2, 6,
-///     0, 4, 6,
-///
-///     1, 3, 7,
-///     1, 5, 7,
-///
-///     0, 2, 3,
-///     0, 1, 3,
-///
-///     4, 6, 7,
-///     4, 5, 7]
-///
-/// let mesh = Mesh3D::new(wgpu_device, &vertices, &indices, "Simple Cube");
-///...
-///```
-/// # Drawing
-/// ```
-/// let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-/// ...
-/// mesh.bind(&mut rpass);
-/// mesh.draw(&mut rpass);
-///```
 pub struct Mesh3D {
+    // Basic
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
-
     index_count: u32,
+
+    // Material
+    material_id: usize,
 }
 
 pub struct Texture {
