@@ -7,6 +7,12 @@ use crate::{Model3D, Texture, Vertex3D};
 
 use super::{Mesh3D, ModelError};
 
+struct Sampler {
+    mag_filter: wgpu::FilterMode,
+    min_filter: wgpu::FilterMode,
+    mipmap_filter: wgpu::FilterMode,
+}
+
 pub(crate) struct GLTFLoader {}
 
 impl GLTFLoader {
@@ -16,7 +22,6 @@ impl GLTFLoader {
         path: &Path,
         texture_bind_group_layout: &BindGroupLayout,
     ) -> Result<Model3D, ModelError> {
-        // We can be sure Path will be exist because of the check at ['load_model_from_path']
         let full_model =
             gltf::Gltf::from_reader(io::BufReader::new(fs::File::open(path).unwrap())).unwrap();
         let path = path.parent().unwrap_or_else(|| Path::new("./"));
@@ -32,9 +37,9 @@ impl GLTFLoader {
             }
         }
 
-        let mut final_materials = Vec::new();
+        let mut materials = Vec::with_capacity(full_model.materials().len());
         for material in full_model.materials() {
-            final_materials.push(
+            materials.push(
                 Self::load_material(
                     device,
                     queue,
@@ -52,7 +57,7 @@ impl GLTFLoader {
             rotation: Quat::IDENTITY,
             scale: Vec3::ONE,
             meshes,
-            materials: final_materials,
+            materials,
         })
     }
 
@@ -62,7 +67,7 @@ impl GLTFLoader {
         buffer_data: &[gltf::buffer::Data],
         meshes: &mut Vec<Mesh3D>,
     ) {
-        for mesh in node.mesh() {
+        if let Some(mesh) = node.mesh() {
             for primitive in mesh.primitives() {
                 meshes.push(Self::load_primitive(
                     device,
@@ -103,9 +108,10 @@ impl GLTFLoader {
                         device,
                         queue,
                         &image::open(model_dir.join(uri)).unwrap(),
-                        Some(sampler.0),
-                        Some(sampler.1),
-                        Some(sampler.2),
+                        Some(sampler.mag_filter),
+                        Some(sampler.min_filter),
+                        Some(sampler.mipmap_filter),
+                        texture.texture().sampler().name(),
                         None,
                     )
                     .unwrap()
@@ -132,11 +138,8 @@ impl GLTFLoader {
     }
 
     /// Converts an gltf Texture Sampler into WGPU Filter Modes
-    /// Return WGPU mag_filter, min_filter and mipmap_filter
-    fn convert_sampler(
-        sampler: gltf::texture::Sampler,
-    ) -> (wgpu::FilterMode, wgpu::FilterMode, wgpu::FilterMode) {
-        let mag = if let Some(filter) = sampler.mag_filter() {
+    fn convert_sampler(sampler: gltf::texture::Sampler) -> Sampler {
+        let mag_filter = if let Some(filter) = sampler.mag_filter() {
             match filter {
                 gltf::texture::MagFilter::Nearest => wgpu::FilterMode::Nearest,
                 gltf::texture::MagFilter::Linear => wgpu::FilterMode::Linear,
@@ -144,7 +147,7 @@ impl GLTFLoader {
         } else {
             Texture::DEFAULT_TEXTURE_FILTER
         };
-        let (min, mipmap) = if let Some(filter) = sampler.min_filter() {
+        let (min_filter, mipmap_filter) = if let Some(filter) = sampler.min_filter() {
             let mut min = Texture::DEFAULT_TEXTURE_FILTER;
             let mut mipmap = Texture::DEFAULT_TEXTURE_FILTER;
             match filter {
@@ -163,7 +166,11 @@ impl GLTFLoader {
                 Texture::DEFAULT_TEXTURE_FILTER,
             )
         };
-        (mag, min, mipmap)
+        Sampler {
+            mag_filter,
+            min_filter,
+            mipmap_filter,
+        }
     }
 
     fn load_primitive(

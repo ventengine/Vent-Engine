@@ -35,7 +35,7 @@ impl OBJLoader {
         for model in models {
             meshes.push(Self::load_mesh(device, &model.name, &model.mesh));
         }
-        let mut final_materials = Vec::new();
+        let mut final_materials = Vec::with_capacity(materials.len());
         for material in materials {
             final_materials.push(
                 Self::load_material(
@@ -65,16 +65,16 @@ impl OBJLoader {
         material: tobj::Material,
         texture_bind_group_layout: &BindGroupLayout,
     ) -> wgpu::BindGroup {
-        let diffuse_texture = if material.diffuse_texture.is_some() {
-            let diffuse_path = model_dir.join(material.diffuse_texture.unwrap());
+        let diffuse_texture = if let Some(texture) = material.diffuse_texture {
             Texture::from_image(
                 device,
                 queue,
-                &image::open(diffuse_path).unwrap(),
+                &image::open(model_dir.join(&texture)).unwrap(),
                 None,
                 None,
                 None,
-                Some(&material.name),
+                None,
+                Some(&texture),
             )
             .unwrap()
         } else {

@@ -137,7 +137,7 @@ pub struct Renderer3D {
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
-    depth_texture: vent_assets::Texture,
+    depth_texture: wgpu::TextureView,
 }
 
 impl MultiDimensionRenderer for Renderer3D {
@@ -237,6 +237,7 @@ impl MultiDimensionRenderer for Renderer3D {
             }),
             primitive: wgpu::PrimitiveState {
                 cull_mode: Some(wgpu::Face::Back),
+                front_face: wgpu::FrontFace::Cw,
                 ..Default::default()
             },
             depth_stencil: Some(wgpu::DepthStencilState {
@@ -362,7 +363,7 @@ impl MultiDimensionRenderer for Renderer3D {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.depth_texture.view,
+                    view: &self.depth_texture,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,
