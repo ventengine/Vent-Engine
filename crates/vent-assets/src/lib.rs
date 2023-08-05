@@ -4,7 +4,6 @@ use bytemuck::{Pod, Zeroable};
 
 pub mod model;
 pub mod pool;
-pub mod resource;
 pub mod shader;
 pub mod texture;
 

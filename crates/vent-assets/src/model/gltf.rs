@@ -1,4 +1,4 @@
-use std::{path::Path};
+use std::{fs, io, path::Path};
 
 use glam::{Quat, Vec3};
 use wgpu::BindGroupLayout;
@@ -16,31 +16,34 @@ impl GLTFLoader {
         path: &Path,
         texture_bind_group_layout: &BindGroupLayout,
     ) -> Result<Model3D, ModelError> {
-        let (gltf, buffers, _images) = match gltf::import(path) {
-            Ok(result) => result,
-            Err(err) => return Err(ModelError::LoadingError(err.to_string()))
-        };
+        // We can be sure Path will be exist because of the check at ['load_model_from_path']
+        let full_model =
+            gltf::Gltf::from_reader(io::BufReader::new(fs::File::open(path).unwrap())).unwrap();
+        let path = path.parent().unwrap_or_else(|| Path::new("./"));
 
+        // TODO: Error Handling
+        let buffer_data = gltf::import_buffers(&full_model, Some(path), full_model.blob.clone())
+            .expect("Failed to Load Buffers :C");
 
         let mut meshes = Vec::new();
-        for scene in gltf.scenes() {
+        for scene in full_model.scenes() {
             for node in scene.nodes() {
-                Self::load_node(device, node, &buffers, &mut meshes);
+                Self::load_node(device, node, &buffer_data, &mut meshes);
             }
         }
 
-        
         let mut final_materials = Vec::new();
-        for material in gltf.materials() {
+        for material in full_model.materials() {
             final_materials.push(
                 Self::load_material(
                     device,
                     queue,
-                    path.parent().unwrap(),
+                    path,
                     material,
-                    &buffers,
+                    &buffer_data,
                     texture_bind_group_layout,
-                ).await
+                )
+                .await,
             );
         }
 
@@ -56,7 +59,7 @@ impl GLTFLoader {
     fn load_node(
         device: &wgpu::Device,
         node: gltf::Node<'_>,
-        buffers: &[gltf::buffer::Data],
+        buffer_data: &[gltf::buffer::Data],
         meshes: &mut Vec<Mesh3D>,
     ) {
         for mesh in node.mesh() {
@@ -64,38 +67,47 @@ impl GLTFLoader {
                 meshes.push(Self::load_primitive(
                     device,
                     mesh.name(),
-                    buffers,
+                    buffer_data,
                     primitive,
                 ));
             }
         }
 
         for child in node.children() {
-            Self::load_node(device, child, buffers, meshes)
+            Self::load_node(device, child, buffer_data, meshes)
         }
     }
 
-   async fn load_material(
+    async fn load_material(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         model_dir: &Path,
-        material: gltf::Material<'_> ,
-        buffers: &[gltf::buffer::Data],
+        material: gltf::Material<'_>,
+        buffer_data: &[gltf::buffer::Data],
         texture_bind_group_layout: &BindGroupLayout,
     ) -> wgpu::BindGroup {
         let pbr = material.pbr_metallic_roughness();
-
 
         let diffuse_texture = if pbr.base_color_texture().is_some() {
             let tex = pbr.base_color_texture().unwrap();
 
             match tex.texture().source().source() {
-                gltf::image::Source::View { view, mime_type: _ } => {
-                   Texture::from_memory_to_image(device, queue, &buffers[view.buffer().index()], None).unwrap()
-                }
+                gltf::image::Source::View { view, mime_type: _ } => Texture::from_memory_to_image(
+                    device,
+                    queue,
+                    &buffer_data[view.buffer().index()],
+                    None,
+                )
+                .unwrap(),
                 gltf::image::Source::Uri { uri, mime_type: _ } => {
                     dbg!(uri);
-                   Texture::from_image(device, queue, &image::open(model_dir.join(uri)).unwrap(), None).unwrap()
+                    Texture::from_image(
+                        device,
+                        queue,
+                        &image::open(model_dir.join(uri)).unwrap(),
+                        None,
+                    )
+                    .unwrap()
                 }
             }
         } else {
@@ -121,10 +133,10 @@ impl GLTFLoader {
     fn load_primitive(
         device: &wgpu::Device,
         name: Option<&str>,
-        buffers: &[gltf::buffer::Data],
+        buffer_data: &[gltf::buffer::Data],
         primitive: gltf::Primitive,
     ) -> Mesh3D {
-        let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+        let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
 
         let mut vertices = Vec::new();
         if let Some(vertex_attribute) = reader.read_positions() {
@@ -157,7 +169,7 @@ impl GLTFLoader {
         if let Some(indices_raw) = reader.read_indices() {
             indices.append(&mut indices_raw.into_u32().collect());
         }
-        
+
         Mesh3D::new(
             device,
             &vertices,

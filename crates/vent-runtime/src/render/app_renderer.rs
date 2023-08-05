@@ -250,7 +250,6 @@ impl MultiDimensionRenderer for Renderer3D {
             multiview: None,
         });
 
-
         let pipeline_wire = if device
             .features()
             .contains(wgpu::Features::POLYGON_MODE_LINE)
@@ -312,8 +311,7 @@ impl MultiDimensionRenderer for Renderer3D {
 
         // -------------------------------
 
-        let depth_texture =
-            vent_assets::Texture::create_depth_texture(device, config, None);
+        let depth_texture = vent_assets::Texture::create_depth_texture(device, config, None);
 
         Self {
             mesh_renderer,
@@ -332,8 +330,7 @@ impl MultiDimensionRenderer for Renderer3D {
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) {
-        self.depth_texture =
-            vent_assets::Texture::create_depth_texture(device, config, None);
+        self.depth_texture = vent_assets::Texture::create_depth_texture(device, config, None);
 
         let ubo = camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));

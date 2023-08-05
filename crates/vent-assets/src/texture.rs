@@ -1,4 +1,4 @@
-use image::{ImageError};
+use image::ImageError;
 
 use crate::Texture;
 
@@ -91,7 +91,15 @@ impl Texture {
                 bytes.push(colors[3]);
             }
         }
-        Self::create(device, queue, &bytes, width, height, Self::DEFAULT_TEXTURE_FORMAT, label)
+        Self::create(
+            device,
+            queue,
+            &bytes,
+            width,
+            height,
+            Self::DEFAULT_TEXTURE_FORMAT,
+            label,
+        )
     }
 
     pub fn create(
