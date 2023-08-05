@@ -38,6 +38,7 @@ impl Model3D {
         for mesh in &self.meshes {
             rpass.push_debug_group("Bind Mesh");
             mesh.bind_with_material(rpass, &self.materials[mesh.material_id]);
+            rpass.pop_debug_group();
             rpass.insert_debug_marker("Draw!");
             mesh.draw(rpass);
         }

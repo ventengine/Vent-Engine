@@ -165,10 +165,7 @@ impl GLTFLoader {
             });
         }
 
-        let mut indices = Vec::new();
-        if let Some(indices_raw) = reader.read_indices() {
-            indices.append(&mut indices_raw.into_u32().collect());
-        }
+        let indices: Vec<_> = reader.read_indices().unwrap().into_u32().collect();
 
         Mesh3D::new(
             device,
