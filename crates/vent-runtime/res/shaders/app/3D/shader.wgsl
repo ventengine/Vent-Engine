@@ -1,6 +1,7 @@
 struct VertexOutput {
-    @location(0) tex_coord: vec2<f32>,
     @builtin(position) position: vec4<f32>,
+    @location(1) tex_coord: vec2<f32>,
+    @location(2) normal: vec3<f32>,
 };
 
 struct UBO {
@@ -17,9 +18,11 @@ var<uniform> ubo: UBO;
 fn vs_main(
     @location(0) position: vec3<f32>,
     @location(1) tex_coord: vec2<f32>,
+    @location(2) normal: vec3<f32>,
 ) -> VertexOutput {
     var result: VertexOutput;
     result.tex_coord = tex_coord;
+    result.normal = normal;
     result.position = ubo.projection * ubo.view * ubo.transformation * vec4(position, 1.0);
     return result;
 }

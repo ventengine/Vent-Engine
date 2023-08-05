@@ -19,6 +19,7 @@ pub trait Vertex {
 pub struct Vertex3D {
     pub position: [f32; 3],
     pub tex_coord: [f32; 2],
+    pub normal: [f32; 3],
 }
 
 impl Vertex for Vertex3D {
@@ -27,15 +28,23 @@ impl Vertex for Vertex3D {
             array_stride: mem::size_of::<Self>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &[
+                // pos
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x3,
                     offset: 0,
                     shader_location: 0,
                 },
+                // tex coord
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x2,
                     offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
                     shader_location: 1,
+                },
+                // norm
+                wgpu::VertexAttribute {
+                    offset: mem::size_of::<[f32; 5]>() as wgpu::BufferAddress,
+                    shader_location: 2,
+                    format: wgpu::VertexFormat::Float32x3,
                 },
             ],
         }

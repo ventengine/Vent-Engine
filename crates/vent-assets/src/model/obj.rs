@@ -5,7 +5,7 @@ use wgpu::BindGroupLayout;
 
 use crate::{Model3D, Texture, Vertex3D};
 
-use super::{load_binary, Mesh3D, ModelError};
+use super::{Mesh3D, ModelError};
 
 pub(crate) struct OBJLoader {}
 
@@ -66,12 +66,12 @@ impl OBJLoader {
         texture_bind_group_layout: &BindGroupLayout,
     ) -> wgpu::BindGroup {
         let diffuse_texture = if material.diffuse_texture.is_some() {
-            let diffuse_path = model_dir.join(&material.diffuse_texture.unwrap());
-        Texture::from_image(device, queue, &image::open(diffuse_path).unwrap(), None).unwrap()
+            let diffuse_path = model_dir.join(material.diffuse_texture.unwrap());
+            Texture::from_image(device, queue, &image::open(diffuse_path).unwrap(), None).unwrap()
         } else {
-            Texture::from_color(device, queue, [255,255,255,255], 128,128, None).unwrap()
+            Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None).unwrap()
         };
-        
+
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: texture_bind_group_layout,
             entries: &[
@@ -97,6 +97,11 @@ impl OBJLoader {
                     mesh.positions[i * 3 + 2],
                 ],
                 tex_coord: [mesh.texcoords[i * 2], mesh.texcoords[i * 2 + 1]],
+                normal: [
+                    mesh.normals[i * 3],
+                    mesh.normals[i * 3 + 1],
+                    mesh.normals[i * 3 + 2],
+                ],
             })
             .collect::<Vec<_>>();
         Mesh3D::new(
@@ -104,7 +109,7 @@ impl OBJLoader {
             &vertices,
             &mesh.indices,
             mesh.material_id.unwrap_or(0),
-            name,
+            Some(name),
         )
     }
 }

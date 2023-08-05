@@ -16,4 +16,6 @@ cfg-if = "1"
 
 # model
 tobj = { version = "4.0.0", features = ["async"] }
+gltf = "1.2.0"
+
 image = "0.24.6"

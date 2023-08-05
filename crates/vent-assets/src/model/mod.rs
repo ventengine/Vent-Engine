@@ -2,15 +2,16 @@ use std::io;
 use std::path::Path;
 
 use cfg_if::cfg_if;
-use glam::{Quat, Vec3};
 
 use wgpu::util::DeviceExt;
 use wgpu::{BindGroupLayout, Device};
 
 use crate::{Mesh3D, Model3D, Vertex3D};
 
+use self::gltf::GLTFLoader;
 use self::obj::OBJLoader;
 
+mod gltf;
 mod obj;
 
 #[derive(Debug)]
@@ -61,6 +62,7 @@ async fn load_model_from_path(
     // Very Pretty, I know
     match extension {
         "obj" => Ok(OBJLoader::load(device, queue, path, texture_bind_group_layout).await?),
+        "gltf" => Ok(GLTFLoader::load(device, queue, path, texture_bind_group_layout).await?),
         _ => Err(ModelError::UnsupportedFormat),
     }
 }
@@ -71,16 +73,16 @@ impl Mesh3D {
         vertices: &[Vertex3D],
         indices: &[u32],
         material_id: usize,
-        name: &str,
+        name: Option<&str>,
     ) -> Self {
         let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(&format!("{:?} Vertex Buffer", name)),
+            label: name,
             contents: bytemuck::cast_slice(vertices),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
         let index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(&format!("{:?} Index Buffer", name)),
+            label: name,
             contents: bytemuck::cast_slice(indices),
             usage: wgpu::BufferUsages::INDEX,
         });
@@ -104,7 +106,7 @@ impl Mesh3D {
         material_bind_group: &'rp wgpu::BindGroup,
     ) {
         rpass.set_bind_group(1, material_bind_group, &[]);
-        Self::bind(&self, rpass)
+        Self::bind(self, rpass)
     }
 
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
