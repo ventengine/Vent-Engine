@@ -88,10 +88,8 @@ impl GLTFLoader {
     ) -> wgpu::BindGroup {
         let pbr = material.pbr_metallic_roughness();
 
-        let diffuse_texture = if pbr.base_color_texture().is_some() {
-            let tex = pbr.base_color_texture().unwrap();
-
-            match tex.texture().source().source() {
+        let diffuse_texture = if let Some(texture) = pbr.base_color_texture() {
+            match texture.texture().source().source() {
                 gltf::image::Source::View { view, mime_type: _ } => Texture::from_memory_to_image(
                     device,
                     queue,
@@ -100,11 +98,14 @@ impl GLTFLoader {
                 )
                 .unwrap(),
                 gltf::image::Source::Uri { uri, mime_type: _ } => {
-                    dbg!(uri);
+                    let sampler = Self::convert_sampler(texture.texture().sampler());
                     Texture::from_image(
                         device,
                         queue,
                         &image::open(model_dir.join(uri)).unwrap(),
+                        Some(sampler.0),
+                        Some(sampler.1),
+                        Some(sampler.2),
                         None,
                     )
                     .unwrap()
@@ -128,6 +129,41 @@ impl GLTFLoader {
             ],
             label: material.name(),
         })
+    }
+
+    /// Converts an gltf Texture Sampler into WGPU Filter Modes
+    /// Return WGPU mag_filter, min_filter and mipmap_filter
+    fn convert_sampler(
+        sampler: gltf::texture::Sampler,
+    ) -> (wgpu::FilterMode, wgpu::FilterMode, wgpu::FilterMode) {
+        let mag = if let Some(filter) = sampler.mag_filter() {
+            match filter {
+                gltf::texture::MagFilter::Nearest => wgpu::FilterMode::Nearest,
+                gltf::texture::MagFilter::Linear => wgpu::FilterMode::Linear,
+            }
+        } else {
+            Texture::DEFAULT_TEXTURE_FILTER
+        };
+        let (min, mipmap) = if let Some(filter) = sampler.min_filter() {
+            let mut min = Texture::DEFAULT_TEXTURE_FILTER;
+            let mut mipmap = Texture::DEFAULT_TEXTURE_FILTER;
+            match filter {
+                gltf::texture::MinFilter::Nearest => min = wgpu::FilterMode::Nearest,
+                gltf::texture::MinFilter::Linear => min = wgpu::FilterMode::Linear,
+                gltf::texture::MinFilter::NearestMipmapNearest => {
+                    mipmap = wgpu::FilterMode::Nearest
+                }
+                gltf::texture::MinFilter::LinearMipmapLinear => mipmap = wgpu::FilterMode::Linear,
+                _ => unimplemented!(),
+            }
+            (min, mipmap)
+        } else {
+            (
+                Texture::DEFAULT_TEXTURE_FILTER,
+                Texture::DEFAULT_TEXTURE_FILTER,
+            )
+        };
+        (mag, min, mipmap)
     }
 
     fn load_primitive(

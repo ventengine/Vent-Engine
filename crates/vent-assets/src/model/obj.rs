@@ -67,7 +67,16 @@ impl OBJLoader {
     ) -> wgpu::BindGroup {
         let diffuse_texture = if material.diffuse_texture.is_some() {
             let diffuse_path = model_dir.join(material.diffuse_texture.unwrap());
-            Texture::from_image(device, queue, &image::open(diffuse_path).unwrap(), None).unwrap()
+            Texture::from_image(
+                device,
+                queue,
+                &image::open(diffuse_path).unwrap(),
+                None,
+                None,
+                None,
+                Some(&material.name),
+            )
+            .unwrap()
         } else {
             Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None).unwrap()
         };

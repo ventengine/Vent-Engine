@@ -5,6 +5,7 @@ use crate::Texture;
 impl Texture {
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
     pub const DEFAULT_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+    pub const DEFAULT_TEXTURE_FILTER: wgpu::FilterMode = wgpu::FilterMode::Linear;
 
     #[must_use]
     pub fn create_depth_texture(
@@ -53,16 +54,18 @@ impl Texture {
         label: Option<&str>,
     ) -> Result<Self, ImageError> {
         let img = image::load_from_memory(bytes)?;
-        Self::from_image(device, queue, &img, label)
+        Self::from_image(device, queue, &img, None, None, None, label)
     }
 
     pub fn from_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         img: &image::DynamicImage,
+        mag_filter: Option<wgpu::FilterMode>,
+        min_filter: Option<wgpu::FilterMode>,
+        mipmap_filter: Option<wgpu::FilterMode>,
         label: Option<&str>,
     ) -> Result<Self, ImageError> {
-        dbg!(img.color());
         Self::create(
             device,
             queue,
@@ -70,6 +73,9 @@ impl Texture {
             img.width(),
             img.height(),
             Self::DEFAULT_TEXTURE_FORMAT,
+            mag_filter.unwrap_or(Self::DEFAULT_TEXTURE_FILTER),
+            min_filter.unwrap_or(Self::DEFAULT_TEXTURE_FILTER),
+            mipmap_filter.unwrap_or(Self::DEFAULT_TEXTURE_FILTER),
             label,
         )
     }
@@ -98,6 +104,9 @@ impl Texture {
             width,
             height,
             Self::DEFAULT_TEXTURE_FORMAT,
+            Self::DEFAULT_TEXTURE_FILTER,
+            Self::DEFAULT_TEXTURE_FILTER,
+            Self::DEFAULT_TEXTURE_FILTER,
             label,
         )
     }
@@ -109,6 +118,9 @@ impl Texture {
         width: u32,
         height: u32,
         format: wgpu::TextureFormat,
+        mag_filter: wgpu::FilterMode,
+        min_filter: wgpu::FilterMode,
+        mipmap_filter: wgpu::FilterMode,
         label: Option<&str>,
     ) -> Result<Self, ImageError> {
         let size = wgpu::Extent3d {
@@ -145,8 +157,9 @@ impl Texture {
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
+            mag_filter,
+            min_filter,
+            mipmap_filter,
             ..Default::default()
         });
 
