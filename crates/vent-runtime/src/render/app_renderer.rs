@@ -220,7 +220,7 @@ impl MultiDimensionRenderer for Renderer3D {
             env!("CARGO_MANIFEST_DIR"),
             "/res/shaders/app/3D/shader.wgsl"
         )));
-        let vertex_buffers = [Vertex3D::layout()];
+        let vertex_buffers = [Vertex3D::LAYOUT];
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("3D Renderer Pipeline"),
@@ -243,7 +243,7 @@ impl MultiDimensionRenderer for Renderer3D {
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: vent_assets::Texture::DEPTH_FORMAT,
                 depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::LessEqual,
+                depth_compare: wgpu::CompareFunction::Less,
                 stencil: wgpu::StencilState::default(),
                 bias: wgpu::DepthBiasState::default(),
             }),

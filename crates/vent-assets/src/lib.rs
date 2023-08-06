@@ -7,10 +7,11 @@ pub mod pool;
 pub mod shader;
 pub mod texture;
 
-pub trait Asset {}
+pub trait Asset {
+}
 
-pub trait Vertex {
-    fn layout() -> wgpu::VertexBufferLayout<'static>;
+pub trait Vertex<'a> {
+    const LAYOUT: wgpu::VertexBufferLayout<'a>;
 }
 
 #[repr(C)]
@@ -21,33 +22,12 @@ pub struct Vertex3D {
     pub normal: [f32; 3],
 }
 
-impl Vertex for Vertex3D {
-    fn layout() -> wgpu::VertexBufferLayout<'static> {
-        wgpu::VertexBufferLayout {
-            array_stride: mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[
-                // pos
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x3,
-                    offset: 0,
-                    shader_location: 0,
-                },
-                // tex coord
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                    shader_location: 1,
-                },
-                // norm
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x3,
-                    offset: mem::size_of::<[f32; 5]>() as wgpu::BufferAddress,
-                    shader_location: 2,
-                },
-            ],
-        }
-    }
+impl<'a> Vertex<'a> for Vertex3D {
+    const LAYOUT: wgpu::VertexBufferLayout<'a> = wgpu::VertexBufferLayout {
+        array_stride: mem::size_of::<Self>() as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Vertex,
+        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Float32x3],
+    };
 }
 
 /// A Full Model that will be Loaded from a 3D Model File

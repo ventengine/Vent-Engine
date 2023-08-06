@@ -1,4 +1,4 @@
-use image::{GenericImageView, ImageError};
+use image::{ImageError};
 use wgpu::util::DeviceExt;
 
 use crate::Texture;
@@ -28,7 +28,7 @@ impl Texture {
             dimension: wgpu::TextureDimension::D2,
             format: Self::DEPTH_FORMAT,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
+            view_formats: &[Self::DEPTH_FORMAT],
         });
         texture.create_view(&wgpu::TextureViewDescriptor::default())
     }
@@ -128,7 +128,7 @@ impl Texture {
                 format,
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
                 label: texture_label,
-                view_formats: &[],
+                view_formats: &[format],
             },
             bytes,
         );

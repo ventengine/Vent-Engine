@@ -1,7 +1,4 @@
-use std::io;
 use std::path::Path;
-
-use cfg_if::cfg_if;
 
 use wgpu::util::DeviceExt;
 use wgpu::{BindGroupLayout, Device};
@@ -113,23 +110,4 @@ impl Mesh3D {
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         rpass.draw_indexed(0..self.index_count, 0, 0..1);
     }
-}
-
-#[allow(dead_code)]
-pub(crate) async fn load_binary(file: &Path) -> io::Result<Vec<u8>> {
-    cfg_if! {
-        if #[cfg(target_arch = "wasm32")] {
-            // TODO
-            let url = format_url(file_name);
-            let data = reqwest::get(url)
-                .await?
-                .bytes()
-                .await?
-                .to_vec();
-        } else {
-            let data = std::fs::read(file)?;
-        }
-    }
-
-    Ok(data)
 }

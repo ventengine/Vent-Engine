@@ -183,6 +183,7 @@ impl GLTFLoader {
 
         let mut vertices = Vec::new();
         if let Some(vertex_attribute) = reader.read_positions() {
+            vertices.reserve(vertex_attribute.len());
             vertex_attribute.for_each(|vertex| {
                 vertices.push(Vertex3D {
                     position: vertex,
