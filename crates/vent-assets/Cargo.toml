@@ -10,7 +10,6 @@ vent-dev = { path = "../vent-dev" }
 
 wgpu = "0.16.2"
 bytemuck = { version = "1.13.1", features = ["derive"] }
-glam = "0.24.1"
 log = "0.4"
 cfg-if = "1"
 

@@ -1,6 +1,5 @@
 use std::{fs, io, path::Path};
 
-use glam::{Quat, Vec3};
 use wgpu::BindGroupLayout;
 
 use crate::{Model3D, Texture, Vertex3D};
@@ -55,9 +54,6 @@ impl GLTFLoader {
         }
 
         Ok(Model3D {
-            position: Vec3::ZERO,
-            rotation: Quat::IDENTITY,
-            scale: Vec3::ONE,
             meshes,
             materials,
         })
@@ -101,7 +97,7 @@ impl GLTFLoader {
                     device,
                     queue,
                     &buffer_data[view.buffer().index()],
-                    None,
+                    texture.texture().name(),
                 )
                 .unwrap(),
                 gltf::image::Source::Uri { uri, mime_type: _ } => {
@@ -123,7 +119,7 @@ impl GLTFLoader {
                         queue,
                         &image::open(model_dir.join(uri)).unwrap(),
                         Some(sampler_desc),
-                        None,
+                        texture.texture().name(),
                     )
                     .unwrap()
                 }
@@ -177,22 +173,22 @@ impl GLTFLoader {
                 Texture::DEFAULT_TEXTURE_FILTER,
             )
         };
-        let address_mode_u = match sampler.wrap_s() {
-            gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
-            gltf::texture::WrappingMode::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
-            gltf::texture::WrappingMode::Repeat => wgpu::AddressMode::Repeat,
-        };
-        let address_mode_v = match sampler.wrap_t() {
-            gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
-            gltf::texture::WrappingMode::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
-            gltf::texture::WrappingMode::Repeat => wgpu::AddressMode::Repeat,
-        };
+        let address_mode_u = Self::conv_wrapping_mode(&sampler.wrap_s());
+        let address_mode_v = Self::conv_wrapping_mode(&sampler.wrap_t());
         Sampler {
             mag_filter,
             min_filter,
             mipmap_filter,
             address_mode_u,
             address_mode_v,
+        }
+    }
+
+    fn conv_wrapping_mode(mode: &gltf::texture::WrappingMode) -> wgpu::AddressMode {
+        match mode {
+            gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
+            gltf::texture::WrappingMode::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
+            gltf::texture::WrappingMode::Repeat => wgpu::AddressMode::Repeat,
         }
     }
 

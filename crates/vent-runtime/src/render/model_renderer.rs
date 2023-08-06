@@ -1,9 +1,10 @@
 use glam::{Mat4, Quat};
 use std::collections::HashMap;
-use vent_assets::Model3D;
 use vent_ecs::entity::Entity;
 
 use vent_common::render::UBO3D;
+
+use super::model::Model3D;
 
 #[derive(Default)]
 pub struct ModelRenderer3D {
@@ -49,7 +50,7 @@ impl ModelRenderer3D {
     pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, ubo: &mut UBO3D) {
         for (_, model) in self.map.iter() {
             Self::update_trans_matrix(model, ubo);
-            model.draw(rpass);
+            model.rendering_model.draw(rpass);
         }
     }
 

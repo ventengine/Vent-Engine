@@ -21,7 +21,7 @@ pub enum ModelError {
 
 impl Model3D {
     #[inline(always)]
-    pub async fn new(
+    pub async fn load(
         device: &Device,
         queue: &wgpu::Queue,
         path: &Path,

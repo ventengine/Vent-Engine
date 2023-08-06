@@ -32,10 +32,6 @@ impl<'a> Vertex<'a> for Vertex3D {
 /// A Full Model that will be Loaded from a 3D Model File
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
 pub struct Model3D {
-    pub position: glam::Vec3,
-    pub rotation: glam::Quat,
-    pub scale: glam::Vec3,
-
     meshes: Vec<Mesh3D>,
     materials: Vec<wgpu::BindGroup>,
 }

@@ -3,11 +3,13 @@ use crate::render::Dimension;
 use crate::render::model_renderer::ModelRenderer3D;
 use std::mem;
 use std::path::Path;
-use vent_assets::{Model3D, Vertex, Vertex3D};
+use vent_assets::{Vertex, Vertex3D};
 use vent_common::entity::camera::Camera;
 use vent_common::render::{DefaultRenderer, UBO3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
+
+use super::model::Model3D;
 
 pub struct VentApplicationManager {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
@@ -305,7 +307,7 @@ impl MultiDimensionRenderer for Renderer3D {
 
         pollster::block_on(async {
             let mut mesh =
-                Model3D::new(device, queue, Path::new(model), &texture_bind_group_layout).await;
+               Model3D::new(vent_assets::Model3D::load(device, queue, Path::new(model), &texture_bind_group_layout).await);
             mesh.rotation.x += 100.0;
             mesh_renderer.insert(world.create_entity(), mesh);
         });

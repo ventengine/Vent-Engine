@@ -2978,7 +2978,6 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "cfg-if",
- "glam",
  "gltf",
  "image",
  "log",

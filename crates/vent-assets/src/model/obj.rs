@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use glam::{Quat, Vec3};
 use wgpu::BindGroupLayout;
 
 use crate::{Model3D, Texture, Vertex3D};
@@ -50,9 +49,7 @@ impl OBJLoader {
         }
 
         Ok(Model3D {
-            position: Vec3::ZERO,
-            rotation: Quat::IDENTITY,
-            scale: Vec3::ONE,
+           
             meshes,
             materials: final_materials,
         })
