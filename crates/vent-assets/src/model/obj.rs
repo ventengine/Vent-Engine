@@ -71,9 +71,6 @@ impl OBJLoader {
                 queue,
                 &image::open(model_dir.join(&texture)).unwrap(),
                 None,
-                None,
-                None,
-                None,
                 Some(&texture),
             )
             .unwrap()

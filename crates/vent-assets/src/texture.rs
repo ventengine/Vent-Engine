@@ -1,4 +1,4 @@
-use image::{ImageError};
+use image::ImageError;
 use wgpu::util::DeviceExt;
 
 use crate::Texture;
@@ -40,17 +40,14 @@ impl Texture {
         label: Option<&str>,
     ) -> Result<Self, ImageError> {
         let img = image::load_from_memory(bytes)?;
-        Self::from_image(device, queue, &img, None, None, None, None, label)
+        Self::from_image(device, queue, &img, None, label)
     }
 
     pub fn from_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         img: &image::DynamicImage,
-        mag_filter: Option<wgpu::FilterMode>,
-        min_filter: Option<wgpu::FilterMode>,
-        mipmap_filter: Option<wgpu::FilterMode>,
-        sampler_label: Option<&str>,
+        sampler_desc: Option<&wgpu::SamplerDescriptor>,
         texture_label: Option<&str>,
     ) -> Result<Self, ImageError> {
         Self::create(
@@ -60,10 +57,7 @@ impl Texture {
             img.width(),
             img.height(),
             Self::DEFAULT_TEXTURE_FORMAT,
-            mag_filter.unwrap_or(Self::DEFAULT_TEXTURE_FILTER),
-            min_filter.unwrap_or(Self::DEFAULT_TEXTURE_FILTER),
-            mipmap_filter.unwrap_or(Self::DEFAULT_TEXTURE_FILTER),
-            sampler_label,
+            sampler_desc.unwrap_or(&wgpu::SamplerDescriptor::default()),
             texture_label,
         )
     }
@@ -92,10 +86,12 @@ impl Texture {
             width,
             height,
             Self::DEFAULT_TEXTURE_FORMAT,
-            Self::DEFAULT_TEXTURE_FILTER,
-            Self::DEFAULT_TEXTURE_FILTER,
-            Self::DEFAULT_TEXTURE_FILTER,
-            None,
+            &wgpu::SamplerDescriptor {
+                mag_filter: Self::DEFAULT_TEXTURE_FILTER,
+                min_filter: Self::DEFAULT_TEXTURE_FILTER,
+                mipmap_filter: Self::DEFAULT_TEXTURE_FILTER,
+                ..Default::default()
+            },
             label,
         )
     }
@@ -107,10 +103,7 @@ impl Texture {
         width: u32,
         height: u32,
         format: wgpu::TextureFormat,
-        mag_filter: wgpu::FilterMode,
-        min_filter: wgpu::FilterMode,
-        mipmap_filter: wgpu::FilterMode,
-        sampler_label: Option<&str>,
+        sampler_desc: &wgpu::SamplerDescriptor,
         texture_label: Option<&str>,
     ) -> Result<Self, ImageError> {
         let size = wgpu::Extent3d {
@@ -134,13 +127,7 @@ impl Texture {
         );
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: sampler_label,
-            mag_filter,
-            min_filter,
-            mipmap_filter,
-            ..Default::default()
-        });
+        let sampler = device.create_sampler(sampler_desc);
 
         Ok(Self {
             texture,

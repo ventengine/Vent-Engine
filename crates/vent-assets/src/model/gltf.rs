@@ -11,6 +11,8 @@ struct Sampler {
     mag_filter: wgpu::FilterMode,
     min_filter: wgpu::FilterMode,
     mipmap_filter: wgpu::FilterMode,
+    address_mode_u: wgpu::AddressMode,
+    address_mode_v: wgpu::AddressMode,
 }
 
 pub(crate) struct GLTFLoader {}
@@ -103,15 +105,24 @@ impl GLTFLoader {
                 )
                 .unwrap(),
                 gltf::image::Source::Uri { uri, mime_type: _ } => {
-                    let sampler = Self::convert_sampler(texture.texture().sampler());
+                    let sampler = texture.texture().sampler();
+                    let wgpu_sampler = Self::convert_sampler(&sampler);
+
+                    let sampler_desc = &wgpu::SamplerDescriptor {
+                        label: sampler.name(),
+                        mag_filter: wgpu_sampler.mag_filter,
+                        min_filter: wgpu_sampler.min_filter,
+                        mipmap_filter: wgpu_sampler.mipmap_filter,
+                        address_mode_u: wgpu_sampler.address_mode_u,
+                        address_mode_v: wgpu_sampler.address_mode_v,
+                        ..Default::default()
+                    };
+
                     Texture::from_image(
                         device,
                         queue,
                         &image::open(model_dir.join(uri)).unwrap(),
-                        Some(sampler.mag_filter),
-                        Some(sampler.min_filter),
-                        Some(sampler.mipmap_filter),
-                        texture.texture().sampler().name(),
+                        Some(sampler_desc),
                         None,
                     )
                     .unwrap()
@@ -138,7 +149,7 @@ impl GLTFLoader {
     }
 
     /// Converts an gltf Texture Sampler into WGPU Filter Modes
-    fn convert_sampler(sampler: gltf::texture::Sampler) -> Sampler {
+    fn convert_sampler(sampler: &gltf::texture::Sampler) -> Sampler {
         let mag_filter = if let Some(filter) = sampler.mag_filter() {
             match filter {
                 gltf::texture::MagFilter::Nearest => wgpu::FilterMode::Nearest,
@@ -166,10 +177,22 @@ impl GLTFLoader {
                 Texture::DEFAULT_TEXTURE_FILTER,
             )
         };
+        let address_mode_u = match sampler.wrap_s() {
+            gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
+            gltf::texture::WrappingMode::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
+            gltf::texture::WrappingMode::Repeat => wgpu::AddressMode::Repeat,
+        };
+        let address_mode_v = match sampler.wrap_t() {
+            gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
+            gltf::texture::WrappingMode::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
+            gltf::texture::WrappingMode::Repeat => wgpu::AddressMode::Repeat,
+        };
         Sampler {
             mag_filter,
             min_filter,
             mipmap_filter,
+            address_mode_u,
+            address_mode_v,
         }
     }
 

@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use vent_dev::utils::stopwatch::Stopwatch;
 use wgpu::util::DeviceExt;
 use wgpu::{BindGroupLayout, Device};
 
@@ -26,9 +27,16 @@ impl Model3D {
         path: &Path,
         texture_bind_group_layout: &BindGroupLayout,
     ) -> Self {
-        load_model_from_path(device, queue, path, texture_bind_group_layout)
+        let sw = Stopwatch::new_and_start();
+        let model = load_model_from_path(device, queue, path, texture_bind_group_layout)
             .await
-            .expect("Failed to Load 3D Model")
+            .expect("Failed to Load 3D Model");
+        log::info!(
+            "Model {} took {}ms to Load",
+            path.to_str().unwrap(),
+            sw.elapsed_ms()
+        );
+        model
     }
 
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {

@@ -7,8 +7,7 @@ pub mod pool;
 pub mod shader;
 pub mod texture;
 
-pub trait Asset {
-}
+pub trait Asset {}
 
 pub trait Vertex<'a> {
     const LAYOUT: wgpu::VertexBufferLayout<'a>;

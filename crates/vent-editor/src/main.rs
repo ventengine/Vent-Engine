@@ -16,7 +16,10 @@ fn main() {
     init_panic_hook();
     #[cfg(not(target_arch = "wasm32"))]
     {
-        SimpleLogger::new().init().unwrap();
+        SimpleLogger::new()
+            .with_level(log::LevelFilter::Info)
+            .init()
+            .unwrap();
     };
 
     let path = concat!(
