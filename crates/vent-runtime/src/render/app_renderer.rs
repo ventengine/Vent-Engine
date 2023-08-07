@@ -190,6 +190,19 @@ impl MultiDimensionRenderer for Renderer3D {
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
                     },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: wgpu::BufferSize::new(mem::size_of::<
+                                vent_assets::model::Material,
+                            >()
+                                as wgpu::BufferAddress),
+                        },
+                        count: None,
+                    },
                 ],
                 label: Some("texture_bind_group_layout"),
             });
@@ -306,8 +319,15 @@ impl MultiDimensionRenderer for Renderer3D {
         );
 
         pollster::block_on(async {
-            let mut mesh =
-               Model3D::new(vent_assets::Model3D::load(device, queue, Path::new(model), &texture_bind_group_layout).await);
+            let mut mesh = Model3D::new(
+                vent_assets::Model3D::load(
+                    device,
+                    queue,
+                    Path::new(model),
+                    &texture_bind_group_layout,
+                )
+                .await,
+            );
             mesh.rotation.x += 100.0;
             mesh_renderer.insert(world.create_entity(), mesh);
         });

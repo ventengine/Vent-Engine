@@ -1,18 +1,10 @@
 use std::{fs, io, path::Path};
 
-use wgpu::BindGroupLayout;
+use wgpu::{util::DeviceExt, BindGroupLayout};
 
 use crate::{Model3D, Texture, Vertex3D};
 
-use super::{Mesh3D, ModelError};
-
-struct Sampler {
-    mag_filter: wgpu::FilterMode,
-    min_filter: wgpu::FilterMode,
-    mipmap_filter: wgpu::FilterMode,
-    address_mode_u: wgpu::AddressMode,
-    address_mode_v: wgpu::AddressMode,
-}
+use super::{Material, Mesh3D, ModelError};
 
 pub(crate) struct GLTFLoader {}
 
@@ -53,10 +45,7 @@ impl GLTFLoader {
             );
         }
 
-        Ok(Model3D {
-            meshes,
-            materials,
-        })
+        Ok(Model3D { meshes, materials })
     }
 
     fn load_node(
@@ -104,21 +93,11 @@ impl GLTFLoader {
                     let sampler = texture.texture().sampler();
                     let wgpu_sampler = Self::convert_sampler(&sampler);
 
-                    let sampler_desc = &wgpu::SamplerDescriptor {
-                        label: sampler.name(),
-                        mag_filter: wgpu_sampler.mag_filter,
-                        min_filter: wgpu_sampler.min_filter,
-                        mipmap_filter: wgpu_sampler.mipmap_filter,
-                        address_mode_u: wgpu_sampler.address_mode_u,
-                        address_mode_v: wgpu_sampler.address_mode_v,
-                        ..Default::default()
-                    };
-
                     Texture::from_image(
                         device,
                         queue,
                         &image::open(model_dir.join(uri)).unwrap(),
-                        Some(sampler_desc),
+                        Some(&wgpu_sampler),
                         texture.texture().name(),
                     )
                     .unwrap()
@@ -127,6 +106,14 @@ impl GLTFLoader {
         } else {
             Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None).unwrap()
         };
+
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::bytes_of(&Material {
+                base_color: pbr.base_color_factor(),
+            }),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
 
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: texture_bind_group_layout,
@@ -139,13 +126,17 @@ impl GLTFLoader {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: buffer.as_entire_binding(),
+                },
             ],
             label: material.name(),
         })
     }
 
     /// Converts an gltf Texture Sampler into WGPU Filter Modes
-    fn convert_sampler(sampler: &gltf::texture::Sampler) -> Sampler {
+    fn convert_sampler<'a>(sampler: &'a gltf::texture::Sampler<'a>) -> wgpu::SamplerDescriptor<'a> {
         let mag_filter = if let Some(filter) = sampler.mag_filter() {
             match filter {
                 gltf::texture::MagFilter::Nearest => wgpu::FilterMode::Nearest,
@@ -159,10 +150,12 @@ impl GLTFLoader {
             let mut mipmap = Texture::DEFAULT_TEXTURE_FILTER;
             match filter {
                 gltf::texture::MinFilter::Nearest => min = wgpu::FilterMode::Nearest,
-                gltf::texture::MinFilter::Linear => min = wgpu::FilterMode::Linear,
+                gltf::texture::MinFilter::Linear
+                | gltf::texture::MinFilter::LinearMipmapNearest => min = wgpu::FilterMode::Linear,
                 gltf::texture::MinFilter::NearestMipmapNearest => {
                     mipmap = wgpu::FilterMode::Nearest
                 }
+
                 gltf::texture::MinFilter::LinearMipmapLinear => mipmap = wgpu::FilterMode::Linear,
                 _ => unimplemented!(),
             }
@@ -175,12 +168,14 @@ impl GLTFLoader {
         };
         let address_mode_u = Self::conv_wrapping_mode(&sampler.wrap_s());
         let address_mode_v = Self::conv_wrapping_mode(&sampler.wrap_t());
-        Sampler {
+        wgpu::SamplerDescriptor {
+            label: sampler.name(),
             mag_filter,
             min_filter,
             mipmap_filter,
             address_mode_u,
             address_mode_v,
+            ..Default::default()
         }
     }
 

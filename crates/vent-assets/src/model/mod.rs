@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use bytemuck::{Pod, Zeroable};
 use vent_dev::utils::stopwatch::Stopwatch;
 use wgpu::util::DeviceExt;
 use wgpu::{BindGroupLayout, Device};
@@ -19,8 +20,14 @@ pub enum ModelError {
     LoadingError(String),
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct Material {
+    pub base_color: [f32; 4],
+}
+
 impl Model3D {
-    #[inline(always)]
+    #[inline]
     pub async fn load(
         device: &Device,
         queue: &wgpu::Queue,

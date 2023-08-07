@@ -1,10 +1,10 @@
 use std::path::Path;
 
-use wgpu::BindGroupLayout;
+use wgpu::{util::DeviceExt, BindGroupLayout};
 
 use crate::{Model3D, Texture, Vertex3D};
 
-use super::{Mesh3D, ModelError};
+use super::{Material, Mesh3D, ModelError};
 
 pub(crate) struct OBJLoader {}
 
@@ -49,7 +49,6 @@ impl OBJLoader {
         }
 
         Ok(Model3D {
-           
             meshes,
             materials: final_materials,
         })
@@ -74,6 +73,15 @@ impl OBJLoader {
         } else {
             Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None).unwrap()
         };
+        let diffuse = material.diffuse.unwrap_or([1.0, 1.0, 1.0]);
+
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::bytes_of(&Material {
+                base_color: [diffuse[0], diffuse[1], diffuse[2], 1.0],
+            }),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
 
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: texture_bind_group_layout,
@@ -85,6 +93,10 @@ impl OBJLoader {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: buffer.as_entire_binding(),
                 },
             ],
             label: Some(&material.name),

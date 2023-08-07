@@ -14,6 +14,13 @@ struct UBO {
 @binding(0)
 var<uniform> ubo: UBO;
 
+struct Material {
+    base_color: vec4<f32>,
+}
+
+@group(1) 
+@binding(2) var<uniform> material : Material;
+
 @vertex
 fn vs_main(
     @location(0) position: vec3<f32>,
@@ -27,7 +34,6 @@ fn vs_main(
     return result;
 }
 
-
 @group(1)
 @binding(0)
 var texture_diffuse: texture_2d<f32>;
@@ -37,7 +43,7 @@ var sampler_diffuse: sampler;
 
 @fragment
 fn fs_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(texture_diffuse, sampler_diffuse, vertex.tex_coord);
+    return textureSample(texture_diffuse, sampler_diffuse, vertex.tex_coord) * material.base_color;
 }
 
 @fragment

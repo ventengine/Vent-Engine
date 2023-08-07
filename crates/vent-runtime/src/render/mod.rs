@@ -7,8 +7,8 @@ use winit::window::Window;
 use crate::render::app_renderer::VentApplicationManager;
 
 pub mod app_renderer;
-mod model_renderer;
 pub mod model;
+mod model_renderer;
 
 pub struct RuntimeRenderer {
     default_renderer: DefaultRenderer,
