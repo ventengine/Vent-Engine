@@ -40,7 +40,7 @@ impl Texture {
         label: Option<&str>,
     ) -> Result<Self, ImageError> {
         let img = image::load_from_memory(bytes)?;
-        Self::from_image(device, queue, &img, None, label)
+        Ok(Self::from_image(device, queue, &img, None, label))
     }
 
     pub fn from_image(
@@ -49,7 +49,7 @@ impl Texture {
         img: &image::DynamicImage,
         sampler_desc: Option<&wgpu::SamplerDescriptor>,
         texture_label: Option<&str>,
-    ) -> Result<Self, ImageError> {
+    ) -> Self {
         Self::create(
             device,
             queue,
@@ -69,14 +69,11 @@ impl Texture {
         width: u32,
         height: u32,
         label: Option<&str>,
-    ) -> Result<Self, ImageError> {
-        let mut bytes = Vec::with_capacity((width * height) as usize);
+    ) -> Self {
+        let mut bytes = Vec::with_capacity((width * height * 4) as usize);
         for _ in 0..height {
             for _ in 0..width {
-                bytes.push(colors[0]);
-                bytes.push(colors[1]);
-                bytes.push(colors[2]);
-                bytes.push(colors[3]);
+                bytes.extend_from_slice(&colors);
             }
         }
         Self::create(
@@ -105,7 +102,7 @@ impl Texture {
         format: wgpu::TextureFormat,
         sampler_desc: &wgpu::SamplerDescriptor,
         texture_label: Option<&str>,
-    ) -> Result<Self, ImageError> {
+    ) -> Self {
         let size = wgpu::Extent3d {
             width,
             height,
@@ -129,10 +126,10 @@ impl Texture {
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(sampler_desc);
 
-        Ok(Self {
+        Self {
             texture,
             view,
             sampler,
-        })
+        }
     }
 }

@@ -30,10 +30,11 @@ impl OBJLoader {
             }
         };
 
-        let mut meshes = Vec::with_capacity(models.len());
-        for model in models {
-            meshes.push(Self::load_mesh(device, &model.name, &model.mesh));
-        }
+        let meshes = models
+            .into_iter()
+            .map(|model| Self::load_mesh(device, &model.name, &model.mesh))
+            .collect::<Vec<_>>();
+
         let mut final_materials = Vec::with_capacity(materials.len());
         for material in materials {
             final_materials.push(
@@ -69,9 +70,8 @@ impl OBJLoader {
                 None,
                 Some(&texture),
             )
-            .unwrap()
         } else {
-            Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None).unwrap()
+            Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None)
         };
         let diffuse = material.diffuse.unwrap_or([1.0, 1.0, 1.0]);
 

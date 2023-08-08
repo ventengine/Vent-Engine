@@ -100,11 +100,10 @@ impl GLTFLoader {
                         Some(&wgpu_sampler),
                         texture.texture().name(),
                     )
-                    .unwrap()
                 }
             }
         } else {
-            Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None).unwrap()
+            Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None)
         };
 
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

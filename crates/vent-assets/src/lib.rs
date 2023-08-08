@@ -29,7 +29,7 @@ impl<'a> Vertex<'a> for Vertex3D {
     };
 }
 
-/// A Full Model that will be Loaded from a 3D Model File
+/// A Full Model that can be Loaded from a 3D Model File
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
 pub struct Model3D {
     meshes: Vec<Mesh3D>,
