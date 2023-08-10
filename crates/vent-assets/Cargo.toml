@@ -17,4 +17,4 @@ cfg-if = "1"
 tobj = { version = "4.0.0", features = ["async"] }
 gltf = "1.2.0"
 
-image = "0.24.6"
+image = "0.24.7"
