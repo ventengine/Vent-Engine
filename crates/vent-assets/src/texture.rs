@@ -33,13 +33,15 @@ impl Texture {
         texture.create_view(&wgpu::TextureViewDescriptor::default())
     }
 
-    pub fn from_memory_to_image(
+    // This Should be Prefered
+    pub fn from_memory_to_image_with_format(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         bytes: &[u8],
+        format: image::ImageFormat,
         label: Option<&str>,
     ) -> Result<Self, ImageError> {
-        let img = image::load_from_memory(bytes)?;
+        let img = image::load_from_memory_with_format(bytes, format)?;
         Ok(Self::from_image(device, queue, img, None, label))
     }
 

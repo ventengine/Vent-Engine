@@ -82,17 +82,18 @@ impl GLTFLoader {
 
         let diffuse_texture = if let Some(texture) = pbr.base_color_texture() {
             match texture.texture().source().source() {
-                gltf::image::Source::View { view, mime_type: _ } => Texture::from_memory_to_image(
+                gltf::image::Source::View { view, mime_type: img_type } => { Texture::from_memory_to_image_with_format(
                     device,
                     queue,
                     &buffer_data[view.buffer().index()],
+                    image::ImageFormat::from_mime_type(img_type).expect("TODO: Error Handling"),
                     texture.texture().name(),
                 )
-                .unwrap(),
+                .unwrap()
+            },
                 gltf::image::Source::Uri { uri, mime_type: _ } => {
                     let sampler = texture.texture().sampler();
                     let wgpu_sampler = Self::convert_sampler(&sampler);
-
                     Texture::from_image(
                         device,
                         queue,
