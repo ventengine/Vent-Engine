@@ -4,12 +4,11 @@ use crate::render::model_renderer::ModelRenderer3D;
 use std::mem;
 use std::path::Path;
 use vent_assets::{Vertex, Vertex3D};
-use vent_common::entity::camera::Camera;
 use vent_common::render::{DefaultRenderer, UBO3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
-use super::model::Model3D;
+use super::{model::Model3D, camera::Camera};
 
 pub struct VentApplicationManager {
     multi_renderer: Box<dyn MultiDimensionRenderer>,
@@ -296,6 +295,7 @@ impl MultiDimensionRenderer for Renderer3D {
                 }),
                 primitive: wgpu::PrimitiveState {
                     cull_mode: Some(wgpu::Face::Back),
+                    front_face: wgpu::FrontFace::Cw,
                     polygon_mode: wgpu::PolygonMode::Line,
                     ..Default::default()
                 },

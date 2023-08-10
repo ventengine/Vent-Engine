@@ -1,8 +1,8 @@
 use crate::render::EditorRenderer;
 
 use simple_logger::SimpleLogger;
+use vent_runtime::render::camera::{Camera3D, Camera};
 use std::path::Path;
-use vent_common::entity::camera::{Camera, Camera3D};
 use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
 

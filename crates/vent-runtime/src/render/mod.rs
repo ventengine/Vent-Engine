@@ -1,4 +1,3 @@
-use vent_common::entity::camera::Camera;
 use vent_common::render::DefaultRenderer;
 use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;
@@ -6,8 +5,11 @@ use winit::window::Window;
 
 use crate::render::app_renderer::VentApplicationManager;
 
+use self::camera::Camera;
+
 pub mod app_renderer;
 pub mod model;
+pub mod camera;
 mod model_renderer;
 
 pub struct RuntimeRenderer {

@@ -1,5 +1,7 @@
-use crate::render::{UBO2D, UBO3D};
 use glam::{Mat4, Vec3};
+use vent_common::render::{UBO2D, UBO3D};
+
+pub mod camera_controller3d;
 
 pub trait Camera {
     fn new() -> Self

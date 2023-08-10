@@ -2,9 +2,9 @@ use crate::render::{Dimension, RuntimeRenderer};
 
 use std::time::{Duration, Instant};
 
+use render::camera::{Camera3D, Camera};
+use render::camera::camera_controller3d::CameraController3D;
 use simple_logger::SimpleLogger;
-use vent_common::components::camera_controller3d::CameraController3D;
-use vent_common::entity::camera::{Camera, Camera3D};
 use vent_common::project::VentApplicationProject;
 use vent_common::render::DefaultRenderer;
 use vent_common::util::crash::init_panic_hook;
