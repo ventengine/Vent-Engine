@@ -96,7 +96,7 @@ impl GLTFLoader {
                     Texture::from_image(
                         device,
                         queue,
-                        &image::open(model_dir.join(uri)).unwrap(),
+                        image::open(model_dir.join(uri)).unwrap(),
                         Some(&wgpu_sampler),
                         texture.texture().name(),
                     )

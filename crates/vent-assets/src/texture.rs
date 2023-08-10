@@ -1,4 +1,4 @@
-use image::ImageError;
+use image::{ImageError, GenericImageView};
 use wgpu::util::DeviceExt;
 
 use crate::Texture;
@@ -40,22 +40,23 @@ impl Texture {
         label: Option<&str>,
     ) -> Result<Self, ImageError> {
         let img = image::load_from_memory(bytes)?;
-        Ok(Self::from_image(device, queue, &img, None, label))
+        Ok(Self::from_image(device, queue, img, None, label))
     }
 
     pub fn from_image(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        img: &image::DynamicImage,
+        img: image::DynamicImage,
         sampler_desc: Option<&wgpu::SamplerDescriptor>,
         texture_label: Option<&str>,
     ) -> Self {
+        let dimensions = img.dimensions();
         Self::create(
             device,
             queue,
-            &img.to_rgba8(),
-            img.width(),
-            img.height(),
+            &img.into_rgba8(),
+           dimensions.0,
+           dimensions.1,
             Self::DEFAULT_TEXTURE_FORMAT,
             sampler_desc.unwrap_or(&wgpu::SamplerDescriptor::default()),
             texture_label,

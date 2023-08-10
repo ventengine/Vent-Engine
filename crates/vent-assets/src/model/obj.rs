@@ -66,7 +66,7 @@ impl OBJLoader {
             Texture::from_image(
                 device,
                 queue,
-                &image::open(model_dir.join(&texture)).unwrap(),
+                image::open(model_dir.join(&texture)).unwrap(),
                 None,
                 Some(&texture),
             )
