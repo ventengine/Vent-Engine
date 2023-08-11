@@ -24,11 +24,11 @@ impl GLTFLoader {
             .expect("Failed to Load Buffers :C");
 
         let mut meshes = Vec::new();
-        for scene in full_model.scenes() {
-            for node in scene.nodes() {
+        full_model.scenes().for_each(| scene | {
+            scene.nodes().for_each(| node | {
                 Self::load_node(device, node, &buffer_data, &mut meshes);
-            }
-        }
+            })
+        });
 
         let mut materials = Vec::with_capacity(full_model.materials().len());
         for material in full_model.materials() {
@@ -55,19 +55,19 @@ impl GLTFLoader {
         meshes: &mut Vec<Mesh3D>,
     ) {
         if let Some(mesh) = node.mesh() {
-            for primitive in mesh.primitives() {
+           mesh.primitives().for_each(| primitive | {
                 meshes.push(Self::load_primitive(
                     device,
                     mesh.name(),
                     buffer_data,
                     primitive,
                 ));
-            }
+            })
         }
 
-        for child in node.children() {
+        node.children().for_each(| child | {
             Self::load_node(device, child, buffer_data, meshes)
-        }
+        })
     }
 
     async fn load_material(
