@@ -2,8 +2,8 @@ use crate::render::{Dimension, RuntimeRenderer};
 
 use std::time::{Duration, Instant};
 
-use render::camera::{Camera3D, Camera};
 use render::camera::camera_controller3d::CameraController3D;
+use render::camera::{Camera, Camera3D};
 use simple_logger::SimpleLogger;
 use vent_common::project::VentApplicationProject;
 use vent_common::render::DefaultRenderer;

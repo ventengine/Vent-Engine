@@ -1,6 +1,6 @@
 use vent_common::render::DefaultRenderer;
-use vent_runtime::render::{app_renderer::VentApplicationManager, camera::Camera};
 use vent_runtime::render::Dimension;
+use vent_runtime::render::{app_renderer::VentApplicationManager, camera::Camera};
 use wgpu::{
     CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture,
     TextureDimension,

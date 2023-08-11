@@ -24,8 +24,8 @@ impl GLTFLoader {
             .expect("Failed to Load Buffers :C");
 
         let mut meshes = Vec::new();
-        full_model.scenes().for_each(| scene | {
-            scene.nodes().for_each(| node | {
+        full_model.scenes().for_each(|scene| {
+            scene.nodes().for_each(|node| {
                 Self::load_node(device, node, &buffer_data, &mut meshes);
             })
         });
@@ -55,7 +55,7 @@ impl GLTFLoader {
         meshes: &mut Vec<Mesh3D>,
     ) {
         if let Some(mesh) = node.mesh() {
-           mesh.primitives().for_each(| primitive | {
+            mesh.primitives().for_each(|primitive| {
                 meshes.push(Self::load_primitive(
                     device,
                     mesh.name(),
@@ -65,9 +65,8 @@ impl GLTFLoader {
             })
         }
 
-        node.children().for_each(| child | {
-            Self::load_node(device, child, buffer_data, meshes)
-        })
+        node.children()
+            .for_each(|child| Self::load_node(device, child, buffer_data, meshes))
     }
 
     async fn load_material(
@@ -82,15 +81,17 @@ impl GLTFLoader {
 
         let diffuse_texture = if let Some(texture) = pbr.base_color_texture() {
             match texture.texture().source().source() {
-                gltf::image::Source::View { view, mime_type: img_type } => { Texture::from_memory_to_image_with_format(
+                gltf::image::Source::View {
+                    view,
+                    mime_type: img_type,
+                } => Texture::from_memory_to_image_with_format(
                     device,
                     queue,
                     &buffer_data[view.buffer().index()],
                     image::ImageFormat::from_mime_type(img_type).expect("TODO: Error Handling"),
                     texture.texture().name(),
                 )
-                .unwrap()
-            },
+                .unwrap(),
                 gltf::image::Source::Uri { uri, mime_type: _ } => {
                     let sampler = texture.texture().sampler();
                     let wgpu_sampler = Self::convert_sampler(&sampler);

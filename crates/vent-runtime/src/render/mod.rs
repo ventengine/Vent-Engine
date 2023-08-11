@@ -8,8 +8,8 @@ use crate::render::app_renderer::VentApplicationManager;
 use self::camera::Camera;
 
 pub mod app_renderer;
-pub mod model;
 pub mod camera;
+pub mod model;
 mod model_renderer;
 
 pub struct RuntimeRenderer {

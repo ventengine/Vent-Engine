@@ -8,7 +8,7 @@ use vent_common::render::{DefaultRenderer, UBO3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
-use super::{model::Model3D, camera::Camera};
+use super::{camera::Camera, model::Model3D};
 
 pub struct VentApplicationManager {
     multi_renderer: Box<dyn MultiDimensionRenderer>,

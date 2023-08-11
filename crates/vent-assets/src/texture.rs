@@ -1,4 +1,4 @@
-use image::{ImageError, GenericImageView};
+use image::{GenericImageView, ImageError, Rgba};
 use wgpu::util::DeviceExt;
 
 use crate::Texture;
@@ -57,8 +57,8 @@ impl Texture {
             device,
             queue,
             &img.into_rgba8(),
-           dimensions.0,
-           dimensions.1,
+            dimensions.0,
+            dimensions.1,
             Self::DEFAULT_TEXTURE_FORMAT,
             sampler_desc.unwrap_or(&wgpu::SamplerDescriptor::default()),
             texture_label,
@@ -68,21 +68,16 @@ impl Texture {
     pub fn from_color(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        colors: [u8; 4],
+        color: [u8; 4],
         width: u32,
         height: u32,
         label: Option<&str>,
     ) -> Self {
-        let mut bytes = Vec::with_capacity((width * height * 4) as usize);
-        for _ in 0..height {
-            for _ in 0..width {
-                bytes.extend_from_slice(&colors);
-            }
-        }
+        let img = image::RgbaImage::from_fn(width, height, |_, _| Rgba(color));
         Self::create(
             device,
             queue,
-            &bytes,
+            &img,
             width,
             height,
             Self::DEFAULT_TEXTURE_FORMAT,

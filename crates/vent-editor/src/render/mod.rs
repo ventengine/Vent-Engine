@@ -1,8 +1,8 @@
 use crate::render::gui_renderer::EguiRenderer;
 use crate::render::runtime_renderer::EditorRuntimeRenderer;
 use vent_common::render::DefaultRenderer;
-use vent_runtime::render::Dimension;
 use vent_runtime::render::camera::Camera;
+use vent_runtime::render::Dimension;
 
 mod gui_renderer;
 mod runtime_renderer;

@@ -47,7 +47,7 @@ impl Model3D {
     }
 
     pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
-        self.meshes.iter().for_each(| mesh | {
+        self.meshes.iter().for_each(|mesh| {
             rpass.push_debug_group("Bind Mesh");
             mesh.bind_with_material(rpass, &self.materials[mesh.material_id]);
             rpass.pop_debug_group();
