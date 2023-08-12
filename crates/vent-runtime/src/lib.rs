@@ -55,7 +55,6 @@ impl VentApplication {
         );
 
         let mut controller = CameraController3D::new(3000.0, 100.0);
-
         let mut last = Instant::now();
         let mut delta_time = Duration::ZERO;
         vent_window.event_loop.run(move |event, _, control_flow| {

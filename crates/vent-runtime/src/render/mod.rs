@@ -12,6 +12,9 @@ pub mod camera;
 pub mod model;
 mod model_renderer;
 
+mod d2;
+mod d3;
+
 pub struct RuntimeRenderer {
     default_renderer: DefaultRenderer,
     app_renderer: VentApplicationManager,

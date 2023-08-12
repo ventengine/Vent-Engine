@@ -2,7 +2,6 @@ use winit::event::VirtualKeyCode;
 
 use super::Camera3D;
 
-#[derive(Debug)]
 pub struct CameraController3D {
     speed: f32,
     sensitivity_x: f32,
@@ -26,8 +25,8 @@ impl CameraController3D {
         key: &VirtualKeyCode,
         delta_time: f32,
     ) -> bool {
-        let sin_pitch = camera.basic_cam.rotation.x.sin();
-        let cos_pitch = camera.basic_cam.rotation.x.cos();
+        let sin_pitch = camera.rotation.x.sin();
+        let cos_pitch = camera.rotation.x.cos();
         match key {
             VirtualKeyCode::W | VirtualKeyCode::Up => {
                 camera.position.x += sin_pitch * self.speed * delta_time;
@@ -72,7 +71,7 @@ impl CameraController3D {
 
         let moveposition =
             deltaposition * glam::vec2(self.sensitivity_x, self.sensitivity_y) * delta_time;
-        let mut rotation = camera.basic_cam.rotation;
+        let mut rotation = camera.rotation;
         rotation.x += moveposition.x;
         rotation.y += moveposition.y;
     }
