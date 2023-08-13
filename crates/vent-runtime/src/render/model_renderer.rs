@@ -2,17 +2,17 @@ use glam::{Mat4, Quat};
 use std::collections::HashMap;
 use vent_ecs::entity::Entity;
 
-use super::{d3::UBO3D, model::Model3D};
+use super::{d3::UBO3D, model::Entity3D};
 
 #[derive(Default)]
 pub struct ModelRenderer3D {
-    map: HashMap<Entity, Model3D>,
+    map: HashMap<Entity, Entity3D>,
 }
 
 #[allow(dead_code)]
 impl ModelRenderer3D {
     #[inline]
-    pub fn insert(&mut self, entity: Entity, mesh: Model3D) {
+    pub fn insert(&mut self, entity: Entity, mesh: Entity3D) {
         self.map.insert(entity, mesh);
     }
 
@@ -23,39 +23,37 @@ impl ModelRenderer3D {
 
     #[inline]
     #[must_use]
-    pub fn get(&self, entity: Entity) -> Option<&Model3D> {
+    pub fn get(&self, entity: Entity) -> Option<&Entity3D> {
         self.map.get(&entity)
     }
 
     #[inline]
     #[must_use]
-    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut Model3D> {
+    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut Entity3D> {
         self.map.get_mut(&entity)
     }
 
     #[inline]
     #[must_use]
-    pub fn iter(&self) -> std::collections::hash_map::Iter<Entity, Model3D> {
+    pub fn iter(&self) -> std::collections::hash_map::Iter<Entity, Entity3D> {
         self.map.iter()
     }
 
     #[inline]
     #[must_use]
-    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<Entity, Model3D> {
+    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<Entity, Entity3D> {
         self.map.iter_mut()
     }
 
     pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, ubo: &mut UBO3D) {
         for (_, model) in self.map.iter() {
-            Self::update_trans_matrix(model, ubo);
+            ubo.transformation = Self::calc_trans_matrix(model).to_cols_array_2d();
             model.rendering_model.draw(rpass);
         }
     }
 
-    fn update_trans_matrix(mesh: &Model3D, ubo: &mut UBO3D) {
+    fn calc_trans_matrix(mesh: &Entity3D) -> glam::Mat4 {
         let rotation_quat = Quat::from_scaled_axis(mesh.rotation.xyz());
-        let transformation_matrix =
-            Mat4::from_scale_rotation_translation(mesh.scale, rotation_quat, mesh.position);
-        ubo.transformation = transformation_matrix.to_cols_array_2d();
+        Mat4::from_scale_rotation_translation(mesh.scale, rotation_quat, mesh.position)
     }
 }

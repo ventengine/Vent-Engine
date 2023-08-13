@@ -9,21 +9,20 @@ use wgpu::{
 pub struct EditorRuntimeRenderer {
     texture: Texture,
     // runtime_renderer: RuntimeRenderer,
-    extent: Extent3d,
 }
 
 impl EditorRuntimeRenderer {
     pub fn new(
         default_renderer: &DefaultRenderer,
         _dimension: Dimension,
-        extent: Extent3d,
+        _extent: Extent3d,
         _camera: &mut dyn Camera,
     ) -> Self {
         let texture = default_renderer
             .device
             .create_texture(&wgpu::TextureDescriptor {
                 label: Some("Editor Runtime Texture"),
-                size: extent,
+                size: Extent3d::default(),
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: TextureDimension::D2,
@@ -35,7 +34,7 @@ impl EditorRuntimeRenderer {
         Self {
             texture,
             // runtime_renderer,
-            extent,
+           // extent,
         }
     }
 

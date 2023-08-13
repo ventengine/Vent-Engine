@@ -77,8 +77,11 @@ impl Camera for Camera3D {
         let projection =
             glam::Mat4::perspective_lh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
 
-        let view =
-            glam::Mat4::look_at_lh(self.position, self.direction_from_rotation(), glam::Vec3::Y);
+        let view = glam::Mat4::look_to_lh(
+            self.position,
+            self.position + self.direction_from_rotation(),
+            glam::Vec3::Y,
+        );
         UBO3D {
             projection: projection.to_cols_array_2d(),
             view: view.to_cols_array_2d(),
@@ -91,9 +94,12 @@ impl Camera3D {
     #[inline]
     #[must_use]
     fn direction_from_rotation(&self) -> glam::Vec3 {
-        let rot = self.rotation;
         let cos_y = self.rotation.y.cos();
 
-        glam::vec3(rot.x.sin() * cos_y, rot.y.sin(), rot.x.cos() * cos_y)
+        glam::vec3(
+            self.rotation.x.sin() * cos_y,
+            self.rotation.y.sin(),
+            self.rotation.x.cos() * cos_y,
+        )
     }
 }

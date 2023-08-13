@@ -4,7 +4,7 @@ use vent_assets::{Vertex, Vertex3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
-use super::{camera::Camera, model::Model3D, model_renderer::ModelRenderer3D, Renderer};
+use super::{camera::Camera, model::Entity3D, model_renderer::ModelRenderer3D, Renderer};
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -200,7 +200,7 @@ impl Renderer for Renderer3D {
         );
 
         pollster::block_on(async {
-            let mut mesh = Model3D::new(
+            let mut mesh = Entity3D::new(
                 vent_assets::Model3D::load(
                     device,
                     queue,
