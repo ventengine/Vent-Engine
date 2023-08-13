@@ -1,14 +1,18 @@
 use std::{mem, path::Path};
 
-use vent_assets::{Vertex3D, Vertex};
-use vent_common::render::UBO3D;
+use vent_assets::{Vertex, Vertex3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
-use super::{
-    app_renderer::MultiDimensionRenderer, camera::Camera3D, model::Model3D,
-    model_renderer::ModelRenderer3D,
-};
+use super::{camera::Camera, model::Model3D, model_renderer::ModelRenderer3D, Renderer};
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct UBO3D {
+    pub projection: [[f32; 4]; 4],
+    pub view: [[f32; 4]; 4],
+    pub transformation: [[f32; 4]; 4],
+}
 
 pub struct Renderer3D {
     mesh_renderer: ModelRenderer3D,
@@ -16,16 +20,15 @@ pub struct Renderer3D {
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
-    depth_texture: wgpu::TextureView,
+    depth_view: wgpu::TextureView,
 }
 
-impl MultiDimensionRenderer for Renderer3D {
-    fn init<Camera3D>(
+impl Renderer for Renderer3D {
+    fn init(
         config: &wgpu::SurfaceConfiguration,
-        _adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut Camera3D,
+        camera: &mut dyn Camera,
     ) -> Self
     where
         Self: Sized,
@@ -212,7 +215,7 @@ impl MultiDimensionRenderer for Renderer3D {
 
         // -------------------------------
 
-        let depth_texture = vent_assets::Texture::create_depth_texture(device, config, None);
+        let depth_texture = vent_assets::Texture::create_depth_view(device, config, None);
 
         Self {
             mesh_renderer,
@@ -220,7 +223,7 @@ impl MultiDimensionRenderer for Renderer3D {
             uniform_buf,
             pipeline,
             pipeline_wire,
-            depth_texture,
+            depth_view: depth_texture,
         }
     }
 
@@ -229,9 +232,9 @@ impl MultiDimensionRenderer for Renderer3D {
         config: &wgpu::SurfaceConfiguration,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut Camera3D,
+        camera: &mut dyn Camera,
     ) {
-        self.depth_texture = vent_assets::Texture::create_depth_texture(device, config, None);
+        self.depth_view = vent_assets::Texture::create_depth_view(device, config, None);
 
         let ubo = camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
@@ -242,7 +245,7 @@ impl MultiDimensionRenderer for Renderer3D {
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
-        camera: &mut Camera3D,
+        camera: &mut dyn Camera,
         aspect_ratio: f32,
     ) {
         let mut ubo = camera.build_view_matrix_3d(aspect_ratio);
@@ -263,7 +266,7 @@ impl MultiDimensionRenderer for Renderer3D {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.depth_texture,
+                    view: &self.depth_view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,

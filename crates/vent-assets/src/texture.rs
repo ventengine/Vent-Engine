@@ -9,7 +9,7 @@ impl Texture {
     pub const DEFAULT_TEXTURE_FILTER: wgpu::FilterMode = wgpu::FilterMode::Linear;
 
     #[must_use]
-    pub fn create_depth_texture(
+    pub fn create_depth_view(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
         label: Option<&str>,

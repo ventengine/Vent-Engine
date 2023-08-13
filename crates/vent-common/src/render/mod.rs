@@ -3,7 +3,6 @@ use wgpu::{Adapter, Device, Queue, Surface, SurfaceCapabilities, SurfaceConfigur
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-use bytemuck::{Pod, Zeroable};
 use log::debug;
 
 #[cfg(target_arch = "wasm32")]
@@ -49,18 +48,6 @@ pub struct DefaultRenderer {
     #[cfg(target_arch = "wasm32")]
     pub offscreen_canvas_setup: Option<OffscreenCanvasSetup>,
 }
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub struct UBO3D {
-    pub projection: [[f32; 4]; 4],
-    pub view: [[f32; 4]; 4],
-    pub transformation: [[f32; 4]; 4],
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub struct UBO2D {}
 
 impl DefaultRenderer {
     #[must_use]
@@ -191,6 +178,7 @@ impl DefaultRenderer {
             .expect("Surface isn't supported by the adapter.");
         surface.configure(&device, &config);
         let caps = surface.get_capabilities(&adapter);
+
         Self {
             surface,
             device,

@@ -1,14 +1,17 @@
-use super::{app_renderer::MultiDimensionRenderer, camera::Camera2D};
+use super::{camera::Camera, Renderer};
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct UBO2D {}
 
 pub struct Renderer2D {}
 
-impl MultiDimensionRenderer for Renderer2D {
+impl Renderer for Renderer2D {
     fn init(
         _config: &wgpu::SurfaceConfiguration,
-        _adapter: &wgpu::Adapter,
         _device: &wgpu::Device,
         _queue: &wgpu::Queue,
-        _camera: &mut Camera2D,
+        _camera: &mut dyn Camera,
     ) -> Self
     where
         Self: Sized,
@@ -21,7 +24,7 @@ impl MultiDimensionRenderer for Renderer2D {
         _config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         _queue: &wgpu::Queue,
-        _camera: &mut Camera2D,
+        _camera: &mut dyn Camera,
     ) {
         todo!()
     }
@@ -31,7 +34,7 @@ impl MultiDimensionRenderer for Renderer2D {
         _encoder: &mut wgpu::CommandEncoder,
         _view: &wgpu::TextureView,
         _queue: &wgpu::Queue,
-        _camera: &mut Camera2D,
+        _camera: &mut dyn Camera,
         _aspect_ratio: f32,
     ) {
         todo!()

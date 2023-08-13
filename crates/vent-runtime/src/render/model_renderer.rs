@@ -2,9 +2,7 @@ use glam::{Mat4, Quat};
 use std::collections::HashMap;
 use vent_ecs::entity::Entity;
 
-use vent_common::render::UBO3D;
-
-use super::model::Model3D;
+use super::{d3::UBO3D, model::Model3D};
 
 #[derive(Default)]
 pub struct ModelRenderer3D {
@@ -55,9 +53,7 @@ impl ModelRenderer3D {
     }
 
     fn update_trans_matrix(mesh: &Model3D, ubo: &mut UBO3D) {
-        let rotation_quat = Quat::from_rotation_x(mesh.rotation.x)
-            * Quat::from_rotation_y(mesh.rotation.y)
-            * Quat::from_rotation_z(mesh.rotation.z);
+        let rotation_quat = Quat::from_scaled_axis(mesh.rotation.xyz());
         let transformation_matrix =
             Mat4::from_scale_rotation_translation(mesh.scale, rotation_quat, mesh.position);
         ubo.transformation = transformation_matrix.to_cols_array_2d();

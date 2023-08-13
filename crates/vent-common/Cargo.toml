@@ -14,9 +14,7 @@ pollster = "0.3.0"
 sysinfo = "0.29"
 chrono = "0.4"
 
-glam = "0.24.1"
 image = "0.24.7"
-bytemuck = { version = "1.13.1", features = ["derive"] }
 
 log = "0.4"
 

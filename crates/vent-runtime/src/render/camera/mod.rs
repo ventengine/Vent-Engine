@@ -1,5 +1,6 @@
 use glam::{Mat4, Vec3};
-use vent_common::render::{UBO2D, UBO3D};
+
+use super::{d2::UBO2D, d3::UBO3D};
 
 pub mod camera_controller3d;
 
@@ -7,11 +8,16 @@ pub trait Camera {
     fn new() -> Self
     where
         Self: Sized;
+    // ugly i know :c
+    #[must_use]
+    fn build_view_matrix_2d(&mut self, aspect_ratio: f32) -> UBO2D;
+
+    #[must_use]
+    fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D;
 }
 
 pub struct Camera2D {
     pub position: glam::Vec2,
-    pub rotation: glam::Quat,
 }
 
 impl Camera for Camera2D {
@@ -23,14 +29,16 @@ impl Camera for Camera2D {
     {
         Self {
             position: glam::Vec2::ZERO,
-            rotation: glam::Quat::IDENTITY,
         }
     }
-}
 
-impl Camera2D {
     #[must_use]
-    pub fn build_view_matrix_2d(&mut self, _aspect_ratio: f32) -> UBO2D {
+    fn build_view_matrix_2d(&mut self, _aspect_ratio: f32) -> UBO2D {
+        todo!()
+    }
+
+    #[must_use]
+    fn build_view_matrix_3d(&mut self, _aspect_ratio: f32) -> UBO3D {
         todo!()
     }
 }
@@ -58,11 +66,14 @@ impl Camera for Camera3D {
             position: Vec3::ZERO,
         }
     }
-}
 
-impl Camera3D {
     #[must_use]
-    pub fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
+    fn build_view_matrix_2d(&mut self, _aspect_ratio: f32) -> UBO2D {
+        todo!()
+    }
+
+    #[must_use]
+    fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
         let projection =
             glam::Mat4::perspective_lh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
 
@@ -74,13 +85,15 @@ impl Camera3D {
             transformation: Mat4::IDENTITY.to_cols_array_2d(),
         }
     }
+}
 
+impl Camera3D {
     #[inline]
     #[must_use]
     fn direction_from_rotation(&self) -> glam::Vec3 {
-        let (sin_pitch, cos_pitch) = self.rotation.y.sin_cos();
-        let (sin_yaw, cos_yaw) = self.rotation.x.sin_cos();
+        let rot = self.rotation;
+        let cos_y = self.rotation.y.cos();
 
-        glam::vec3(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize()
+        glam::vec3(rot.x.sin() * cos_y, rot.y.sin(), rot.x.cos() * cos_y)
     }
 }
