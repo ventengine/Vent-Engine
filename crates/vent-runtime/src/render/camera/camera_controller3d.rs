@@ -2,11 +2,12 @@ use winit::event::VirtualKeyCode;
 
 use super::Camera3D;
 
-#[derive(Debug)]
 pub struct CameraController3D {
     speed: f32,
     sensitivity_x: f32,
     sensitivity_y: f32,
+
+    mouse_left_down: bool,
 }
 
 impl CameraController3D {
@@ -17,17 +18,18 @@ impl CameraController3D {
             speed,
             sensitivity_x: sensitivity,
             sensitivity_y: sensitivity,
+            mouse_left_down: false,
         }
     }
 
     pub fn process_keyboard(
-        &mut self,
+        &self,
         camera: &mut Camera3D,
         key: &VirtualKeyCode,
         delta_time: f32,
     ) -> bool {
-        let sin_pitch = camera.basic_cam.rotation.x.sin();
-        let cos_pitch = camera.basic_cam.rotation.x.cos();
+        let sin_pitch = camera.rotation.x.sin();
+        let cos_pitch = camera.rotation.x.cos();
         match key {
             VirtualKeyCode::W | VirtualKeyCode::Up => {
                 camera.position.x += sin_pitch * self.speed * delta_time;
@@ -61,19 +63,36 @@ impl CameraController3D {
         }
     }
 
-    pub fn process_mouse(
+    pub fn process_mouse_input(
         &mut self,
+        window: &winit::window::Window,
+        button: &winit::event::MouseButton,
+        state: &winit::event::ElementState,
+    ) {
+        if button == &winit::event::MouseButton::Left {
+            self.mouse_left_down = if state == &winit::event::ElementState::Pressed {
+                true
+            } else {
+                false
+            };
+            window.set_cursor_visible(!self.mouse_left_down);
+        }
+    }
+
+    pub fn process_mouse_movement(
+        &self,
         camera: &mut Camera3D,
         mouse_dx: f64,
         mouse_dy: f64,
         delta_time: f32,
     ) {
-        let deltaposition = glam::vec2(mouse_dx as f32, mouse_dy as f32);
+        if self.mouse_left_down {
+            let deltaposition = glam::vec2(mouse_dx as f32, mouse_dy as f32);
 
-        let moveposition =
-            deltaposition * glam::vec2(self.sensitivity_x, self.sensitivity_y) * delta_time;
-        let mut rotation = camera.basic_cam.rotation;
-        rotation.x += moveposition.x;
-        rotation.y += moveposition.y;
+            let moveposition =
+                deltaposition * glam::vec2(self.sensitivity_x, self.sensitivity_y) * delta_time;
+            camera.rotation.x += moveposition.x;
+            camera.rotation.y += moveposition.y;
+        }
     }
 }

@@ -1,5 +1,12 @@
-use std::{fs, io, path::Path};
+use std::{
+    collections::HashMap,
+    fs, io,
+    path::Path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
+use crossbeam::channel::bounded;
 use wgpu::{util::DeviceExt, BindGroupLayout};
 
 use crate::{Model3D, Texture, Vertex3D};
@@ -30,20 +37,14 @@ impl GLTFLoader {
             })
         });
 
-        let mut materials = Vec::with_capacity(full_model.materials().len());
-        for material in full_model.materials() {
-            materials.push(
-                Self::load_material(
-                    device,
-                    queue,
-                    path,
-                    material,
-                    &buffer_data,
-                    texture_bind_group_layout,
-                )
-                .await,
-            );
-        }
+        let materials = Self::load_material_multithreaded(
+            device,
+            queue,
+            path,
+            full_model.materials(),
+            &buffer_data,
+            texture_bind_group_layout,
+        );
 
         Ok(Model3D { meshes, materials })
     }
@@ -69,7 +70,55 @@ impl GLTFLoader {
             .for_each(|child| Self::load_node(device, child, buffer_data, meshes))
     }
 
-    async fn load_material(
+    pub fn load_material_multithreaded(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        model_dir: &Path,
+        materials: gltf::iter::Materials,
+        buffer_data: &[gltf::buffer::Data],
+        texture_bind_group_layout: &BindGroupLayout,
+    ) -> Vec<wgpu::BindGroup> {
+        let materials_len = materials.size_hint().0;
+        let (tx, rx) = bounded(materials_len); // Create bounded channels
+        let materials_map = Arc::new(Mutex::new(HashMap::with_capacity(materials_len)));
+
+        // Spawn threads to load materials
+        thread::scope(|s| {
+            for material in materials.enumerate() {
+                let tx = tx.clone();
+                let device = device.clone();
+                let queue = queue.clone();
+                let model_dir = model_dir.to_owned();
+                let buffer_data = buffer_data.to_owned();
+                let texture_bind_group_layout = texture_bind_group_layout.clone();
+
+                s.spawn(move || {
+                    let mat = Self::load_material(
+                        device,
+                        queue,
+                        &model_dir,
+                        material.1,
+                        &buffer_data,
+                        texture_bind_group_layout,
+                    );
+                    tx.send((material.0, mat)).unwrap();
+                });
+            }
+        });
+
+        for _ in 0..materials_len {
+            let (index, mat) = rx.recv().unwrap();
+            materials_map.lock().unwrap().insert(index, mat);
+        }
+
+        let materials: Vec<_> = (0..materials_len)
+            .map(|index| materials_map.lock().unwrap().remove(&index).unwrap())
+            .collect();
+
+        materials
+    }
+
+    fn load_material(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         model_dir: &Path,
@@ -109,7 +158,7 @@ impl GLTFLoader {
         };
 
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
+            label: Some("Texture Uniform Buffer"),
             contents: bytemuck::bytes_of(&Material {
                 base_color: pbr.base_color_factor(),
             }),

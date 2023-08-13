@@ -3,23 +3,53 @@ use wgpu::SurfaceError;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-use crate::render::app_renderer::VentApplicationManager;
-
 use self::camera::Camera;
+use self::d2::Renderer2D;
+use self::d3::Renderer3D;
 
-pub mod app_renderer;
 pub mod camera;
 pub mod model;
 mod model_renderer;
 
+mod d2;
+mod d3;
+
 pub struct RuntimeRenderer {
     default_renderer: DefaultRenderer,
-    app_renderer: VentApplicationManager,
+    multi_renderer: Box<dyn Renderer>,
 }
 
 pub enum Dimension {
     D2,
     D3,
+}
+
+pub trait Renderer {
+    fn init(
+        config: &wgpu::SurfaceConfiguration,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        camera: &mut dyn Camera,
+    ) -> Self
+    where
+        Self: Sized;
+
+    fn resize(
+        &mut self,
+        config: &wgpu::SurfaceConfiguration,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        camera: &mut dyn Camera,
+    );
+
+    fn render(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        view: &wgpu::TextureView,
+        queue: &wgpu::Queue,
+        camera: &mut dyn Camera,
+        aspect_ratio: f32,
+    );
 }
 
 impl RuntimeRenderer {
@@ -29,7 +59,20 @@ impl RuntimeRenderer {
         camera: &mut dyn Camera,
     ) -> Self {
         Self {
-            app_renderer: VentApplicationManager::new(dimension, &default_renderer, camera),
+            multi_renderer: match dimension {
+                Dimension::D2 => Box::new(Renderer2D::init(
+                    &default_renderer.config,
+                    &default_renderer.device,
+                    &default_renderer.queue,
+                    camera,
+                )),
+                Dimension::D3 => Box::new(Renderer3D::init(
+                    &default_renderer.config,
+                    &default_renderer.device,
+                    &default_renderer.queue,
+                    camera,
+                )),
+            },
             default_renderer,
         }
     }
@@ -52,7 +95,7 @@ impl RuntimeRenderer {
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("Runtime Render Encoder"),
                 });
-        self.app_renderer.render(
+        self.multi_renderer.render(
             &mut encoder,
             &view,
             &self.default_renderer.queue,
@@ -82,8 +125,9 @@ impl RuntimeRenderer {
     }
 
     pub fn resize(&mut self, new_size: PhysicalSize<u32>, camera: &mut dyn Camera) {
-        DefaultRenderer::resize(&mut self.default_renderer, new_size);
-        self.app_renderer.resize(
+        // Its Important to resize Default Renderer first
+        self.default_renderer.resize(new_size);
+        self.multi_renderer.resize(
             &self.default_renderer.config,
             &self.default_renderer.device,
             &self.default_renderer.queue,

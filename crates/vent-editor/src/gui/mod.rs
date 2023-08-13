@@ -63,13 +63,13 @@ impl EditorGUI {
 
         let mut open_tabs = HashSet::new();
 
-        for node in tree.iter() {
+        tree.iter().for_each(|node| {
             if let Node::Leaf { tabs, .. } = node {
-                for tab in tabs {
+                tabs.iter().for_each(|tab| {
                     open_tabs.insert(tab.clone());
-                }
+                });
             }
-        }
+        });
 
         let viewer = EditorViewer { open_tabs };
 

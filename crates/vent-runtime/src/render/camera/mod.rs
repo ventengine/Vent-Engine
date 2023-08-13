@@ -1,5 +1,6 @@
 use glam::{Mat4, Vec3};
-use vent_common::render::{UBO2D, UBO3D};
+
+use super::{d2::UBO2D, d3::UBO3D};
 
 pub mod camera_controller3d;
 
@@ -15,27 +16,7 @@ pub trait Camera {
     fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D;
 }
 
-pub struct BasicCamera {
-    fovy: f32,
-    znear: f32,
-    zfar: f32,
-    pub rotation: glam::Quat,
-}
-
-impl Default for BasicCamera {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            fovy: 60.0,
-            znear: 0.1,
-            zfar: 10000.0,
-            rotation: glam::Quat::IDENTITY,
-        }
-    }
-}
-
 pub struct Camera2D {
-    pub basic_cam: BasicCamera,
     pub position: glam::Vec2,
 }
 
@@ -47,7 +28,6 @@ impl Camera for Camera2D {
         Self: Sized,
     {
         Self {
-            basic_cam: BasicCamera::default(),
             position: glam::Vec2::ZERO,
         }
     }
@@ -64,8 +44,11 @@ impl Camera for Camera2D {
 }
 
 pub struct Camera3D {
-    pub basic_cam: BasicCamera,
+    fovy: f32,
+    znear: f32,
+    zfar: f32,
     pub position: glam::Vec3,
+    pub rotation: glam::Quat,
 }
 
 impl Camera for Camera3D {
@@ -76,7 +59,10 @@ impl Camera for Camera3D {
         Self: Sized,
     {
         Self {
-            basic_cam: BasicCamera::default(),
+            fovy: 60.0,
+            znear: 0.1,
+            zfar: 10000.0,
+            rotation: glam::Quat::IDENTITY,
             position: Vec3::ZERO,
         }
     }
@@ -88,15 +74,14 @@ impl Camera for Camera3D {
 
     #[must_use]
     fn build_view_matrix_3d(&mut self, aspect_ratio: f32) -> UBO3D {
-        let projection = glam::Mat4::perspective_lh(
-            self.basic_cam.fovy.to_radians(),
-            aspect_ratio,
-            self.basic_cam.znear,
-            self.basic_cam.zfar,
-        );
+        let projection =
+            glam::Mat4::perspective_lh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
 
-        let view =
-            glam::Mat4::look_at_lh(self.position, self.direction_from_rotation(), glam::Vec3::Y);
+        let view = glam::Mat4::look_to_lh(
+            self.position,
+            self.position + self.direction_from_rotation(),
+            glam::Vec3::Y,
+        );
         UBO3D {
             projection: projection.to_cols_array_2d(),
             view: view.to_cols_array_2d(),
@@ -109,9 +94,12 @@ impl Camera3D {
     #[inline]
     #[must_use]
     fn direction_from_rotation(&self) -> glam::Vec3 {
-        let rot = self.basic_cam.rotation;
-        let cos_y = self.basic_cam.rotation.y.cos();
+        let cos_y = self.rotation.y.cos();
 
-        glam::vec3(rot.x.sin() * cos_y, rot.y.sin(), rot.x.cos() * cos_y)
+        glam::vec3(
+            self.rotation.x.sin() * cos_y,
+            self.rotation.y.sin(),
+            self.rotation.x.cos() * cos_y,
+        )
     }
 }

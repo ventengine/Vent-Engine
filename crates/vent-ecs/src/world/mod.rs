@@ -32,9 +32,9 @@ impl World {
     pub fn delete_entity(&mut self, entity: Entity) -> Result<(), String> {
         if let Some(index) = self.entities.iter().position(|&e| e == entity) {
             self.entities.swap_remove(index);
-            for archetype in self.archetypes.values_mut() {
+            self.archetypes.values_mut().for_each(|archetype| {
                 archetype.remove_entity(entity);
-            }
+            });
             Ok(())
         } else {
             Err(format!("Entity with ID {} does not exist", entity))

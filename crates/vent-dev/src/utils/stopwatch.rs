@@ -39,3 +39,9 @@ impl Stopwatch {
         dur.as_secs() * 1000 + dur.subsec_millis() as u64
     }
 }
+
+impl Default for Stopwatch {
+    fn default() -> Self {
+        Self::new()
+    }
+}

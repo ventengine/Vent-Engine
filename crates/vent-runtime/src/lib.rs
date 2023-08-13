@@ -54,8 +54,7 @@ impl VentApplication {
             &mut cam,
         );
 
-        let mut controller = CameraController3D::new(3000.0, 100.0);
-
+        let mut controller = CameraController3D::new(3000.0, 10.0);
         let mut last = Instant::now();
         let mut delta_time = Duration::ZERO;
         vent_window.event_loop.run(move |event, _, control_flow| {
@@ -68,6 +67,9 @@ impl VentApplication {
                 } if window_id == vent_window.window.id() => {
                     match event {
                         WindowEvent::CloseRequested => control_flow.set_exit(),
+                        WindowEvent::MouseInput { button, state, .. } => {
+                            controller.process_mouse_input(&vent_window.window, button, state);
+                        }
                         WindowEvent::KeyboardInput {
                             input:
                                 KeyboardInput {
@@ -92,7 +94,12 @@ impl VentApplication {
                 Event::DeviceEvent {
                     event: DeviceEvent::MouseMotion { delta },
                     ..
-                } => controller.process_mouse(&mut cam, delta.0, delta.1, delta_time.as_secs_f32()),
+                } => controller.process_mouse_movement(
+                    &mut cam,
+                    delta.0,
+                    delta.1,
+                    delta_time.as_secs_f32(),
+                ),
                 Event::RedrawRequested(window_id) if window_id == vent_window.window.id() => {
                     let now = Instant::now();
                     delta_time = now - last;

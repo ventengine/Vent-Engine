@@ -115,7 +115,7 @@ impl EditorRenderer {
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>, camera: &mut dyn Camera) {
-        DefaultRenderer::resize(&mut self.default_renderer, new_size);
+        self.default_renderer.resize(new_size);
         // TODO
         self.editor_runtime_renderer.resize(
             &self.default_renderer.device,

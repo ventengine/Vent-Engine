@@ -1,6 +1,6 @@
 use vent_common::render::DefaultRenderer;
+use vent_runtime::render::camera::Camera;
 use vent_runtime::render::Dimension;
-use vent_runtime::render::{app_renderer::VentApplicationManager, camera::Camera};
 use wgpu::{
     CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture,
     TextureDimension,
@@ -8,22 +8,21 @@ use wgpu::{
 
 pub struct EditorRuntimeRenderer {
     texture: Texture,
-    app_renderer: VentApplicationManager,
-    extent: Extent3d,
+    // runtime_renderer: RuntimeRenderer,
 }
 
 impl EditorRuntimeRenderer {
     pub fn new(
         default_renderer: &DefaultRenderer,
-        dimension: Dimension,
-        extent: Extent3d,
-        camera: &mut dyn Camera,
+        _dimension: Dimension,
+        _extent: Extent3d,
+        _camera: &mut dyn Camera,
     ) -> Self {
         let texture = default_renderer
             .device
             .create_texture(&wgpu::TextureDescriptor {
                 label: Some("Editor Runtime Texture"),
-                size: extent,
+                size: Extent3d::default(),
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: TextureDimension::D2,
@@ -31,43 +30,43 @@ impl EditorRuntimeRenderer {
                 usage: default_renderer.config.usage,
                 view_formats: &[],
             });
-        let app_renderer = VentApplicationManager::new(dimension, default_renderer, camera);
+        // let runtime_renderer = RuntimeRenderer::new(dimension, default_renderer, camera);
         Self {
             texture,
-            app_renderer,
-            extent,
+            // runtime_renderer,
+           // extent,
         }
     }
 
     pub fn render(
         &mut self,
         _window: &winit::window::Window,
-        encoder: &mut CommandEncoder,
-        queue: &Queue,
-        camera: &mut dyn Camera,
+        _encoder: &mut CommandEncoder,
+        _queue: &Queue,
+        _camera: &mut dyn Camera,
     ) -> Result<(), SurfaceError> {
-        let view = self.texture.create_view(&wgpu::TextureViewDescriptor {
+        let _view = self.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("Runtime View"),
             ..Default::default()
         });
-
-        self.app_renderer.render(
-            encoder,
-            &view,
-            queue,
-            camera,
-            self.extent.width as f32 / self.extent.height as f32,
-        );
+        // TODO
+        // self.runtime_renderer.render(
+        //     encoder,
+        //     &view,
+        //     queue,
+        //     camera,
+        //     self.extent.width as f32 / self.extent.height as f32,
+        // );
         Ok(())
     }
 
     pub fn resize(
         &mut self,
         device: &Device,
-        queue: &Queue,
+        _queue: &Queue,
         config: &SurfaceConfiguration,
         new_size: &winit::dpi::PhysicalSize<u32>,
-        camera: &mut dyn Camera,
+        _camera: &mut dyn Camera,
     ) {
         self.texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
@@ -83,6 +82,7 @@ impl EditorRuntimeRenderer {
             usage: config.usage,
             view_formats: &[],
         });
-        self.app_renderer.resize(config, device, queue, camera);
+        // TODO
+        // self.runtime_renderer.resize(config, device, queue, camera);
     }
 }
