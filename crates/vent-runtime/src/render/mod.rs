@@ -43,7 +43,7 @@ pub trait Renderer {
     );
 
     fn render(
-        &mut self,
+        &self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,
@@ -124,7 +124,7 @@ impl RuntimeRenderer {
         Ok(())
     }
 
-    pub fn resize(&mut self, new_size: PhysicalSize<u32>, camera: &mut dyn Camera) {
+    pub fn resize(&mut self, new_size: &PhysicalSize<u32>, camera: &mut dyn Camera) {
         // Its Important to resize Default Renderer first
         self.default_renderer.resize(new_size);
         self.multi_renderer.resize(

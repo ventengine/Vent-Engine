@@ -6,7 +6,7 @@ use std::{
     thread,
 };
 
-use crossbeam::channel::bounded;
+use crossbeam_channel::bounded;
 use wgpu::{util::DeviceExt, BindGroupLayout};
 
 use crate::{Model3D, Texture, Vertex3D};
@@ -187,37 +187,39 @@ impl GLTFLoader {
 
     /// Converts an gltf Texture Sampler into WGPU Filter Modes
     fn convert_sampler<'a>(sampler: &'a gltf::texture::Sampler<'a>) -> wgpu::SamplerDescriptor<'a> {
-        let mag_filter = if let Some(filter) = sampler.mag_filter() {
-            match filter {
+        let mag_filter = sampler
+            .mag_filter()
+            .map_or(Texture::DEFAULT_TEXTURE_FILTER, |filter| match filter {
                 gltf::texture::MagFilter::Nearest => wgpu::FilterMode::Nearest,
                 gltf::texture::MagFilter::Linear => wgpu::FilterMode::Linear,
-            }
-        } else {
-            Texture::DEFAULT_TEXTURE_FILTER
-        };
-        let (min_filter, mipmap_filter) = if let Some(filter) = sampler.min_filter() {
-            let mut min = Texture::DEFAULT_TEXTURE_FILTER;
-            let mut mipmap = Texture::DEFAULT_TEXTURE_FILTER;
-            match filter {
-                gltf::texture::MinFilter::Nearest => min = wgpu::FilterMode::Nearest,
-                gltf::texture::MinFilter::Linear
-                | gltf::texture::MinFilter::LinearMipmapNearest => min = wgpu::FilterMode::Linear,
-                gltf::texture::MinFilter::NearestMipmapNearest => {
-                    mipmap = wgpu::FilterMode::Nearest
-                }
+            });
 
-                gltf::texture::MinFilter::LinearMipmapLinear => mipmap = wgpu::FilterMode::Linear,
-                _ => unimplemented!(),
-            }
-            (min, mipmap)
-        } else {
+        let (min_filter, mipmap_filter) = sampler.min_filter().map_or(
             (
                 Texture::DEFAULT_TEXTURE_FILTER,
                 Texture::DEFAULT_TEXTURE_FILTER,
-            )
-        };
+            ),
+            |filter| match filter {
+                gltf::texture::MinFilter::Nearest => {
+                    (wgpu::FilterMode::Nearest, Texture::DEFAULT_TEXTURE_FILTER)
+                }
+                gltf::texture::MinFilter::Linear
+                | gltf::texture::MinFilter::LinearMipmapNearest => {
+                    (wgpu::FilterMode::Linear, Texture::DEFAULT_TEXTURE_FILTER)
+                }
+                gltf::texture::MinFilter::NearestMipmapNearest => {
+                    (wgpu::FilterMode::Nearest, wgpu::FilterMode::Nearest)
+                }
+                gltf::texture::MinFilter::LinearMipmapLinear => {
+                    (wgpu::FilterMode::Linear, wgpu::FilterMode::Linear)
+                }
+                _ => unimplemented!(),
+            },
+        );
+
         let address_mode_u = Self::conv_wrapping_mode(&sampler.wrap_s());
         let address_mode_v = Self::conv_wrapping_mode(&sampler.wrap_t());
+
         wgpu::SamplerDescriptor {
             label: sampler.name(),
             mag_filter,
@@ -245,32 +247,26 @@ impl GLTFLoader {
     ) -> Mesh3D {
         let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
 
-        let mut vertices = Vec::new();
-        if let Some(vertex_attribute) = reader.read_positions() {
-            vertices.reserve(vertex_attribute.len());
-            vertex_attribute.for_each(|vertex| {
-                vertices.push(Vertex3D {
-                    position: vertex,
-                    tex_coord: Default::default(),
-                    normal: Default::default(),
-                })
-            });
-        }
+        let mut vertices: Vec<Vertex3D> = reader
+            .read_positions()
+            .unwrap()
+            .map(|position| Vertex3D {
+                position,
+                tex_coord: Default::default(),
+                normal: Default::default(),
+            })
+            .collect();
+
         if let Some(normal_attribute) = reader.read_normals() {
-            let mut normal_index = 0;
-            normal_attribute.for_each(|normal| {
+            for (normal_index, normal) in normal_attribute.enumerate() {
                 vertices[normal_index].normal = normal;
-
-                normal_index += 1;
-            });
+            }
         }
-        if let Some(tex_coord_attribute) = reader.read_tex_coords(0).map(|v| v.into_f32()) {
-            let mut tex_coord_index = 0;
-            tex_coord_attribute.for_each(|tex_coord| {
-                vertices[tex_coord_index].tex_coord = tex_coord;
 
-                tex_coord_index += 1;
-            });
+        if let Some(tex_coord_attribute) = reader.read_tex_coords(0).map(|v| v.into_f32()) {
+            for (tex_coord_index, tex_coord) in tex_coord_attribute.enumerate() {
+                vertices[tex_coord_index].tex_coord = tex_coord;
+            }
         }
 
         let indices: Vec<_> = reader.read_indices().unwrap().into_u32().collect();

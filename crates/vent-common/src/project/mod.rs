@@ -20,9 +20,9 @@ impl VentApplicationProject {
             .truncate(true)
             .create(true)
             .open(path)?;
-        let mut writer = BufWriter::new(file);
+        let writer = BufWriter::new(file);
 
-        serde_json::to_writer(&mut writer, self)?;
+        serde_json::to_writer(writer, self)?;
 
         Ok(())
     }

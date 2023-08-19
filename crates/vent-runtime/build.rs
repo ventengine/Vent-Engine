@@ -9,8 +9,7 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=res/*");
 
     let out_dir = env::var("OUT_DIR")?;
-    let mut copy_options = CopyOptions::new();
-    copy_options.overwrite = true;
+    let copy_options = CopyOptions::new().overwrite(true);
     copy_items(&["res/"], out_dir, &copy_options)?;
 
     Ok(())

@@ -19,7 +19,7 @@ fn panic_handler(pi: &PanicInfo) {
 fn log_crash(pi: &PanicInfo) -> std::io::Result<()> {
     let timestamp: DateTime<Local> = Local::now();
 
-    let mut sys = System::new_all();
+    let mut sys = System::new();
     sys.refresh_all();
     // let drivers = get_driver_information(); // Implement this function to retrieve driver information
 

@@ -59,11 +59,11 @@ fn main() {
                         ..
                     } => control_flow.set_exit(),
                     WindowEvent::Resized(physical_size) => {
-                        renderer.resize(*physical_size, &mut camera);
+                        renderer.resize(physical_size, &mut camera);
                     }
                     WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                         // new_inner_size is &mut so w have to dereference it twice
-                        renderer.resize(**new_inner_size, &mut camera);
+                        renderer.resize(new_inner_size, &mut camera);
                     }
                     _ => {}
                 }

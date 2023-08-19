@@ -34,7 +34,7 @@ impl EditorRuntimeRenderer {
         Self {
             texture,
             // runtime_renderer,
-           // extent,
+            // extent,
         }
     }
 

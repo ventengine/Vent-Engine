@@ -4,7 +4,11 @@ use vent_assets::{Vertex, Vertex3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
+use self::light_renderer::LightRenderer;
+
 use super::{camera::Camera, model::Entity3D, model_renderer::ModelRenderer3D, Renderer};
+
+pub mod light_renderer;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -87,9 +91,11 @@ impl Renderer for Renderer3D {
                 label: Some("texture_bind_group_layout"),
             });
 
+        let light = LightRenderer::new(device, &vertex_group_layout, config.format);
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("3D Pipeline Layout"),
-            bind_group_layouts: &[&vertex_group_layout, &texture_bind_group_layout],
+            bind_group_layouts: &[&vertex_group_layout, &texture_bind_group_layout, &light.light_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -241,7 +247,7 @@ impl Renderer for Renderer3D {
     }
 
     fn render(
-        &mut self,
+        &self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         queue: &wgpu::Queue,

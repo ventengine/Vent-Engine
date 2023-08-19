@@ -12,7 +12,7 @@ wgpu = "0.16.2"
 bytemuck = { version = "1.13.1", features = ["derive"] }
 log = "0.4"
 cfg-if = "1"
-crossbeam = "0.8"
+crossbeam-channel = "0.5"
 
 # model
 tobj = { version = "4.0.0", features = ["async"] }

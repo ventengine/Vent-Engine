@@ -114,14 +114,14 @@ impl EditorRenderer {
         Ok(())
     }
 
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>, camera: &mut dyn Camera) {
+    pub fn resize(&mut self, new_size: &winit::dpi::PhysicalSize<u32>, camera: &mut dyn Camera) {
         self.default_renderer.resize(new_size);
         // TODO
         self.editor_runtime_renderer.resize(
             &self.default_renderer.device,
             &self.default_renderer.queue,
             &self.default_renderer.config,
-            &new_size,
+            new_size,
             camera,
         );
         // egui does Automatically resize
@@ -132,6 +132,6 @@ impl EditorRenderer {
             width: self.default_renderer.config.width,
             height: self.default_renderer.config.height,
         };
-        Self::resize(self, size, camera)
+        Self::resize(self, &size, camera)
     }
 }

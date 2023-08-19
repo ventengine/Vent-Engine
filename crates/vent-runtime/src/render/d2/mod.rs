@@ -30,7 +30,7 @@ impl Renderer for Renderer2D {
     }
 
     fn render(
-        &mut self,
+        &self,
         _encoder: &mut wgpu::CommandEncoder,
         _view: &wgpu::TextureView,
         _queue: &wgpu::Queue,

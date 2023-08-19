@@ -70,11 +70,7 @@ impl CameraController3D {
         state: &winit::event::ElementState,
     ) {
         if button == &winit::event::MouseButton::Left {
-            self.mouse_left_down = if state == &winit::event::ElementState::Pressed {
-                true
-            } else {
-                false
-            };
+            self.mouse_left_down = state == &winit::event::ElementState::Pressed;
             window.set_cursor_visible(!self.mouse_left_down);
         }
     }

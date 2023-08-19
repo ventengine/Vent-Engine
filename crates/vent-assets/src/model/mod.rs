@@ -39,9 +39,11 @@ impl Model3D {
             .await
             .expect("Failed to Load 3D Model");
         log::info!(
-            "Model {} took {}ms to Load",
+            "Model {} took {}ms to Load, {} Materials and {} Meshes",
             path.to_str().unwrap(),
-            sw.elapsed_ms()
+            sw.elapsed_ms(),
+            model.materials.len(),
+            model.meshes.len(),
         );
         model
     }
