@@ -1,4 +1,4 @@
-use vent_assets::{Vertex3D, Vertex};
+use vent_assets::{Vertex, Vertex3D};
 use wgpu::util::DeviceExt;
 
 pub struct LightRenderer {
@@ -19,8 +19,12 @@ struct LightUBO {
     _padding2: u32,
 }
 
-impl LightRenderer { 
-    pub fn new(device: &wgpu::Device, camera_bind_group_layout: &wgpu::BindGroupLayout, format: wgpu::TextureFormat) -> Self {
+impl LightRenderer {
+    pub fn new(
+        device: &wgpu::Device,
+        camera_bind_group_layout: &wgpu::BindGroupLayout,
+        format: wgpu::TextureFormat,
+    ) -> Self {
         let light_uniform = LightUBO {
             position: [2.0, 2.0, 2.0],
             _padding: 0,
@@ -69,43 +73,47 @@ impl LightRenderer {
         )));
         let vertex_buffers = [Vertex3D::LAYOUT];
 
-        let light_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Light Renderer Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &vertex_buffers,
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(format.into())],
-            }),
-            primitive: wgpu::PrimitiveState {
-                cull_mode: Some(wgpu::Face::Back),
-                front_face: wgpu::FrontFace::Cw,
-                ..Default::default()
-            },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: vent_assets::Texture::DEPTH_FORMAT,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState::default(),
-            }),
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-        });
+        let light_render_pipeline =
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("Light Renderer Pipeline"),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+                    buffers: &vertex_buffers,
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[Some(format.into())],
+                }),
+                primitive: wgpu::PrimitiveState {
+                    cull_mode: Some(wgpu::Face::Back),
+                    front_face: wgpu::FrontFace::Cw,
+                    ..Default::default()
+                },
+                depth_stencil: Some(wgpu::DepthStencilState {
+                    format: vent_assets::Texture::DEPTH_FORMAT,
+                    depth_write_enabled: true,
+                    depth_compare: wgpu::CompareFunction::Less,
+                    stencil: wgpu::StencilState::default(),
+                    bias: wgpu::DepthBiasState::default(),
+                }),
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+            });
 
-        Self { light_uniform, light_buffer, light_bind_group_layout, light_bind_group, light_render_pipeline }
+        Self {
+            light_uniform,
+            light_buffer,
+            light_bind_group_layout,
+            light_bind_group,
+            light_render_pipeline,
+        }
     }
 
     pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
         rpass.set_bind_group(1, &self.light_bind_group, &[]);
         rpass.set_pipeline(&self.light_render_pipeline);
     }
-
-
-
 }

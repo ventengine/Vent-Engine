@@ -4,8 +4,6 @@ use vent_assets::{Vertex, Vertex3D};
 use vent_ecs::world::World;
 use wgpu::util::DeviceExt;
 
-use self::light_renderer::LightRenderer;
-
 use super::{camera::Camera, model::Entity3D, model_renderer::ModelRenderer3D, Renderer};
 
 pub mod light_renderer;
@@ -24,7 +22,6 @@ pub struct Renderer3D {
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
-    depth_view: wgpu::TextureView,
 }
 
 impl Renderer for Renderer3D {
@@ -91,11 +88,14 @@ impl Renderer for Renderer3D {
                 label: Some("texture_bind_group_layout"),
             });
 
-        let light = LightRenderer::new(device, &vertex_group_layout, config.format);
+        // let light = LightRenderer::new(device, &vertex_group_layout, config.format);
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("3D Pipeline Layout"),
-            bind_group_layouts: &[&vertex_group_layout, &texture_bind_group_layout, &light.light_bind_group_layout],
+            bind_group_layouts: &[
+                &vertex_group_layout,
+                &texture_bind_group_layout, /*** &light.light_bind_group_layout***/
+            ],
             push_constant_ranges: &[],
         });
 
@@ -221,27 +221,22 @@ impl Renderer for Renderer3D {
 
         // -------------------------------
 
-        let depth_texture = vent_assets::Texture::create_depth_view(device, config, None);
-
         Self {
             mesh_renderer,
             bind_group,
             uniform_buf,
             pipeline,
             pipeline_wire,
-            depth_view: depth_texture,
         }
     }
 
     fn resize(
         &mut self,
         config: &wgpu::SurfaceConfiguration,
-        device: &wgpu::Device,
+        _device: &wgpu::Device,
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) {
-        self.depth_view = vent_assets::Texture::create_depth_view(device, config, None);
-
         let ubo = camera.build_view_matrix_3d(config.width as f32 / config.height as f32);
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
     }
@@ -250,6 +245,7 @@ impl Renderer for Renderer3D {
         &self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
+        depth_view: &wgpu::TextureView,
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
         aspect_ratio: f32,
@@ -272,7 +268,7 @@ impl Renderer for Renderer3D {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.depth_view,
+                    view: depth_view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,

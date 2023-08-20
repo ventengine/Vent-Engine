@@ -18,6 +18,11 @@ log = "0.4"
 glam = "0.24.1"
 bytemuck = { version = "1.13.1", features = ["derive"] }
 
+# egui
+egui = "0.22.0"
+egui-wgpu = "0.22.0"
+egui-winit = "0.22.0"
+
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
 simple_logger = "4.2.0"
 

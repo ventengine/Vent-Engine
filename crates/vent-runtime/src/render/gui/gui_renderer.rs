@@ -1,10 +1,11 @@
-use crate::gui::EditorGUI;
+use super::{debug_gui::RenderData, GUI};
 
 pub struct EguiRenderer {
     renderer: egui_wgpu::Renderer,
-    gui: EditorGUI,
     context: egui::Context,
     state: egui_winit::State,
+
+    guis: Vec<Box<dyn GUI>>,
 }
 
 impl EguiRenderer {
@@ -13,29 +14,37 @@ impl EguiRenderer {
         device: &wgpu::Device,
         surface_format: wgpu::TextureFormat,
     ) -> Self {
-        let renderer = egui_wgpu::Renderer::new(device, surface_format, None, 1);
+        let renderer = egui_wgpu::Renderer::new(
+            device,
+            surface_format,
+            Some(vent_assets::Texture::DEPTH_FORMAT),
+            1,
+        );
         let context = egui::Context::default();
         let state = egui_winit::State::new(event_loop);
         Self {
             renderer,
-            gui: EditorGUI::new(),
             context,
             state,
+            guis: Vec::new(),
         }
     }
 
-    pub fn render<'rp>(
-        &'rp mut self,
-        rpass: &mut wgpu::RenderPass<'rp>,
+    pub fn render(
+        &mut self,
+        view: &wgpu::TextureView,
+        depth_view: &wgpu::TextureView,
         window: &winit::window::Window,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
+        render_data: &RenderData,
     ) {
-        //  self.context.begin_frame(self.state.take_egui_input(window));
         let input = self.state.take_egui_input(window);
         let output = self.context.run(input, |ctx| {
-            self.gui.update(ctx);
+            for gui in self.guis.iter_mut() {
+                gui.update(ctx, render_data);
+            }
         });
 
         self.state
@@ -50,14 +59,39 @@ impl EguiRenderer {
 
         let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
             size_in_pixels: window.inner_size().into(),
-            pixels_per_point: window.scale_factor() as _,
+            pixels_per_point: self.context.pixels_per_point(),
         };
 
         self.renderer
             .update_buffers(device, queue, encoder, &clipped_meshes, &screen_descriptor);
 
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("GUI Render Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                },
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: depth_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                }),
+                stencil_ops: None,
+            }),
+        });
+
         self.renderer
-            .render(rpass, &clipped_meshes, &screen_descriptor);
+            .render(&mut render_pass, &clipped_meshes, &screen_descriptor);
+    }
+
+    pub fn add_gui(mut self, gui: Box<dyn GUI>) -> Self {
+        self.guis.push(gui);
+        self
     }
 
     #[inline]

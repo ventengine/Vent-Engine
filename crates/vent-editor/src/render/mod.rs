@@ -1,10 +1,10 @@
-use crate::render::gui_renderer::EguiRenderer;
+use crate::gui::EditorGUI;
 use crate::render::runtime_renderer::EditorRuntimeRenderer;
 use vent_common::render::DefaultRenderer;
 use vent_runtime::render::camera::Camera;
+use vent_runtime::render::gui::gui_renderer::EguiRenderer;
 use vent_runtime::render::Dimension;
 
-mod gui_renderer;
 mod runtime_renderer;
 
 pub struct EditorRenderer {
@@ -25,7 +25,8 @@ impl EditorRenderer {
             event_loop,
             &default_renderer.device,
             default_renderer.caps.formats[0],
-        );
+        )
+        .add_gui(Box::new(EditorGUI::new()));
 
         let editor_runtime_renderer = EditorRuntimeRenderer::new(
             &default_renderer,
@@ -70,36 +71,15 @@ impl EditorRenderer {
                     label: Some("Editor Runtime Render Encoder"),
                 });
 
-        {
-            let mut _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Editor Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.4,
-                            g: 0.1,
-                            b: 0.6,
-                            a: 1.0,
-                        }),
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-            self.egui.render(
-                &mut _render_pass,
-                window,
-                &self.default_renderer.device,
-                &self.default_renderer.queue,
-                &mut encoder2,
-            );
-        }
+        self.egui.render(
+            &view,
+            window,
+            &self.default_renderer.device,
+            &self.default_renderer.queue,
+            &mut encoder,
+        );
 
-        self.default_renderer
-            .queue
-            .submit(std::iter::once(encoder.finish()));
+        self.default_renderer.queue.submit(Some(encoder.finish()));
 
         self.editor_runtime_renderer.render(
             window,
@@ -107,9 +87,7 @@ impl EditorRenderer {
             &self.default_renderer.queue,
             camera,
         )?;
-        self.default_renderer
-            .queue
-            .submit(std::iter::once(encoder2.finish()));
+        self.default_renderer.queue.submit(Some(encoder2.finish()));
         output.present();
         Ok(())
     }

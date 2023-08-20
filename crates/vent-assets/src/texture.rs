@@ -11,12 +11,13 @@ impl Texture {
     #[must_use]
     pub fn create_depth_view(
         device: &wgpu::Device,
-        config: &wgpu::SurfaceConfiguration,
+        width: u32,
+        height: u32,
         label: Option<&str>,
     ) -> wgpu::TextureView {
         let size = wgpu::Extent3d {
-            width: config.width,
-            height: config.height,
+            width,
+            height,
             depth_or_array_layers: 1,
         };
 

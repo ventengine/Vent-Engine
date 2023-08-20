@@ -3025,8 +3025,6 @@ name = "vent-editor"
 version = "0.1.0"
 dependencies = [
  "egui",
- "egui-wgpu",
- "egui-winit",
  "egui_dock",
  "log",
  "pollster",
@@ -3044,6 +3042,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
+ "egui",
+ "egui-wgpu",
+ "egui-winit",
  "fs_extra",
  "glam",
  "log",

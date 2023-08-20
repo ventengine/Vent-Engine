@@ -6,7 +6,7 @@ use render::camera::camera_controller3d::CameraController3D;
 use render::camera::{Camera, Camera3D};
 use simple_logger::SimpleLogger;
 use vent_common::project::VentApplicationProject;
-use vent_common::render::DefaultRenderer;
+
 use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
 use winit::event::{DeviceEvent, ElementState, Event, KeyboardInput, WindowEvent};
@@ -50,13 +50,13 @@ impl VentApplication {
 
         let mut renderer = RuntimeRenderer::new(
             Dimension::D3,
-            DefaultRenderer::new(&vent_window.window),
+            &vent_window.window,
+            &vent_window.event_loop,
             &mut cam,
         );
 
         let mut controller = CameraController3D::new(3000.0, 10.0);
-        let mut last = Instant::now();
-        let mut delta_time = Duration::ZERO;
+        let mut delta_time = 0.0;
         vent_window.event_loop.run(move |event, _, control_flow| {
             control_flow.set_wait();
 
@@ -65,6 +65,8 @@ impl VentApplication {
                     ref event,
                     window_id,
                 } if window_id == vent_window.window.id() => {
+                    renderer.progress_event(event);
+
                     match event {
                         WindowEvent::CloseRequested => control_flow.set_exit(),
                         WindowEvent::MouseInput { button, state, .. } => {
@@ -79,7 +81,7 @@ impl VentApplication {
                                 },
                             ..
                         } => {
-                            controller.process_keyboard(&mut cam, key, delta_time.as_secs_f32());
+                            controller.process_keyboard(&mut cam, key, delta_time);
                         }
                         WindowEvent::Resized(physical_size) => {
                             renderer.resize(physical_size, &mut cam);
@@ -94,18 +96,10 @@ impl VentApplication {
                 Event::DeviceEvent {
                     event: DeviceEvent::MouseMotion { delta },
                     ..
-                } => controller.process_mouse_movement(
-                    &mut cam,
-                    delta.0,
-                    delta.1,
-                    delta_time.as_secs_f32(),
-                ),
+                } => controller.process_mouse_movement(&mut cam, delta.0, delta.1, delta_time),
                 Event::RedrawRequested(window_id) if window_id == vent_window.window.id() => {
-                    let now = Instant::now();
-                    delta_time = now - last;
-                    last = now;
                     match renderer.render(&vent_window.window, &mut cam) {
-                        Ok(_) => {}
+                        Ok(d) => delta_time = d,
                         Err(err) => {
                             if err == wgpu::SurfaceError::OutOfMemory {
                                 control_flow.set_exit();
