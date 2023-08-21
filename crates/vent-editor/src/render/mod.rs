@@ -2,6 +2,7 @@ use crate::gui::EditorGUI;
 use crate::render::runtime_renderer::EditorRuntimeRenderer;
 use vent_common::render::DefaultRenderer;
 use vent_runtime::render::camera::Camera;
+use vent_runtime::render::gui::debug_gui::RenderData;
 use vent_runtime::render::gui::gui_renderer::EguiRenderer;
 use vent_runtime::render::Dimension;
 
@@ -77,6 +78,7 @@ impl EditorRenderer {
             &self.default_renderer.device,
             &self.default_renderer.queue,
             &mut encoder,
+            &RenderData::default(),
         );
 
         self.default_renderer.queue.submit(Some(encoder.finish()));

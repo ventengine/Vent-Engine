@@ -17,7 +17,7 @@ impl EguiRenderer {
         let renderer = egui_wgpu::Renderer::new(
             device,
             surface_format,
-            Some(vent_assets::Texture::DEPTH_FORMAT),
+            None,
             1,
         );
         let context = egui::Context::default();
@@ -33,7 +33,6 @@ impl EguiRenderer {
     pub fn render(
         &mut self,
         view: &wgpu::TextureView,
-        depth_view: &wgpu::TextureView,
         window: &winit::window::Window,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -75,14 +74,7 @@ impl EguiRenderer {
                     store: true,
                 },
             })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: depth_view,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: true,
-                }),
-                stencil_ops: None,
-            }),
+            depth_stencil_attachment: None,
         });
 
         self.renderer

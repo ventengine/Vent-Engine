@@ -2,6 +2,7 @@ use egui::epaint::ahash::{HashSet, HashSetExt};
 use egui::{CentralPanel, Color32, Frame, RichText, TopBottomPanel, Ui, WidgetText};
 use egui_dock::{DockArea, Node, NodeIndex, TabViewer, Tree};
 use vent_runtime::render::gui::GUI;
+use vent_runtime::render::gui::debug_gui::RenderData;
 
 pub(crate) struct EditorViewer {
     open_tabs: HashSet<String>,
@@ -55,7 +56,7 @@ pub(crate) struct EditorGUI {
 }
 
 impl GUI for EditorGUI {
-    fn update(&mut self, ctx: &egui::Context) {
+    fn update(&mut self, ctx: &egui::Context, _render_data: &RenderData) {
         TopBottomPanel::top("vent::MenuBar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {

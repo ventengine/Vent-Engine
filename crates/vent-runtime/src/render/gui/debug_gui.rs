@@ -28,7 +28,7 @@ impl GUI for DebugGUI {
     fn update(&mut self, ctx: &egui::Context, render_data: &RenderData) {
         egui::Window::new("Debug").show(ctx, |ui| {
             ui.label(format!("FPS: {}", render_data.fps));
-            ui.label(format!("Frame Time: {}", render_data.frame_time));
+            ui.label(format!("Frame Time: {}ms", render_data.frame_time));
 
             // WGPU 0.17  ui.label(format!("API: {}", self.adapter.backend));
             ui.label(format!("Device: {}", self.adapter.name));

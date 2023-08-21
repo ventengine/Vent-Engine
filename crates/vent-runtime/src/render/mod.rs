@@ -155,7 +155,6 @@ impl RuntimeRenderer {
 
         self.gui_renderer.render(
             &view,
-            &self.depth_view,
             window,
             &self.default_renderer.device,
             &self.default_renderer.queue,
