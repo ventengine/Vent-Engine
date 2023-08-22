@@ -1,4 +1,4 @@
-use image::{GenericImageView, ImageError, Rgba};
+use image::{GenericImageView, ImageError};
 use wgpu::util::DeviceExt;
 
 use crate::Texture;
@@ -74,7 +74,7 @@ impl Texture {
         height: u32,
         label: Option<&str>,
     ) -> Self {
-        let img = image::RgbaImage::from_fn(width, height, |_, _| Rgba(color));
+        let img = image::RgbaImage::from_pixel(width, height, image::Rgba(color));
         Self::create(
             device,
             queue,
@@ -86,6 +86,7 @@ impl Texture {
                 mag_filter: Self::DEFAULT_TEXTURE_FILTER,
                 min_filter: Self::DEFAULT_TEXTURE_FILTER,
                 mipmap_filter: Self::DEFAULT_TEXTURE_FILTER,
+                lod_max_clamp: 1.0,
                 ..Default::default()
             },
             label,

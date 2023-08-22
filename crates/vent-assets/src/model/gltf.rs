@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
-    fs::{self, File}, io::{self, BufReader},
+    fs::{self, File},
+    io::{self, BufReader},
     path::Path,
     sync::{Arc, Mutex},
     thread,
@@ -141,11 +142,16 @@ impl GLTFLoader {
                     texture.texture().name(),
                 )
                 .unwrap(),
-                gltf::image::Source::Uri { uri, mime_type  } => {
+                gltf::image::Source::Uri { uri, mime_type } => {
                     let sampler = texture.texture().sampler();
                     let wgpu_sampler = Self::convert_sampler(&sampler);
                     let image = if let Some(mime_type) = mime_type {
-                        image::load(BufReader::new(File::open(model_dir.join(uri)).unwrap()), image::ImageFormat::from_mime_type(mime_type).expect("TODO: Error Handling")).unwrap()
+                        image::load(
+                            BufReader::new(File::open(model_dir.join(uri)).unwrap()),
+                            image::ImageFormat::from_mime_type(mime_type)
+                                .expect("TODO: Error Handling"),
+                        )
+                        .unwrap()
                     } else {
                         image::open(model_dir.join(uri)).unwrap()
                     };

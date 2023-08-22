@@ -14,12 +14,7 @@ impl EguiRenderer {
         device: &wgpu::Device,
         surface_format: wgpu::TextureFormat,
     ) -> Self {
-        let renderer = egui_wgpu::Renderer::new(
-            device,
-            surface_format,
-            None,
-            1,
-        );
+        let renderer = egui_wgpu::Renderer::new(device, surface_format, None, 1);
         let context = egui::Context::default();
         let state = egui_winit::State::new(event_loop);
         Self {
@@ -90,12 +85,11 @@ impl EguiRenderer {
     #[allow(dead_code)]
     pub fn register_texture(
         &mut self,
-        _device: &wgpu::Device,
-        _texture: &wgpu::TextureView,
-        _filter: wgpu::FilterMode,
+        device: &wgpu::Device,
+        texture: &wgpu::TextureView,
+        sampler_descriptor: wgpu::SamplerDescriptor<'_>
     ) -> egui::TextureId {
-        //   self.renderer.update_egui_texture_from_wgpu_texture(device, texture, filter)
-        todo!()
+        self.renderer.register_native_texture_with_sampler_options(device, texture, sampler_descriptor)
     }
 
     pub fn progress_event(&mut self, event: &winit::event::WindowEvent<'_>) {

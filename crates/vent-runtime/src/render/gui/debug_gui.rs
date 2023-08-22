@@ -33,7 +33,10 @@ impl GUI for DebugGUI {
             // WGPU 0.17  ui.label(format!("API: {}", self.adapter.backend));
             ui.label(format!("Device: {}", self.adapter.name));
             // WGPU 0.17  ui.label(format!("Device Type: {}", self.adapter.device_type));
-            ui.label(format!("Device Driver: {}, Info {}", self.adapter.driver, self.adapter.driver_info));
+            ui.label(format!(
+                "Device Driver: {}, Info {}",
+                self.adapter.driver, self.adapter.driver_info
+            ));
         });
     }
 }

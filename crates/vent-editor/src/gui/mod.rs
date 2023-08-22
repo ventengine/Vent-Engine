@@ -1,8 +1,8 @@
 use egui::epaint::ahash::{HashSet, HashSetExt};
 use egui::{CentralPanel, Color32, Frame, RichText, TopBottomPanel, Ui, WidgetText};
 use egui_dock::{DockArea, Node, NodeIndex, TabViewer, Tree};
-use vent_runtime::render::gui::GUI;
 use vent_runtime::render::gui::debug_gui::RenderData;
+use vent_runtime::render::gui::GUI;
 
 pub(crate) struct EditorViewer {
     open_tabs: HashSet<String>,

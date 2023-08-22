@@ -11,7 +11,7 @@ impl VentWindow {
         let event_loop = winit::event_loop::EventLoop::new();
         let window = builder
             .build(&event_loop)
-            .expect("Failed to Create Vent Window");
+            .expect("Failed to Create Window");
 
         Self { window, event_loop }
     }

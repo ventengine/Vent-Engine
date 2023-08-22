@@ -88,7 +88,7 @@ impl RuntimeRenderer {
             &default_renderer.device,
             default_renderer.config.width,
             default_renderer.config.height,
-            None,
+            Some("Depth Buffer"),
         );
 
         Self {
@@ -195,7 +195,6 @@ impl RuntimeRenderer {
 
         if now - self.last_fps >= Duration::from_secs(1) {
             self.current_data.fps = self.current_frames;
-            self.delta_time = 1000.0 / self.current_frames as f32;
             self.current_frames = 0;
             self.last_fps = now;
         }
@@ -217,7 +216,7 @@ impl RuntimeRenderer {
             &self.default_renderer.device,
             self.default_renderer.config.width,
             self.default_renderer.config.height,
-            None,
+            Some("Depth Buffer"),
         );
 
         self.multi_renderer.resize(

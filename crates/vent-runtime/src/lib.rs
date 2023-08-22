@@ -1,7 +1,5 @@
 use crate::render::{Dimension, RuntimeRenderer};
 
-
-
 use render::camera::camera_controller3d::CameraController3D;
 use render::camera::{Camera, Camera3D};
 use simple_logger::SimpleLogger;

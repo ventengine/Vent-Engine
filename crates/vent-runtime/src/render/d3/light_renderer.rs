@@ -1,6 +1,7 @@
 use vent_assets::{Vertex, Vertex3D};
 use wgpu::util::DeviceExt;
 
+#[allow(dead_code)]
 pub struct LightRenderer {
     light_uniform: LightUBO,
     light_buffer: wgpu::Buffer,
@@ -19,6 +20,7 @@ struct LightUBO {
     _padding2: u32,
 }
 
+#[allow(dead_code)]
 impl LightRenderer {
     pub fn new(
         device: &wgpu::Device,
