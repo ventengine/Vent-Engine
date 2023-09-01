@@ -1,13 +1,10 @@
 use std::{
-    collections::HashMap,
     fs::{self, File},
     io::{self, BufReader},
     path::Path,
-    sync::{Arc, Mutex},
-    thread,
+    sync, thread,
 };
 
-use crossbeam_channel::bounded;
 use wgpu::{util::DeviceExt, BindGroupLayout};
 
 use crate::{Model3D, Texture, Vertex3D};
@@ -23,100 +20,114 @@ impl GLTFLoader {
         path: &Path,
         texture_bind_group_layout: &BindGroupLayout,
     ) -> Result<Model3D, ModelError> {
-        let full_model =
+        let doc =
             gltf::Gltf::from_reader(io::BufReader::new(fs::File::open(path).unwrap())).unwrap();
+
         let path = path.parent().unwrap_or_else(|| Path::new("./"));
 
-        // TODO: Error Handling
-        let buffer_data = gltf::import_buffers(&full_model, Some(path), full_model.blob.clone())
-            .expect("Failed to Load Buffers :C");
+        let buffer_data = gltf::import_buffers(&doc, Some(path), doc.blob.clone())
+            .expect("Failed to Load glTF Buffers");
 
         let mut meshes = Vec::new();
-        full_model.scenes().for_each(|scene| {
+        doc.scenes().for_each(|scene| {
             scene.nodes().for_each(|node| {
-                Self::load_node(device, node, &buffer_data, &mut meshes);
+                Self::load_node(
+                    device,
+                    queue,
+                    path,
+                    node,
+                    &buffer_data,
+                    texture_bind_group_layout,
+                    &mut meshes,
+                );
             })
         });
 
-        let materials = Self::load_material_multithreaded(
-            device,
-            queue,
-            path,
-            full_model.materials(),
-            &buffer_data,
-            texture_bind_group_layout,
-        );
-
-        Ok(Model3D { meshes, materials })
+        Ok(Model3D { meshes })
     }
 
     fn load_node(
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        model_dir: &Path,
         node: gltf::Node<'_>,
         buffer_data: &[gltf::buffer::Data],
+        texture_bind_group_layout: &BindGroupLayout,
         meshes: &mut Vec<Mesh3D>,
     ) {
         if let Some(mesh) = node.mesh() {
-            mesh.primitives().for_each(|primitive| {
-                meshes.push(Self::load_primitive(
-                    device,
-                    mesh.name(),
-                    buffer_data,
-                    primitive,
-                ));
-            })
+            Self::load_mesh_multithreaded(
+                device,
+                queue,
+                model_dir,
+                mesh,
+                buffer_data,
+                texture_bind_group_layout,
+                meshes,
+            );
         }
 
-        node.children()
-            .for_each(|child| Self::load_node(device, child, buffer_data, meshes))
+        node.children().for_each(|child| {
+            Self::load_node(
+                device,
+                queue,
+                model_dir,
+                child,
+                buffer_data,
+                texture_bind_group_layout,
+                meshes,
+            )
+        })
     }
 
-    pub fn load_material_multithreaded(
+    fn load_mesh_multithreaded(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         model_dir: &Path,
-        materials: gltf::iter::Materials,
+        mesh: gltf::Mesh,
         buffer_data: &[gltf::buffer::Data],
         texture_bind_group_layout: &BindGroupLayout,
-    ) -> Vec<wgpu::BindGroup> {
-        let materials_len = materials.size_hint().0;
-        let (tx, rx) = bounded(materials_len); // Create bounded channels
-        let materials_map = Arc::new(Mutex::new(HashMap::with_capacity(materials_len)));
+        meshes: &mut Vec<Mesh3D>,
+    ) {
+        let primitive_len = mesh.primitives().size_hint().0;
+        let (tx, rx) = sync::mpsc::sync_channel(primitive_len); // Create bounded channels
 
-        // Spawn threads to load materials
+        // Spawn threads to load mesh primitive
         thread::scope(|s| {
-            for material in materials.enumerate() {
+            for primitive in mesh.primitives() {
                 let tx = tx.clone();
+                let mesh = mesh.clone();
                 let device = device.clone();
                 let queue = queue.clone();
-                let model_dir = model_dir.to_owned();
-                let buffer_data = buffer_data.to_owned();
+                let model_dir = model_dir.clone();
+                let buffer_data = buffer_data.clone();
                 let texture_bind_group_layout = texture_bind_group_layout.clone();
 
                 s.spawn(move || {
-                    let mat = Self::load_material(
+                    let loaded_material = Self::load_material(
                         device,
                         queue,
-                        &model_dir,
-                        material.1,
-                        &buffer_data,
+                        model_dir,
+                        primitive.material(),
+                        buffer_data,
                         texture_bind_group_layout,
                     );
-                    tx.send((material.0, mat)).unwrap();
+
+                    let loaded_mesh = Self::load_primitive(
+                        device,
+                        loaded_material,
+                        mesh.name(),
+                        buffer_data,
+                        primitive,
+                    );
+                    tx.send(loaded_mesh).unwrap();
                 });
             }
         });
-
-        for _ in 0..materials_len {
-            let (index, mat) = rx.recv().unwrap();
-            materials_map.lock().unwrap().insert(index, mat);
+        for _ in 0..primitive_len {
+            let mesh = rx.recv().unwrap();
+            meshes.push(mesh);
         }
-
-        let materials: Vec<_> = (0..materials_len)
-            .map(|index| materials_map.lock().unwrap().remove(&index).unwrap())
-            .collect();
-
-        materials
     }
 
     fn load_material(
@@ -125,6 +136,7 @@ impl GLTFLoader {
         model_dir: &Path,
         material: gltf::Material<'_>,
         buffer_data: &[gltf::buffer::Data],
+        // image_data: &[gltf::image::Data],
         texture_bind_group_layout: &BindGroupLayout,
     ) -> wgpu::BindGroup {
         let pbr = material.pbr_metallic_roughness();
@@ -229,8 +241,8 @@ impl GLTFLoader {
             },
         );
 
-        let address_mode_u = Self::conv_wrapping_mode(&sampler.wrap_s());
-        let address_mode_v = Self::conv_wrapping_mode(&sampler.wrap_t());
+        let address_mode_u = Self::conv_wrapping_mode(sampler.wrap_s());
+        let address_mode_v = Self::conv_wrapping_mode(sampler.wrap_t());
 
         wgpu::SamplerDescriptor {
             label: sampler.name(),
@@ -243,7 +255,7 @@ impl GLTFLoader {
         }
     }
 
-    fn conv_wrapping_mode(mode: &gltf::texture::WrappingMode) -> wgpu::AddressMode {
+    fn conv_wrapping_mode(mode: gltf::texture::WrappingMode) -> wgpu::AddressMode {
         match mode {
             gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
             gltf::texture::WrappingMode::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
@@ -253,6 +265,7 @@ impl GLTFLoader {
 
     fn load_primitive(
         device: &wgpu::Device,
+        bind_group: wgpu::BindGroup,
         name: Option<&str>,
         buffer_data: &[gltf::buffer::Data],
         primitive: gltf::Primitive,
@@ -283,12 +296,6 @@ impl GLTFLoader {
 
         let indices: Vec<_> = reader.read_indices().unwrap().into_u32().collect();
 
-        Mesh3D::new(
-            device,
-            &vertices,
-            &indices,
-            primitive.material().index().unwrap_or(0),
-            name,
-        )
+        Mesh3D::new(device, &vertices, &indices, Some(bind_group), name)
     }
 }

@@ -35,40 +35,36 @@ impl OBJLoader {
             .map(|model| Self::load_mesh(device, &model.name, &model.mesh))
             .collect::<Vec<_>>();
 
-        let mut final_materials = Vec::with_capacity(materials.len());
-        for material in materials {
-            final_materials.push(
+        let _final_materials = materials
+            .into_iter()
+            .map(|material| {
                 Self::load_material(
                     device,
                     queue,
                     path.parent().unwrap(),
-                    material,
+                    &material,
                     texture_bind_group_layout,
                 )
-                .await,
-            );
-        }
+            })
+            .collect::<Vec<_>>();
 
-        Ok(Model3D {
-            meshes,
-            materials: final_materials,
-        })
+        Ok(Model3D { meshes })
     }
 
-    async fn load_material(
+    fn load_material(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         model_dir: &Path,
-        material: tobj::Material,
+        material: &tobj::Material,
         texture_bind_group_layout: &BindGroupLayout,
     ) -> wgpu::BindGroup {
-        let diffuse_texture = if let Some(texture) = material.diffuse_texture {
+        let diffuse_texture = if let Some(texture) = &material.diffuse_texture {
             Texture::from_image(
                 device,
                 queue,
-                image::open(model_dir.join(&texture)).unwrap(),
+                image::open(model_dir.join(texture)).unwrap(),
                 None,
-                Some(&texture),
+                Some(texture),
             )
         } else {
             Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None)
@@ -119,11 +115,12 @@ impl OBJLoader {
                 ],
             })
             .collect::<Vec<_>>();
+
         Mesh3D::new(
             device,
             &vertices,
             &mesh.indices,
-            mesh.material_id.unwrap_or(0),
+            None, // TODO
             Some(name),
         )
     }

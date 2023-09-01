@@ -1,3 +1,5 @@
+use std::any::Any;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use vent_common::render::DefaultRenderer;
@@ -34,7 +36,6 @@ pub struct RuntimeRenderer {
     last_fps: Instant,
     delta_time: f32,
 }
-
 pub enum Dimension {
     D2,
     D3,
@@ -45,7 +46,7 @@ pub trait Renderer {
         config: &wgpu::SurfaceConfiguration,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
+        camera: &mut dyn Any,
     ) -> Self
     where
         Self: Sized;
@@ -55,17 +56,14 @@ pub trait Renderer {
         config: &wgpu::SurfaceConfiguration,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
     );
 
     fn render(
-        &self,
+        &mut self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
-        aspect_ratio: f32,
     );
 }
 
@@ -74,7 +72,7 @@ impl RuntimeRenderer {
         dimension: Dimension,
         window: &winit::window::Window,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
-        camera: &mut dyn Camera,
+        mut camera: &mut dyn Camera,
     ) -> Self {
         let default_renderer = DefaultRenderer::new(window);
         let egui = EguiRenderer::new(
@@ -97,13 +95,13 @@ impl RuntimeRenderer {
                     &default_renderer.config,
                     &default_renderer.device,
                     &default_renderer.queue,
-                    camera,
+                    &mut camera,
                 )),
                 Dimension::D3 => Box::new(Renderer3D::init(
                     &default_renderer.config,
                     &default_renderer.device,
                     &default_renderer.queue,
-                    camera,
+                    &mut camera,
                 )),
             },
             gui_renderer: egui,
@@ -118,11 +116,7 @@ impl RuntimeRenderer {
         }
     }
 
-    pub fn render(
-        &mut self,
-        window: &Window,
-        camera: &mut dyn Camera,
-    ) -> Result<f32, SurfaceError> {
+    pub fn render(&mut self, window: &Window) -> Result<f32, SurfaceError> {
         let output = self.default_renderer.surface.get_current_texture()?;
 
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
@@ -148,8 +142,6 @@ impl RuntimeRenderer {
             &view,
             &self.depth_view,
             &self.default_renderer.queue,
-            camera,
-            self.default_renderer.config.width as f32 / self.default_renderer.config.height as f32,
         );
         self.default_renderer.queue.submit(Some(encoder.finish()));
 
@@ -190,7 +182,7 @@ impl RuntimeRenderer {
         self.current_frames += 1;
 
         let now = Instant::now();
-        self.delta_time = (now - self.last_delta).as_secs_f32();
+        self.delta_time = now.duration_since(self.last_delta).as_secs_f32();
         self.last_delta = now;
 
         if now - self.last_fps >= Duration::from_secs(1) {
@@ -209,7 +201,7 @@ impl RuntimeRenderer {
         self.gui_renderer.progress_event(event);
     }
 
-    pub fn resize(&mut self, new_size: &PhysicalSize<u32>, camera: &mut dyn Camera) {
+    pub fn resize(&mut self, new_size: &PhysicalSize<u32>) {
         // Its Important to resize Default Renderer first
         self.default_renderer.resize(new_size);
         self.depth_view = vent_assets::Texture::create_depth_view(
@@ -223,7 +215,6 @@ impl RuntimeRenderer {
             &self.default_renderer.config,
             &self.default_renderer.device,
             &self.default_renderer.queue,
-            camera,
         )
     }
 }

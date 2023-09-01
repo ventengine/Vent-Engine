@@ -87,9 +87,13 @@ impl EguiRenderer {
         &mut self,
         device: &wgpu::Device,
         texture: &wgpu::TextureView,
-        sampler_descriptor: wgpu::SamplerDescriptor<'_>
+        sampler_descriptor: wgpu::SamplerDescriptor<'_>,
     ) -> egui::TextureId {
-        self.renderer.register_native_texture_with_sampler_options(device, texture, sampler_descriptor)
+        self.renderer.register_native_texture_with_sampler_options(
+            device,
+            texture,
+            sampler_descriptor,
+        )
     }
 
     pub fn progress_event(&mut self, event: &winit::event::WindowEvent<'_>) {

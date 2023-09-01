@@ -1,7 +1,7 @@
 use crate::render::{Dimension, RuntimeRenderer};
 
 use render::camera::camera_controller3d::CameraController3D;
-use render::camera::{Camera, Camera3D};
+use render::camera::{Camera, Camera3D, from_dimension};
 use simple_logger::SimpleLogger;
 use vent_common::project::VentApplicationProject;
 
@@ -44,13 +44,15 @@ impl VentApplication {
         let vent_window = VentWindow::new(window_builder);
 
         // TODO
-        let mut cam = Camera3D::new();
+        let mut cam_any = from_dimension(Dimension::D3);
+        // TODO
+        let mut cam: &mut Camera3D = cam_any.downcast_mut().unwrap();
 
         let mut renderer = RuntimeRenderer::new(
             Dimension::D3,
             &vent_window.window,
             &vent_window.event_loop,
-            &mut cam,
+            cam,
         );
 
         let mut controller = CameraController3D::new(3000.0, 10.0);
@@ -79,14 +81,14 @@ impl VentApplication {
                                 },
                             ..
                         } => {
-                            controller.process_keyboard(&mut cam, key, delta_time);
+                            controller.process_keyboard(cam, key, delta_time);
                         }
                         WindowEvent::Resized(physical_size) => {
-                            renderer.resize(physical_size, &mut cam);
+                            renderer.resize(physical_size);
                         }
                         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                             // new_inner_size is &mut so w have to dereference it twice
-                            renderer.resize(new_inner_size, &mut cam);
+                            renderer.resize(new_inner_size);
                         }
                         _ => {}
                     }
@@ -94,9 +96,9 @@ impl VentApplication {
                 Event::DeviceEvent {
                     event: DeviceEvent::MouseMotion { delta },
                     ..
-                } => controller.process_mouse_movement(&mut cam, delta.0, delta.1, delta_time),
+                } => controller.process_mouse_movement(cam, delta.0, delta.1, delta_time),
                 Event::RedrawRequested(window_id) if window_id == vent_window.window.id() => {
-                    match renderer.render(&vent_window.window, &mut cam) {
+                    match renderer.render(&vent_window.window) {
                         Ok(d) => delta_time = d,
                         Err(err) => {
                             if err == wgpu::SurfaceError::OutOfMemory {
