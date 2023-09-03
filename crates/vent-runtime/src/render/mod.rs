@@ -34,7 +34,6 @@ pub struct RuntimeRenderer {
     last_fps: Instant,
     delta_time: f32,
 }
-
 pub enum Dimension {
     D2,
     D3,
@@ -59,13 +58,12 @@ pub trait Renderer {
     );
 
     fn render(
-        &self,
+        &mut self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
-        aspect_ratio: f32,
     );
 }
 
@@ -77,6 +75,20 @@ impl RuntimeRenderer {
         camera: &mut dyn Camera,
     ) -> Self {
         let default_renderer = DefaultRenderer::new(window);
+        let multi_renderer: Box<dyn Renderer> = match dimension {
+            Dimension::D2 => Box::new(Renderer2D::init(
+                &default_renderer.config,
+                &default_renderer.device,
+                &default_renderer.queue,
+                camera,
+            )),
+            Dimension::D3 => Box::new(Renderer3D::init(
+                &default_renderer.config,
+                &default_renderer.device,
+                &default_renderer.queue,
+                camera,
+            )),
+        };
         let egui = EguiRenderer::new(
             event_loop,
             &default_renderer.device,
@@ -92,20 +104,7 @@ impl RuntimeRenderer {
         );
 
         Self {
-            multi_renderer: match dimension {
-                Dimension::D2 => Box::new(Renderer2D::init(
-                    &default_renderer.config,
-                    &default_renderer.device,
-                    &default_renderer.queue,
-                    camera,
-                )),
-                Dimension::D3 => Box::new(Renderer3D::init(
-                    &default_renderer.config,
-                    &default_renderer.device,
-                    &default_renderer.queue,
-                    camera,
-                )),
-            },
+            multi_renderer,
             gui_renderer: egui,
             default_renderer,
             depth_view,
@@ -149,7 +148,6 @@ impl RuntimeRenderer {
             &self.depth_view,
             &self.default_renderer.queue,
             camera,
-            self.default_renderer.config.width as f32 / self.default_renderer.config.height as f32,
         );
         self.default_renderer.queue.submit(Some(encoder.finish()));
 
@@ -190,7 +188,7 @@ impl RuntimeRenderer {
         self.current_frames += 1;
 
         let now = Instant::now();
-        self.delta_time = (now - self.last_delta).as_secs_f32();
+        self.delta_time = now.duration_since(self.last_delta).as_secs_f32();
         self.last_delta = now;
 
         if now - self.last_fps >= Duration::from_secs(1) {

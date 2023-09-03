@@ -6,7 +6,7 @@ pub struct Stopwatch {
 }
 
 impl Stopwatch {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             start: None,
             elapsed: Duration::ZERO,

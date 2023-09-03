@@ -33,7 +33,6 @@ impl<'a> Vertex<'a> for Vertex3D {
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
 pub struct Model3D {
     meshes: Vec<Mesh3D>,
-    materials: Vec<wgpu::BindGroup>,
 }
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
 
@@ -47,8 +46,7 @@ pub struct Mesh3D {
     index_buf: wgpu::Buffer,
     index_count: u32,
 
-    // Material
-    material_id: usize,
+    bind_group: Option<wgpu::BindGroup>,
 }
 
 pub struct Texture {

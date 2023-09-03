@@ -9,7 +9,7 @@ pub struct Entity3D {
 }
 
 impl Entity3D {
-    pub fn new(model: vent_assets::Model3D) -> Self {
+    pub const fn new(model: vent_assets::Model3D) -> Self {
         Self {
             position: Vec3::ZERO,
             rotation: Quat::IDENTITY,

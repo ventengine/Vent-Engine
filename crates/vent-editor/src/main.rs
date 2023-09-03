@@ -1,7 +1,7 @@
 use crate::render::EditorRenderer;
 
 use simple_logger::SimpleLogger;
-use std::path::Path;
+
 use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
 use vent_runtime::render::camera::{Camera, Camera3D};
@@ -31,7 +31,7 @@ fn main() {
         .with_title(format!("Vent-Editor v{}", env!("CARGO_PKG_VERSION")))
         .with_inner_size(winit::dpi::LogicalSize::new(1400.0, 800.0))
         // TODO
-        .with_window_icon(Some(VentWindow::load_icon(Path::new(path))));
+        .with_window_icon(Some(VentWindow::load_icon(path)));
     let vent_window = VentWindow::new(window_builder);
 
     let mut camera = Camera3D::new();

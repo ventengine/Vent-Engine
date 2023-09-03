@@ -1,4 +1,6 @@
-use vent_assets::{Vertex, Vertex3D};
+use std::mem;
+
+use vent_assets::{Mesh3D, Vertex, Vertex3D};
 use wgpu::util::DeviceExt;
 
 #[allow(dead_code)]
@@ -6,17 +8,18 @@ pub struct LightRenderer {
     light_uniform: LightUBO,
     light_buffer: wgpu::Buffer,
     pub light_bind_group_layout: wgpu::BindGroupLayout,
-    light_bind_group: wgpu::BindGroup,
+    pub light_bind_group: wgpu::BindGroup,
     light_render_pipeline: wgpu::RenderPipeline,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-struct LightUBO {
+pub struct LightUBO {
     position: [f32; 3],
     // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
     _padding: u32,
     color: [f32; 3],
+    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
     _padding2: u32,
 }
 
@@ -28,7 +31,7 @@ impl LightRenderer {
         format: wgpu::TextureFormat,
     ) -> Self {
         let light_uniform = LightUBO {
-            position: [2.0, 2.0, 2.0],
+            position: [2.0, 100.0, 2.0],
             _padding: 0,
             color: [1.0, 1.0, 1.0],
             _padding2: 0,
@@ -48,7 +51,9 @@ impl LightRenderer {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: None,
+                        min_binding_size: wgpu::BufferSize::new(
+                            mem::size_of::<LightUBO>() as wgpu::BufferAddress
+                        ),
                     },
                     count: None,
                 }],
@@ -114,8 +119,16 @@ impl LightRenderer {
         }
     }
 
-    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
-        rpass.set_bind_group(1, &self.light_bind_group, &[]);
+    pub fn render<'rp>(
+        &'rp self,
+        rpass: &mut wgpu::RenderPass<'rp>,
+        camera_bind_group: &'rp wgpu::BindGroup,
+        mesh: &'rp Mesh3D,
+    ) {
         rpass.set_pipeline(&self.light_render_pipeline);
+        rpass.set_bind_group(0, camera_bind_group, &[]);
+        rpass.set_bind_group(1, &self.light_bind_group, &[]);
+        mesh.bind(rpass, false);
+        mesh.draw(rpass);
     }
 }

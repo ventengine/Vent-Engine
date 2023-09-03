@@ -28,8 +28,7 @@ impl CameraController3D {
         key: &VirtualKeyCode,
         delta_time: f32,
     ) -> bool {
-        let sin_pitch = camera.rotation.x.sin();
-        let cos_pitch = camera.rotation.x.cos();
+        let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
         match key {
             VirtualKeyCode::W | VirtualKeyCode::Up => {
                 camera.position.x += sin_pitch * self.speed * delta_time;
