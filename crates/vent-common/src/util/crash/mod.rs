@@ -1,5 +1,4 @@
 use chrono::{DateTime, Local};
-use rfd::MessageLevel;
 use std::fs::File;
 use std::io::Write;
 use std::panic::{self, PanicInfo};
@@ -13,14 +12,13 @@ pub fn init_panic_hook() {
 fn panic_handler(pi: &PanicInfo) {
     eprintln!("Crash: {}", pi);
     log_crash(pi).expect("Failed to Log Crash File");
-    show_error_dialog(pi);
+    // show_error_dialog(pi);
 }
 
 fn log_crash(pi: &PanicInfo) -> std::io::Result<()> {
     let timestamp: DateTime<Local> = Local::now();
 
-    let mut sys = System::new();
-    sys.refresh_all();
+    let sys = System::new_all();
     // let drivers = get_driver_information(); // Implement this function to retrieve driver information
 
     // Generate log file name based on timestamp
@@ -58,10 +56,10 @@ fn log_crash(pi: &PanicInfo) -> std::io::Result<()> {
     Ok(())
 }
 
-fn show_error_dialog(pi: &PanicInfo) {
-    rfd::MessageDialog::new()
-        .set_level(MessageLevel::Error)
-        .set_title("Application Error")
-        .set_description(format!("{:?}", pi).as_str())
-        .show();
-}
+// fn show_error_dialog(pi: &PanicInfo) {
+//     rfd::MessageDialog::new()
+//         .set_level(MessageLevel::Error)
+//         .set_title("Application Error")
+//         .set_description(format!("{:?}", pi).as_str())
+//         .show();
+// }

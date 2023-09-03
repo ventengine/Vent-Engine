@@ -28,19 +28,19 @@ pub struct Material {
 
 impl Model3D {
     #[inline]
-    pub async fn load(
+    pub async fn load<P: AsRef<Path>>(
         device: &Device,
         queue: &wgpu::Queue,
-        path: &Path,
+        path: P,
         texture_bind_group_layout: &BindGroupLayout,
     ) -> Self {
         let sw = Stopwatch::new_and_start();
-        let model = load_model_from_path(device, queue, path, texture_bind_group_layout)
+        let model = load_model_from_path(device, queue, path.as_ref(), texture_bind_group_layout)
             .await
             .expect("Failed to Load 3D Model");
         log::info!(
             "Model {} took {}ms to Load, {} Meshes",
-            path.to_str().unwrap(),
+            path.as_ref().to_str().unwrap(),
             sw.elapsed_ms(),
             model.meshes.len(),
         );

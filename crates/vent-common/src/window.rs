@@ -1,5 +1,3 @@
-use std::path::Path;
-
 pub struct VentWindow {
     pub window: winit::window::Window,
     pub event_loop: winit::event_loop::EventLoop<()>,
@@ -15,7 +13,7 @@ impl VentWindow {
     }
 
     #[must_use]
-    pub fn load_icon(path: &Path) -> winit::window::Icon {
+    pub fn load_icon(path: &str) -> winit::window::Icon {
         let (icon_rgba, icon_width, icon_height) = {
             let image = image::open(path)
                 .expect("Failed to open icon path")

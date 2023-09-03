@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use super::{camera::Camera, Renderer};
 
 #[repr(C)]
@@ -13,7 +11,7 @@ impl Renderer for Renderer2D {
         _config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         _queue: &wgpu::Queue,
-        _camera: &mut dyn Any,
+        _camera: &mut dyn Camera,
     ) -> Self
     where
         Self: Sized,
@@ -26,6 +24,7 @@ impl Renderer for Renderer2D {
         _config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         _queue: &wgpu::Queue,
+        _camera: &mut dyn Camera,
     ) {
         todo!()
     }
@@ -36,6 +35,7 @@ impl Renderer for Renderer2D {
         _view: &wgpu::TextureView,
         _depth_view: &wgpu::TextureView,
         _queue: &wgpu::Queue,
+        _camera: &mut dyn Camera,
     ) {
         todo!()
     }

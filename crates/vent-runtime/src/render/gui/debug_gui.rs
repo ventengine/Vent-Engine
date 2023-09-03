@@ -19,7 +19,7 @@ pub struct DebugGUI {
 }
 
 impl DebugGUI {
-    pub fn new(adapter: wgpu::AdapterInfo) -> Self {
+    pub const fn new(adapter: wgpu::AdapterInfo) -> Self {
         Self { adapter }
     }
 }

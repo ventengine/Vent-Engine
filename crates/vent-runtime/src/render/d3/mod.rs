@@ -1,4 +1,4 @@
-use std::{any::Any, mem, path::Path};
+use std::mem;
 
 use glam::Mat4;
 use vent_assets::{Mesh3D, Vertex, Vertex3D};
@@ -7,7 +7,12 @@ use wgpu::util::DeviceExt;
 
 use self::light_renderer::LightRenderer;
 
-use super::{camera::Camera3D, model::Entity3D, model_renderer::ModelRenderer3D, Renderer};
+use super::{
+    camera::{Camera, Camera3D},
+    model::Entity3D,
+    model_renderer::ModelRenderer3D,
+    Renderer,
+};
 
 pub mod light_renderer;
 
@@ -36,7 +41,6 @@ impl Default for UBO3D {
 pub struct Renderer3D {
     mesh_renderer: ModelRenderer3D,
     light_renderer: LightRenderer,
-    camera: Camera3D,
     tmp_light_mesh: Mesh3D,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
@@ -49,7 +53,7 @@ impl Renderer for Renderer3D {
         config: &wgpu::SurfaceConfiguration,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        camera: &mut dyn Any,
+        camera: &mut dyn Camera,
     ) -> Self
     where
         Self: Sized,
@@ -122,7 +126,7 @@ impl Renderer for Renderer3D {
         });
 
         // Create other resources
-        let ubo = camera.ubo;
+        let ubo = camera.ubo();
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents: bytemuck::bytes_of(&ubo),
@@ -174,21 +178,27 @@ impl Renderer for Renderer3D {
             multiview: None,
         });
 
+        // TODO
         let pipeline_wire = if device
             .features()
             .contains(wgpu::Features::POLYGON_MODE_LINE)
         {
+            let shader = device.create_shader_module(wgpu::include_wgsl!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/res/shaders/app/3D/wireframe.wgsl"
+            )));
+
             let pipeline_wire = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some("3D Pipeline Wireframe"),
                 layout: Some(&pipeline_layout),
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
-                    buffers: &vertex_buffer_layout,
+                    buffers: &[],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
-                    entry_point: "fs_wire",
+                    entry_point: "fs_main",
                     targets: &[Some(wgpu::ColorTargetState {
                         format: config.format,
                         blend: Some(wgpu::BlendState {
@@ -228,16 +238,9 @@ impl Renderer for Renderer3D {
         );
 
         pollster::block_on(async {
-            let mut mesh = Entity3D::new(
-                vent_assets::Model3D::load(
-                    device,
-                    queue,
-                    Path::new(model),
-                    &texture_bind_group_layout,
-                )
-                .await,
+            let mesh = Entity3D::new(
+                vent_assets::Model3D::load(device, queue, model, &texture_bind_group_layout).await,
             );
-            mesh.rotation.x += 100.0;
             mesh_renderer.insert(world.create_entity(), mesh);
         });
 
@@ -247,7 +250,6 @@ impl Renderer for Renderer3D {
 
         Self {
             mesh_renderer,
-            camera: *camera,
             light_renderer,
             tmp_light_mesh,
             bind_group,
@@ -262,11 +264,12 @@ impl Renderer for Renderer3D {
         config: &wgpu::SurfaceConfiguration,
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
+        camera: &mut dyn Camera,
     ) {
-        let ubo = self
-            .camera
-            .recreate_projection(config.width as f32 / config.height as f32);
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
+        let camera: &mut Camera3D = camera.downcast_mut().unwrap();
+
+        camera.recreate_projection(config.width as f32 / config.height as f32);
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[camera.ubo()]));
     }
 
     fn render(
@@ -275,9 +278,12 @@ impl Renderer for Renderer3D {
         view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         queue: &wgpu::Queue,
+        camera: &mut dyn Camera,
     ) {
-        self.camera.recreate_view(); // TODO
-        let mut ubo = self.camera.ubo;
+        let camera: &mut Camera3D = camera.downcast_mut().unwrap();
+
+        camera.recreate_view(); // TODO
+        let mut ubo = camera.ubo();
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("3D Render Pass"),
@@ -303,8 +309,8 @@ impl Renderer for Renderer3D {
                     stencil_ops: None,
                 }),
             });
-            // self.light_renderer
-            //     .render(&mut rpass, &self.bind_group, &self.tmp_light_mesh);
+            self.light_renderer
+                .render(&mut rpass, &self.bind_group, &self.tmp_light_mesh);
 
             rpass.set_pipeline(&self.pipeline);
             if let Some(ref pipe) = self.pipeline_wire {
@@ -319,7 +325,7 @@ impl Renderer for Renderer3D {
 }
 
 fn create_tmp_cube(device: &wgpu::Device) -> vent_assets::Mesh3D {
-    let indices: Vec<u32> = vec![
+    let indices = [
         //Top
         2, 6, 7, 2, 3, 7, //Bottom
         0, 4, 5, 0, 1, 5, //Left
@@ -329,7 +335,7 @@ fn create_tmp_cube(device: &wgpu::Device) -> vent_assets::Mesh3D {
         4, 6, 7, 4, 5, 7,
     ];
 
-    let vertices = vec![
+    let vertices = [
         Vertex3D {
             position: [-1.0, -1.0, 0.5],
             tex_coord: [0.0, 0.0],

@@ -31,7 +31,7 @@ impl LightRenderer {
         format: wgpu::TextureFormat,
     ) -> Self {
         let light_uniform = LightUBO {
-            position: [2.0, 2.0, 2.0],
+            position: [2.0, 100.0, 2.0],
             _padding: 0,
             color: [1.0, 1.0, 1.0],
             _padding2: 0,
