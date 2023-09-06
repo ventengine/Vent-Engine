@@ -16,7 +16,7 @@ pollster = "0.3.0"
 log = "0.4"
 
 glam = "0.24.1"
-bytemuck = { version = "1.13.1", features = ["derive"] }
+bytemuck = { version = "1.14.0", features = ["derive"] }
 downcast-rs = "1.2.0"
 
 # egui
