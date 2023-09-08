@@ -11,7 +11,6 @@ fn main() -> Result<()> {
     let out_dir = env::var("OUT_DIR")?;
     let copy_options = CopyOptions::new().overwrite(true);
     copy_items(&["res/"], out_dir, &copy_options)?;
-    
 
     Ok(())
 }

@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions};
-use std::io::{BufReader, BufWriter};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 // Basic Project Information's
 pub struct VentApplicationProject {
     pub name: String,
@@ -18,9 +17,8 @@ impl VentApplicationProject {
             .truncate(true)
             .create(true)
             .open(path_str)?;
-        let writer = BufWriter::new(file);
 
-        serde_json::to_writer(writer, self)?;
+        serde_json::to_writer(file, self)?;
 
         Ok(())
     }
@@ -29,9 +27,8 @@ impl VentApplicationProject {
     pub fn serialize(path: &str) -> Result<Self, std::io::Error> {
         let path_str = format!("{}/project.vent", path);
         let file = File::open(path_str)?;
-        let reader = BufReader::new(file);
 
-        let project = serde_json::from_reader(reader)?;
+        let project = serde_json::from_reader(file)?;
 
         Ok(project)
     }

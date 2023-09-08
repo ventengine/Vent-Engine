@@ -31,31 +31,31 @@ impl CameraController3D {
         let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
         match key {
             VirtualKeyCode::W | VirtualKeyCode::Up => {
-                camera.position.x += sin_pitch * self.speed * delta_time;
-                camera.position.z += cos_pitch * self.speed * delta_time;
+                camera.add_x(sin_pitch * self.speed * delta_time);
+                camera.add_z(cos_pitch * self.speed * delta_time);
                 true
             }
             VirtualKeyCode::S | VirtualKeyCode::Down => {
-                camera.position.x -= sin_pitch * self.speed * delta_time;
-                camera.position.z -= cos_pitch * self.speed * delta_time;
+                camera.minus_x(sin_pitch * self.speed * delta_time);
+                camera.minus_z(cos_pitch * self.speed * delta_time);
                 true
             }
             VirtualKeyCode::A | VirtualKeyCode::Left => {
-                camera.position.x -= cos_pitch * self.speed * delta_time;
-                camera.position.z += sin_pitch * self.speed * delta_time;
+                camera.minus_x(cos_pitch * self.speed * delta_time);
+                camera.add_z(sin_pitch * self.speed * delta_time);
                 true
             }
             VirtualKeyCode::D | VirtualKeyCode::Right => {
-                camera.position.x += cos_pitch * self.speed * delta_time;
-                camera.position.z -= sin_pitch * self.speed * delta_time;
+                camera.add_x(cos_pitch * self.speed * delta_time);
+                camera.minus_z(sin_pitch * self.speed * delta_time);
                 true
             }
             VirtualKeyCode::Space => {
-                camera.position.y += self.speed * delta_time;
+                camera.add_y(self.speed * delta_time);
                 true
             }
             VirtualKeyCode::LShift => {
-                camera.position.y -= self.speed * delta_time;
+                camera.minus_y(self.speed * delta_time);
                 true
             }
             _ => false,
@@ -86,8 +86,8 @@ impl CameraController3D {
 
             let moveposition =
                 deltaposition * glam::vec2(self.sensitivity_x, self.sensitivity_y) * delta_time;
-            camera.rotation.x += moveposition.x;
-            camera.rotation.y += moveposition.y;
+            camera.add_yaw(moveposition.x);
+            camera.add_pitch(moveposition.y);
         }
     }
 }

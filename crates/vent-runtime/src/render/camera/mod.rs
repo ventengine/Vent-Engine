@@ -1,5 +1,5 @@
 use downcast_rs::{impl_downcast, Downcast};
-use glam::Vec3;
+use glam::{Quat, Vec3};
 
 use super::{d3::UBO3D, Dimension};
 
@@ -19,8 +19,9 @@ pub fn from_dimension(dimension: Dimension) -> Box<dyn Camera> {
     }
 }
 
+#[allow(dead_code)]
 pub struct Camera2D {
-    pub position: glam::Vec2,
+    position: glam::Vec2,
 }
 
 impl Camera for Camera2D {
@@ -42,8 +43,8 @@ pub struct Camera3D {
     zfar: f32,
     ubo: UBO3D,
 
-    pub position: glam::Vec3,
-    pub rotation: glam::Quat,
+    position: glam::Vec3,
+    rotation: glam::Quat,
 }
 
 impl Camera for Camera3D {
@@ -65,17 +66,90 @@ impl Camera for Camera3D {
 }
 
 impl Camera3D {
+    fn recreate_view(&mut self) {
+        let view =
+            glam::Mat4::look_to_lh(self.position, self.direction_from_rotation(), glam::Vec3::Y);
+        self.ubo.view_position = self.position.to_array();
+        self.ubo.view = view.to_cols_array_2d();
+    }
+
     pub fn recreate_projection(&mut self, aspect_ratio: f32) {
         let projection =
             glam::Mat4::perspective_lh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
         self.ubo.projection = projection.to_cols_array_2d();
     }
 
-    pub fn recreate_view(&mut self) {
-        let view =
-            glam::Mat4::look_to_lh(self.position, self.direction_from_rotation(), glam::Vec3::Y);
-        self.ubo.view_position = self.position.to_array();
-        self.ubo.view = view.to_cols_array_2d();
+    pub fn set_x(&mut self, x: f32) {
+        self.position.x = x;
+        self.recreate_view();
+    }
+
+    pub fn set_y(&mut self, y: f32) {
+        self.position.y = y;
+        self.recreate_view();
+    }
+
+    pub fn set_z(&mut self, z: f32) {
+        self.position.z = z;
+        self.recreate_view();
+    }
+
+    pub fn add_x(&mut self, x: f32) {
+        self.position.x += x;
+        self.recreate_view();
+    }
+
+    pub fn add_y(&mut self, y: f32) {
+        self.position.y += y;
+        self.recreate_view();
+    }
+
+    pub fn add_z(&mut self, z: f32) {
+        self.position.z += z;
+        self.recreate_view();
+    }
+
+    pub fn minus_x(&mut self, x: f32) {
+        self.position.x -= x;
+        self.recreate_view();
+    }
+
+    pub fn minus_y(&mut self, y: f32) {
+        self.position.y -= y;
+        self.recreate_view();
+    }
+
+    pub fn minus_z(&mut self, z: f32) {
+        self.position.z -= z;
+        self.recreate_view();
+    }
+
+    pub fn position(&self) -> Vec3 {
+        self.position
+    }
+
+    pub fn set_yaw(&mut self, yaw: f32) {
+        self.rotation.x = yaw;
+        self.recreate_view();
+    }
+
+    pub fn set_pitch(&mut self, pitch: f32) {
+        self.rotation.y = pitch;
+        self.recreate_view();
+    }
+
+    pub fn add_yaw(&mut self, yaw: f32) {
+        self.rotation.x += yaw;
+        self.recreate_view();
+    }
+
+    pub fn add_pitch(&mut self, pitch: f32) {
+        self.rotation.y += pitch;
+        self.recreate_view();
+    }
+
+    pub fn rotation(&self) -> Quat {
+        self.rotation
     }
 
     pub fn ubo(&self) -> UBO3D {
@@ -84,7 +158,7 @@ impl Camera3D {
 
     #[inline]
     #[must_use]
-    fn direction_from_rotation(&self) -> glam::Vec3 {
+    fn direction_from_rotation(&self) -> Vec3 {
         let (sin_pitch, cos_pitch) = self.rotation.y.sin_cos();
         let (sin_yaw, cos_yaw) = self.rotation.x.sin_cos();
 

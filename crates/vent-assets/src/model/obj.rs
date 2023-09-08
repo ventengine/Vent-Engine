@@ -17,7 +17,7 @@ impl OBJLoader {
     ) -> Result<Model3D, ModelError> {
         let (models, materials) = match tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS) {
             Ok(r) => r,
-            Err(e) => return Err(ModelError::LoadingError(e.to_string())),
+            Err(e) => return Err(ModelError::LoadingError(format!("{}", e))),
         };
 
         let materials = match materials {

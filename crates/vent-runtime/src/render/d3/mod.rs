@@ -282,7 +282,6 @@ impl Renderer for Renderer3D {
     ) {
         let camera: &mut Camera3D = camera.downcast_mut().unwrap();
 
-        camera.recreate_view(); // TODO
         let mut ubo = camera.ubo();
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

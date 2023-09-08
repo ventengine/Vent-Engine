@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::{self, BufReader},
+    io::{BufRead, BufReader},
     path::Path,
     sync, thread,
 };
@@ -20,8 +20,7 @@ impl GLTFLoader {
         path: &Path,
         texture_bind_group_layout: &BindGroupLayout,
     ) -> Result<Model3D, ModelError> {
-        let doc =
-            gltf::Gltf::from_reader(io::BufReader::new(fs::File::open(path).unwrap())).unwrap();
+        let doc = gltf::Gltf::from_reader(fs::File::open(path).unwrap()).unwrap();
 
         let path = path.parent().unwrap_or_else(|| Path::new("./"));
 
@@ -94,14 +93,15 @@ impl GLTFLoader {
 
         // Spawn threads to load mesh primitive
         thread::scope(|s| {
+            let tx = tx.clone();
             for primitive in mesh.primitives() {
                 let tx = tx.clone();
                 let mesh = mesh.clone();
-                let device = device.clone();
-                let queue = queue.clone();
-                let model_dir = model_dir.clone();
-                let buffer_data = buffer_data.clone();
-                let texture_bind_group_layout = texture_bind_group_layout.clone();
+                let device = device;
+                let queue = queue;
+                let model_dir = model_dir;
+                let buffer_data = buffer_data;
+                let texture_bind_group_layout = texture_bind_group_layout;
 
                 s.spawn(move || {
                     let loaded_material = Self::load_material(
@@ -210,6 +210,7 @@ impl GLTFLoader {
     }
 
     /// Converts an gltf Texture Sampler into WGPU Filter Modes
+    #[must_use]
     fn convert_sampler<'a>(sampler: &'a gltf::texture::Sampler<'a>) -> wgpu::SamplerDescriptor<'a> {
         let mag_filter = sampler
             .mag_filter()
@@ -255,6 +256,7 @@ impl GLTFLoader {
         }
     }
 
+    #[must_use]
     fn conv_wrapping_mode(mode: gltf::texture::WrappingMode) -> wgpu::AddressMode {
         match mode {
             gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,

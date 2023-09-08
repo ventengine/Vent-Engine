@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use bytemuck::{Pod, Zeroable};
-use vent_dev::utils::stopwatch::Stopwatch;
+use vent_sdk::utils::stopwatch::Stopwatch;
 use wgpu::util::DeviceExt;
 use wgpu::{BindGroupLayout, Device};
 
@@ -116,7 +116,7 @@ impl Mesh3D {
         }
     }
 
-    pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
+    pub fn draw(&self, rpass: &mut wgpu::RenderPass<'_>) {
         rpass.draw_indexed(0..self.index_count, 0, 0..1);
     }
 }
