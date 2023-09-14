@@ -1,7 +1,8 @@
-use crate::render::{Dimension, RuntimeRenderer};
+use crate::render::Dimension;
 
 use render::camera::camera_controller3d::CameraController3D;
 use render::camera::{Camera, Camera3D};
+use render::DefaultRuntimeRenderer;
 use simple_logger::SimpleLogger;
 use vent_common::project::VentApplicationProject;
 
@@ -46,7 +47,7 @@ impl VentApplication {
         // TODO
         let mut cam = Camera3D::new();
 
-        let mut renderer = RuntimeRenderer::new(
+        let mut renderer = DefaultRuntimeRenderer::new(
             Dimension::D3,
             &vent_window.window,
             &vent_window.event_loop,
@@ -96,15 +97,7 @@ impl VentApplication {
                     ..
                 } => controller.process_mouse_movement(&mut cam, delta.0, delta.1, delta_time),
                 Event::RedrawRequested(window_id) if window_id == vent_window.window.id() => {
-                    match renderer.render(&vent_window.window, &mut cam) {
-                        Ok(d) => delta_time = d,
-                        Err(err) => {
-                            if err == wgpu::SurfaceError::OutOfMemory {
-                                control_flow.set_exit();
-                                panic!("{}", format!("{err}"));
-                            }
-                        }
-                    }
+                    delta_time = renderer.render(&vent_window.window, &mut cam);
                 }
                 Event::MainEventsCleared => {
                     vent_window.window.request_redraw();

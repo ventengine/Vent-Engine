@@ -36,7 +36,7 @@ pub struct OffscreenCanvasSetup {
     pub bitmap_renderer: ImageBitmapRenderingContext,
 }
 
-pub struct DefaultRenderer {
+pub struct WGPURenderer {
     pub surface: Surface,
     pub device: Device,
     pub adapter: Adapter,
@@ -49,7 +49,7 @@ pub struct DefaultRenderer {
     pub offscreen_canvas_setup: Option<OffscreenCanvasSetup>,
 }
 
-impl DefaultRenderer {
+impl WGPURenderer {
     #[must_use]
     pub fn new(window: &Window) -> Self {
         let backends = wgpu::util::backend_bits_from_env().unwrap_or_else(wgpu::Backends::all);

@@ -74,6 +74,12 @@ impl EguiRenderer {
 
         self.renderer
             .render(&mut render_pass, &clipped_meshes, &screen_descriptor);
+
+        drop(render_pass);
+
+        for texture_id in output.textures_delta.free {
+            self.renderer.free_texture(&texture_id);
+        }
     }
 
     pub fn add_gui(mut self, gui: Box<dyn GUI>) -> Self {

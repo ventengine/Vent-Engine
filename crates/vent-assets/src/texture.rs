@@ -118,7 +118,7 @@ impl Texture {
                 format,
                 usage: wgpu::TextureUsages::TEXTURE_BINDING,
                 label: texture_label,
-                view_formats: &[format],
+                view_formats: &[],
             },
             bytes,
         );

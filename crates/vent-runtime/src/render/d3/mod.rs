@@ -43,6 +43,7 @@ pub struct Renderer3D {
     light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
     bind_group: wgpu::BindGroup,
+    depth_view: wgpu::TextureView,
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
@@ -248,10 +249,18 @@ impl Renderer for Renderer3D {
 
         let tmp_light_mesh = create_tmp_cube(device);
 
+        let depth_view = vent_assets::Texture::create_depth_view(
+            device,
+            config.width,
+            config.height,
+            Some("Depth Buffer"),
+        );
+
         Self {
             mesh_renderer,
             light_renderer,
             tmp_light_mesh,
+            depth_view,
             bind_group,
             uniform_buf,
             pipeline,
@@ -262,10 +271,17 @@ impl Renderer for Renderer3D {
     fn resize(
         &mut self,
         config: &wgpu::SurfaceConfiguration,
-        _device: &wgpu::Device,
+        device: &wgpu::Device,
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) {
+        self.depth_view = vent_assets::Texture::create_depth_view(
+            device,
+            config.width,
+            config.height,
+            Some("Depth Buffer"),
+        );
+
         let camera: &mut Camera3D = camera.downcast_mut().unwrap();
 
         camera.recreate_projection(config.width as f32 / config.height as f32);
@@ -276,7 +292,6 @@ impl Renderer for Renderer3D {
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
-        depth_view: &wgpu::TextureView,
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     ) {
@@ -300,7 +315,7 @@ impl Renderer for Renderer3D {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: depth_view,
+                    view: &self.depth_view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,

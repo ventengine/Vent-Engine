@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::{BufRead, BufReader},
+    io::BufReader,
     path::Path,
     sync, thread,
 };

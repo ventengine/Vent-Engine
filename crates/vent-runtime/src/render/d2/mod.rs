@@ -33,7 +33,6 @@ impl Renderer for Renderer2D {
         &mut self,
         _encoder: &mut wgpu::CommandEncoder,
         _view: &wgpu::TextureView,
-        _depth_view: &wgpu::TextureView,
         _queue: &wgpu::Queue,
         _camera: &mut dyn Camera,
     ) {

@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
-use vent_common::render::DefaultRenderer;
-use wgpu::SurfaceError;
+use vent_common::render::WGPURenderer;
+
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
@@ -20,20 +20,75 @@ mod model_renderer;
 mod d2;
 mod d3;
 
-pub struct RuntimeRenderer {
-    default_renderer: DefaultRenderer,
-    gui_renderer: EguiRenderer,
-    multi_renderer: Box<dyn Renderer>,
-
-    depth_view: wgpu::TextureView,
-
-    current_data: RenderData,
-
-    current_frames: u32,
-    last_delta: Instant,
-    last_fps: Instant,
-    delta_time: f32,
+pub(crate) struct DefaultRuntimeRenderer {
+    wgpu_renderer: WGPURenderer,
+    runtime_renderer: RawRuntimeRenderer,
 }
+
+impl DefaultRuntimeRenderer {
+    pub(crate) fn new(
+        dimension: Dimension,
+        window: &winit::window::Window,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
+        camera: &mut dyn Camera,
+    ) -> Self {
+        let wgpu_renderer = WGPURenderer::new(window);
+        let runtime_renderer = RawRuntimeRenderer::new(
+            dimension,
+            &wgpu_renderer.device,
+            &wgpu_renderer.queue,
+            &wgpu_renderer.config,
+            wgpu_renderer.caps.formats[0],
+            &wgpu_renderer.adapter,
+            event_loop,
+            camera,
+        );
+        Self {
+            wgpu_renderer,
+            runtime_renderer,
+        }
+    }
+
+    pub(crate) fn progress_event(&mut self, event: &winit::event::WindowEvent<'_>) {
+        self.runtime_renderer.progress_event(event);
+    }
+
+    pub(crate) fn render(
+        &mut self,
+        window: &winit::window::Window,
+        camera: &mut dyn Camera,
+    ) -> f32 {
+        let output = self.wgpu_renderer.surface.get_current_texture().unwrap(); // TODO
+
+        let view: wgpu::TextureView = output.texture.create_view(&wgpu::TextureViewDescriptor {
+            label: Some("Runtime View"),
+            ..Default::default()
+        });
+
+        let detla = self.runtime_renderer.render(
+            &view,
+            &self.wgpu_renderer.device,
+            &self.wgpu_renderer.queue,
+            window,
+            camera,
+        );
+
+        output.present();
+
+        detla
+    }
+
+    pub(crate) fn resize(&mut self, new_size: &PhysicalSize<u32>, camera: &mut dyn Camera) {
+        self.runtime_renderer.resize(
+            &self.wgpu_renderer.device,
+            &self.wgpu_renderer.queue,
+            &self.wgpu_renderer.config,
+            new_size,
+            camera,
+        );
+    }
+}
+
 pub enum Dimension {
     D2,
     D3,
@@ -61,57 +116,46 @@ pub trait Renderer {
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
-        depth_view: &wgpu::TextureView,
         queue: &wgpu::Queue,
         camera: &mut dyn Camera,
     );
 }
 
-impl RuntimeRenderer {
+pub struct RawRuntimeRenderer {
+    gui_renderer: EguiRenderer,
+    multi_renderer: Box<dyn Renderer>,
+
+    current_data: RenderData,
+
+    current_frames: u32,
+    last_fps: Instant,
+    delta_time: f32,
+}
+
+impl RawRuntimeRenderer {
     pub fn new(
         dimension: Dimension,
-        window: &winit::window::Window,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        config: &wgpu::SurfaceConfiguration,
+        surface_format: wgpu::TextureFormat,
+        adapter: &wgpu::Adapter,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
-        let default_renderer = DefaultRenderer::new(window);
         let multi_renderer: Box<dyn Renderer> = match dimension {
-            Dimension::D2 => Box::new(Renderer2D::init(
-                &default_renderer.config,
-                &default_renderer.device,
-                &default_renderer.queue,
-                camera,
-            )),
-            Dimension::D3 => Box::new(Renderer3D::init(
-                &default_renderer.config,
-                &default_renderer.device,
-                &default_renderer.queue,
-                camera,
-            )),
+            Dimension::D2 => Box::new(Renderer2D::init(config, device, queue, camera)),
+            Dimension::D3 => Box::new(Renderer3D::init(config, device, queue, camera)),
         };
-        let egui = EguiRenderer::new(
-            event_loop,
-            &default_renderer.device,
-            default_renderer.caps.formats[0],
-        )
-        // TODO
-        .add_gui(Box::new(DebugGUI::new(default_renderer.adapter.get_info())));
-        let depth_view = vent_assets::Texture::create_depth_view(
-            &default_renderer.device,
-            default_renderer.config.width,
-            default_renderer.config.height,
-            Some("Depth Buffer"),
-        );
+        let egui = EguiRenderer::new(event_loop, device, surface_format)
+            // TODO
+            .add_gui(Box::new(DebugGUI::new(adapter.get_info())));
 
         Self {
             multi_renderer,
             gui_renderer: egui,
-            default_renderer,
-            depth_view,
-
             current_frames: 0,
             current_data: RenderData::default(),
-            last_delta: Instant::now(),
             last_fps: Instant::now(),
             delta_time: 0.0,
         }
@@ -119,54 +163,40 @@ impl RuntimeRenderer {
 
     pub fn render(
         &mut self,
+        surface_view: &wgpu::TextureView,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
         window: &Window,
         camera: &mut dyn Camera,
-    ) -> Result<f32, SurfaceError> {
-        let output = self.default_renderer.surface.get_current_texture()?;
+    ) -> f32 {
+        let frame_start = Instant::now();
 
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor {
-            label: Some("Runtime View"),
-            ..Default::default()
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Runtime Render Encoder"),
         });
+        // let mut encoder2 = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        //     label: Some("EGUI Render Encoder"),
+        // });
 
-        let mut encoder =
-            self.default_renderer
-                .device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Runtime Render Encoder"),
-                });
-        let mut encoder2 =
-            self.default_renderer
-                .device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Runtime Render Encoder"),
-                });
+        self.multi_renderer
+            .render(&mut encoder, surface_view, queue, camera);
+        queue.submit(Some(encoder.finish()));
 
-        self.multi_renderer.render(
-            &mut encoder,
-            &view,
-            &self.depth_view,
-            &self.default_renderer.queue,
-            camera,
-        );
-        self.default_renderer.queue.submit(Some(encoder.finish()));
+        // self.gui_renderer.render(
+        //     surface_view,
+        //     window,
+        //     device,
+        //     queue,
+        //     &mut encoder2,
+        //     &self.current_data,
+        // );
 
-        self.gui_renderer.render(
-            &view,
-            window,
-            &self.default_renderer.device,
-            &self.default_renderer.queue,
-            &mut encoder2,
-            &self.current_data,
-        );
+        // queue.submit(Some(encoder2.finish()));
 
-        self.default_renderer.queue.submit(Some(encoder2.finish()));
-
-        output.present();
-
+        // TODO
         #[cfg(target_arch = "wasm32")]
         {
-            if let Some(offscreen_canvas_setup) = &self.default_renderer.offscreen_canvas_setup {
+            if let Some(offscreen_canvas_setup) = &default_renderer.offscreen_canvas_setup {
                 let image_bitmap = offscreen_canvas_setup
                     .offscreen_canvas
                     .transfer_to_image_bitmap()
@@ -179,18 +209,17 @@ impl RuntimeRenderer {
             }
         }
 
-        self.current_data = self.calc_render_data();
+        self.current_data = self.calc_render_data(frame_start);
 
-        Ok(self.delta_time)
+        self.delta_time
     }
 
-    fn calc_render_data(&mut self) -> RenderData {
+    fn calc_render_data(&mut self, frame_start: Instant) -> RenderData {
         self.current_frames += 1;
 
-        let now = Instant::now();
-        self.delta_time = now.duration_since(self.last_delta).as_secs_f32();
-        self.last_delta = now;
+        self.delta_time = frame_start.elapsed().as_secs_f32();
 
+        let now = Instant::now();
         if now - self.last_fps >= Duration::from_secs(1) {
             self.current_data.fps = self.current_frames;
             self.current_frames = 0;
@@ -207,21 +236,15 @@ impl RuntimeRenderer {
         self.gui_renderer.progress_event(event);
     }
 
-    pub fn resize(&mut self, new_size: &PhysicalSize<u32>, camera: &mut dyn Camera) {
-        // Its Important to resize Default Renderer first
-        self.default_renderer.resize(new_size);
-        self.depth_view = vent_assets::Texture::create_depth_view(
-            &self.default_renderer.device,
-            self.default_renderer.config.width,
-            self.default_renderer.config.height,
-            Some("Depth Buffer"),
-        );
-
-        self.multi_renderer.resize(
-            &self.default_renderer.config,
-            &self.default_renderer.device,
-            &self.default_renderer.queue,
-            camera,
-        )
+    pub fn resize(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        config: &wgpu::SurfaceConfiguration,
+        _new_size: &PhysicalSize<u32>,
+        camera: &mut dyn Camera,
+    ) {
+        // Uses the NEW Resized config
+        self.multi_renderer.resize(config, device, queue, camera)
     }
 }

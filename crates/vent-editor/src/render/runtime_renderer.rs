@@ -1,22 +1,22 @@
-use vent_common::render::DefaultRenderer;
-use vent_runtime::render::camera::Camera;
+use vent_common::render::WGPURenderer;
 use vent_runtime::render::Dimension;
+use vent_runtime::render::{camera::Camera, RawRuntimeRenderer};
 use wgpu::{
-    CommandEncoder, Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture,
-    TextureDimension,
+    Device, Extent3d, Queue, SurfaceConfiguration, SurfaceError, Texture, TextureDimension,
 };
 
 pub struct EditorRuntimeRenderer {
     texture: Texture,
-    // runtime_renderer: RuntimeRenderer,
+    runtime_renderer: RawRuntimeRenderer,
 }
 
 impl EditorRuntimeRenderer {
     pub fn new(
-        default_renderer: &DefaultRenderer,
-        _dimension: Dimension,
+        default_renderer: &WGPURenderer,
+        dimension: Dimension,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         _extent: Extent3d,
-        _camera: &mut dyn Camera,
+        camera: &mut dyn Camera,
     ) -> Self {
         let texture = default_renderer
             .device
@@ -30,33 +30,40 @@ impl EditorRuntimeRenderer {
                 usage: default_renderer.config.usage,
                 view_formats: &[],
             });
-        // let runtime_renderer = RuntimeRenderer::new(dimension, default_renderer, camera);
+        let runtime_renderer = RawRuntimeRenderer::new(
+            dimension,
+            &default_renderer.device,
+            &default_renderer.queue,
+            &default_renderer.config,
+            default_renderer.caps.formats[0],
+            &default_renderer.adapter,
+            event_loop,
+            camera,
+        );
         Self {
             texture,
-            // runtime_renderer,
+            runtime_renderer,
             // extent,
         }
     }
 
     pub fn render(
         &mut self,
-        _window: &winit::window::Window,
-        _encoder: &mut CommandEncoder,
-        _queue: &Queue,
-        _camera: &mut dyn Camera,
+        default_renderer: &WGPURenderer,
+        window: &winit::window::Window,
+        camera: &mut dyn Camera,
     ) -> Result<(), SurfaceError> {
-        let _view = self.texture.create_view(&wgpu::TextureViewDescriptor {
+        let view = self.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("Runtime View"),
             ..Default::default()
         });
-        // TODO
-        // self.runtime_renderer.render(
-        //     encoder,
-        //     &view,
-        //     queue,
-        //     camera,
-        //     self.extent.width as f32 / self.extent.height as f32,
-        // );
+        self.runtime_renderer.render(
+            &view,
+            &default_renderer.device,
+            &default_renderer.queue,
+            window,
+            camera,
+        );
         Ok(())
     }
 
