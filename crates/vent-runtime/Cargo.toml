@@ -15,7 +15,7 @@ wgpu = "0.16.2"
 pollster = "0.3.0"
 log = "0.4"
 
-glam = "0.24.1"
+glam = "0.24.2"
 bytemuck = { version = "1.14.0", features = ["derive"] }
 downcast-rs = "1.2.0"
 
