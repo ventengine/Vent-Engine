@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 
 use vent_common::render::WGPURenderer;
 
+use vent_rendering::instance::Instance;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
@@ -21,7 +22,7 @@ mod d2;
 mod d3;
 
 pub(crate) struct DefaultRuntimeRenderer {
-    wgpu_renderer: WGPURenderer,
+    instance: Instance,
     runtime_renderer: RawRuntimeRenderer,
 }
 
@@ -32,19 +33,10 @@ impl DefaultRuntimeRenderer {
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
-        let wgpu_renderer = WGPURenderer::new(window);
-        let runtime_renderer = RawRuntimeRenderer::new(
-            dimension,
-            &wgpu_renderer.device,
-            &wgpu_renderer.queue,
-            &wgpu_renderer.config,
-            wgpu_renderer.caps.formats[0],
-            &wgpu_renderer.adapter,
-            event_loop,
-            camera,
-        );
+        let instance = Instance::new("TODO", window);
+        let runtime_renderer = RawRuntimeRenderer::new(dimension, instance, event_loop, camera);
         Self {
-            wgpu_renderer,
+            instance,
             runtime_renderer,
         }
     }
@@ -65,13 +57,9 @@ impl DefaultRuntimeRenderer {
             ..Default::default()
         });
 
-        let detla = self.runtime_renderer.render(
-            &view,
-            &self.wgpu_renderer.device,
-            &self.wgpu_renderer.queue,
-            window,
-            camera,
-        );
+        let detla = self
+            .runtime_renderer
+            .render(&view, self.instance, window, camera);
 
         output.present();
 
@@ -135,17 +123,13 @@ pub struct RawRuntimeRenderer {
 impl RawRuntimeRenderer {
     pub fn new(
         dimension: Dimension,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        config: &wgpu::SurfaceConfiguration,
-        surface_format: wgpu::TextureFormat,
-        adapter: &wgpu::Adapter,
+        instance: Instance,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
         let multi_renderer: Box<dyn Renderer> = match dimension {
-            Dimension::D2 => Box::new(Renderer2D::init(config, device, queue, camera)),
-            Dimension::D3 => Box::new(Renderer3D::init(config, device, queue, camera)),
+            Dimension::D2 => Box::new(Renderer2D::init(instance, camera)),
+            Dimension::D3 => Box::new(Renderer3D::init(instance, camera)),
         };
         let egui = EguiRenderer::new(event_loop, device, surface_format)
             // TODO
@@ -161,14 +145,7 @@ impl RawRuntimeRenderer {
         }
     }
 
-    pub fn render(
-        &mut self,
-        surface_view: &wgpu::TextureView,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        window: &Window,
-        camera: &mut dyn Camera,
-    ) -> f32 {
+    pub fn render(&mut self, instance: Instance, window: &Window, camera: &mut dyn Camera) -> f32 {
         let frame_start = Instant::now();
 
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {

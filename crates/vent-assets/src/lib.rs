@@ -1,33 +1,11 @@
-use std::mem;
-
-use bytemuck::{Pod, Zeroable};
+use ash::vk;
+use vent_rendering::buffer::VulkanBuffer;
 
 pub mod model;
 pub mod pool;
 pub mod shader;
-pub mod texture;
 
 pub trait Asset {}
-
-pub trait Vertex<'a> {
-    const LAYOUT: wgpu::VertexBufferLayout<'a>;
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub struct Vertex3D {
-    pub position: [f32; 3],
-    pub tex_coord: [f32; 2],
-    pub normal: [f32; 3],
-}
-
-impl<'a> Vertex<'a> for Vertex3D {
-    const LAYOUT: wgpu::VertexBufferLayout<'a> = wgpu::VertexBufferLayout {
-        array_stride: mem::size_of::<Self>() as wgpu::BufferAddress,
-        step_mode: wgpu::VertexStepMode::Vertex,
-        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Float32x3],
-    };
-}
 
 /// A Full Model that can be Loaded from a 3D Model File
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
@@ -42,15 +20,9 @@ pub struct Model3D {
 
 pub struct Mesh3D {
     // Basic
-    vertex_buf: wgpu::Buffer,
-    index_buf: wgpu::Buffer,
+    vertex_buf: VulkanBuffer,
+    index_buf: VulkanBuffer,
     index_count: u32,
 
-    bind_group: Option<wgpu::BindGroup>,
-}
-
-pub struct Texture {
-    pub texture: wgpu::Texture,
-    pub view: wgpu::TextureView,
-    pub sampler: wgpu::Sampler,
+    descriptor_set: Option<vk::DescriptorSet>,
 }

@@ -5,6 +5,7 @@ use std::{
     sync, thread,
 };
 
+use ash::vk;
 use wgpu::{util::DeviceExt, BindGroupLayout};
 
 use crate::{Model3D, Texture, Vertex3D};
@@ -14,12 +15,7 @@ use super::{Material, Mesh3D, ModelError};
 pub(crate) struct GLTFLoader {}
 
 impl GLTFLoader {
-    pub async fn load(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        path: &Path,
-        texture_bind_group_layout: &BindGroupLayout,
-    ) -> Result<Model3D, ModelError> {
+    pub async fn load(device: &ash::Device, path: &Path) -> Result<Model3D, ModelError> {
         let doc = gltf::Gltf::from_reader(fs::File::open(path).unwrap()).unwrap();
 
         let path = path.parent().unwrap_or_else(|| Path::new("./"));
@@ -51,7 +47,6 @@ impl GLTFLoader {
         model_dir: &Path,
         node: gltf::Node<'_>,
         buffer_data: &[gltf::buffer::Data],
-        texture_bind_group_layout: &BindGroupLayout,
         meshes: &mut Vec<Mesh3D>,
     ) {
         if let Some(mesh) = node.mesh() {
@@ -85,7 +80,6 @@ impl GLTFLoader {
         model_dir: &Path,
         mesh: gltf::Mesh,
         buffer_data: &[gltf::buffer::Data],
-        texture_bind_group_layout: &BindGroupLayout,
         meshes: &mut Vec<Mesh3D>,
     ) {
         let primitive_len = mesh.primitives().size_hint().0;
@@ -137,7 +131,6 @@ impl GLTFLoader {
         material: gltf::Material<'_>,
         buffer_data: &[gltf::buffer::Data],
         // image_data: &[gltf::image::Data],
-        texture_bind_group_layout: &BindGroupLayout,
     ) -> wgpu::BindGroup {
         let pbr = material.pbr_metallic_roughness();
 
@@ -257,11 +250,11 @@ impl GLTFLoader {
     }
 
     #[must_use]
-    fn conv_wrapping_mode(mode: gltf::texture::WrappingMode) -> wgpu::AddressMode {
+    fn conv_wrapping_mode(mode: gltf::texture::WrappingMode) -> vk::SamplerAddressMode {
         match mode {
-            gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
-            gltf::texture::WrappingMode::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
-            gltf::texture::WrappingMode::Repeat => wgpu::AddressMode::Repeat,
+            gltf::texture::WrappingMode::ClampToEdge => vk::SamplerAddressMode::CLAMP_TO_EDGE,
+            gltf::texture::WrappingMode::MirroredRepeat => vk::SamplerAddressMode::MIRRORED_REPEAT,
+            gltf::texture::WrappingMode::Repeat => vk::SamplerAddressMode::REPEAT,
         }
     }
 

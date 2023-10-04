@@ -7,17 +7,7 @@ pub struct UBO2D {}
 pub struct Renderer2D {}
 
 impl Renderer for Renderer2D {
-    fn init(
-        _config: &wgpu::SurfaceConfiguration,
-        _device: &wgpu::Device,
-        _queue: &wgpu::Queue,
-        _camera: &mut dyn Camera,
-    ) -> Self
-    where
-        Self: Sized,
-    {
-        Self {}
-    }
+    fn init(instance: Instance, camera: &mut dyn Camera) -> Self;
 
     fn resize(
         &mut self,

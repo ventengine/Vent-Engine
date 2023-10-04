@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use ash::vk;
+use vent_rendering::{allocator::MemoryAllocator, image::VulkanImage};
 use wgpu::{util::DeviceExt, BindGroupLayout};
 
 use crate::{Model3D, Texture, Vertex3D};
@@ -10,10 +12,9 @@ pub(crate) struct OBJLoader {}
 
 impl OBJLoader {
     pub async fn load(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        device: &ash::Device,
         path: &Path,
-        texture_bind_group_layout: &BindGroupLayout,
+        allocator: &MemoryAllocator,
     ) -> Result<Model3D, ModelError> {
         let (models, materials) = match tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS) {
             Ok(r) => r,
@@ -32,31 +33,21 @@ impl OBJLoader {
 
         let meshes = models
             .into_iter()
-            .map(|model| Self::load_mesh(device, &model.name, &model.mesh))
+            .map(|model| Self::load_mesh(device, &model.name, &model.mesh, allocator))
             .collect::<Vec<_>>();
 
         let _final_materials = materials
             .into_iter()
-            .map(|material| {
-                Self::load_material(
-                    device,
-                    queue,
-                    path.parent().unwrap(),
-                    &material,
-                    texture_bind_group_layout,
-                )
-            })
+            .map(|material| Self::load_material(device, path.parent().unwrap(), &material))
             .collect::<Vec<_>>();
 
         Ok(Model3D { meshes })
     }
 
     fn load_material(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        device: &ash::Device,
         model_dir: &Path,
         material: &tobj::Material,
-        texture_bind_group_layout: &BindGroupLayout,
     ) -> wgpu::BindGroup {
         let diffuse_texture = if let Some(texture) = &material.diffuse_texture {
             Texture::from_image(
@@ -99,7 +90,41 @@ impl OBJLoader {
         })
     }
 
-    fn load_mesh(device: &wgpu::Device, name: &str, mesh: &tobj::Mesh) -> Mesh3D {
+    fn write_sets(device: &ash::Device, diffuse_texture: VulkanImage) {
+        let image_info = vk::DescriptorImageInfo::builder()
+            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+            .image_view(data.texture_image_view)
+            .sampler(data.texture_sampler)
+            .build();
+
+        let sampler_write = vk::WriteDescriptorSet::builder()
+            .dst_set(data.descriptor_sets[i])
+            .dst_binding(0)
+            .dst_array_element(0)
+            .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+            .image_info(&[image_info]);
+
+        let buffer_info = vk::DescriptorBufferInfo::builder()
+            .buffer(data.uniform_buffers[i])
+            .offset(0)
+            .range(size_of::<UniformBufferObject>() as u64)
+            .build();
+
+        let ubo_write = vk::WriteDescriptorSet::builder()
+            .dst_set(data.descriptor_sets[i])
+            .dst_binding(1)
+            .dst_array_element(0)
+            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+            .buffer_info(&[buffer_info])
+            .build();
+    }
+
+    fn load_mesh(
+        device: &ash::Device,
+        allocator: &MemoryAllocator,
+        name: &str,
+        mesh: &tobj::Mesh,
+    ) -> Mesh3D {
         let vertices = (0..mesh.positions.len() / 3)
             .map(|i| Vertex3D {
                 position: [
@@ -118,6 +143,7 @@ impl OBJLoader {
 
         Mesh3D::new(
             device,
+            allocator,
             &vertices,
             &mesh.indices,
             None, // TODO

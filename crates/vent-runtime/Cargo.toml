@@ -7,11 +7,12 @@ edition = "2021"
 
 [dependencies]
 vent-common = { path = "../vent-common"}
+vent-rendering = { path = "../vent-rendering"}
 vent-assets = { path = "../vent-assets" }
 vent-ecs = { path = "../vent-ecs"}
 
 winit = "0.28.6"
-wgpu = "0.16.2"
+# wgpu = "0.16.2"
 pollster = "0.3.0"
 log = "0.4"
 
@@ -20,9 +21,9 @@ bytemuck = { version = "1.14.0", features = ["derive"] }
 downcast-rs = "1.2.0"
 
 # egui
-egui = "0.22.0"
-egui-wgpu = "0.22.0"
-egui-winit = "0.22.0"
+# egui = "0.22.0"
+# egui-wgpu = "0.22.0"
+# egui-winit = "0.22.0"
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
 simple_logger = "4.2.0"

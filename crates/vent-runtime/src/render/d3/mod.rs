@@ -3,6 +3,7 @@ use std::mem;
 use glam::Mat4;
 use vent_assets::{Mesh3D, Vertex, Vertex3D};
 use vent_ecs::world::World;
+use vent_rendering::instance::Instance;
 use wgpu::util::DeviceExt;
 
 use self::light_renderer::LightRenderer;
@@ -50,12 +51,7 @@ pub struct Renderer3D {
 }
 
 impl Renderer for Renderer3D {
-    fn init(
-        config: &wgpu::SurfaceConfiguration,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
-    ) -> Self
+    fn init(instance: Instance, camera: &mut dyn Camera) -> Self
     where
         Self: Sized,
     {

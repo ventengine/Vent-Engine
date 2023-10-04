@@ -9,12 +9,12 @@ edition = "2021"
 vent-runtime = { path = "../vent-runtime"}
 vent-common = { path = "../vent-common"}
 
+vent-rendering = { path = "../vent-rendering"}
 # egui
-egui = "0.22.0"
-egui_dock = "0.6.1"
+# egui = "0.22.0"
+# egui_dock = "0.6.1"
 
 winit = "0.28.6"
-wgpu = "0.16.2"
 pollster = "0.3.0"
 
 log = "0.4"
