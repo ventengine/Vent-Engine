@@ -5,7 +5,7 @@ use ash::vk;
 use bytemuck::{Pod, Zeroable};
 use vent_rendering::allocator::MemoryAllocator;
 use vent_rendering::buffer::VulkanBuffer;
-use vent_rendering::instance::{self, Instance};
+use vent_rendering::instance::{self, VulkanInstance};
 use vent_rendering::Vertex3D;
 use vent_sdk::utils::stopwatch::Stopwatch;
 
@@ -32,13 +32,9 @@ pub struct Material {
 
 impl Model3D {
     #[inline]
-    pub async fn load<P: AsRef<Path>>(
-        device: &ash::Device,
-        path: P,
-        allocator: &MemoryAllocator,
-    ) -> Self {
+    pub async fn load<P: AsRef<Path>>(instance: &VulkanInstance, path: P) -> Self {
         let sw = Stopwatch::new_and_start();
-        let model = load_model_from_path(device, path.as_ref(), allocator)
+        let model = load_model_from_path(instance, path.as_ref())
             .await
             .expect("Failed to Load 3D Model");
         log::info!(
@@ -67,9 +63,8 @@ impl Model3D {
 }
 
 async fn load_model_from_path(
-    device: &ash::Device,
+    instance: &VulkanInstance,
     path: &Path,
-    allocator: &MemoryAllocator,
 ) -> Result<Model3D, ModelError> {
     if !path.exists() {
         return Err(ModelError::FileNotExists);
@@ -79,8 +74,8 @@ async fn load_model_from_path(
 
     // Very Pretty, I know
     match extension {
-        "obj" => Ok(OBJLoader::load(device, path, allocator).await?),
-        "gltf" => Ok(GLTFLoader::load(device, path).await?),
+        "obj" => Ok(OBJLoader::load(instance, path).await?),
+        "gltf" => Ok(GLTFLoader::load(instance, path).await?),
         _ => Err(ModelError::UnsupportedFormat),
     }
 }

@@ -5,8 +5,8 @@ use ash::vk;
 use crate::allocator::MemoryAllocator;
 
 pub struct VulkanBuffer {
-    buffer: vk::Buffer,
-    buffer_memory: vk::DeviceMemory,
+    pub buffer: vk::Buffer,
+    pub buffer_memory: vk::DeviceMemory,
 }
 
 impl VulkanBuffer {

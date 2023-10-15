@@ -2,10 +2,10 @@ use std::{ffi::CStr, fs::File};
 
 use ash::{util::read_spv, vk};
 
-use crate::{instance::Instance, Vertex, Vertex3D};
+use crate::{instance::VulkanInstance, Vertex, Vertex3D};
 
 pub fn create_pipeline(
-    instance: Instance,
+    instance: VulkanInstance,
     vertex_file: String,
     fragment_file: String,
     surface_resolution: vk::Extent2D,

@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use vent_common::render::WGPURenderer;
 
-use vent_rendering::instance::Instance;
+use vent_rendering::instance::VulkanInstance;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
@@ -22,7 +22,7 @@ mod d2;
 mod d3;
 
 pub(crate) struct DefaultRuntimeRenderer {
-    instance: Instance,
+    instance: VulkanInstance,
     runtime_renderer: RawRuntimeRenderer,
 }
 
@@ -33,7 +33,7 @@ impl DefaultRuntimeRenderer {
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
-        let instance = Instance::new("TODO", window);
+        let instance = VulkanInstance::new("TODO", window);
         let runtime_renderer = RawRuntimeRenderer::new(dimension, instance, event_loop, camera);
         Self {
             instance,
@@ -123,7 +123,7 @@ pub struct RawRuntimeRenderer {
 impl RawRuntimeRenderer {
     pub fn new(
         dimension: Dimension,
-        instance: Instance,
+        instance: VulkanInstance,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
@@ -145,7 +145,12 @@ impl RawRuntimeRenderer {
         }
     }
 
-    pub fn render(&mut self, instance: Instance, window: &Window, camera: &mut dyn Camera) -> f32 {
+    pub fn render(
+        &mut self,
+        instance: VulkanInstance,
+        window: &Window,
+        camera: &mut dyn Camera,
+    ) -> f32 {
         let frame_start = Instant::now();
 
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {

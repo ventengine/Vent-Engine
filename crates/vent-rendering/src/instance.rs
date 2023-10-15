@@ -48,7 +48,7 @@ unsafe extern "system" fn vulkan_debug_callback(
     vk::FALSE
 }
 
-pub struct Instance {
+pub struct VulkanInstance {
     pub memory_allocator: MemoryAllocator,
 
     pub instance: ash::Instance,
@@ -90,7 +90,7 @@ pub struct Instance {
     debug_messenger: vk::DebugUtilsMessengerEXT,
 }
 
-impl Instance {
+impl VulkanInstance {
     pub fn new(application_name: &str, window: winit::window::Window) -> Self {
         let entry = Entry::linked();
 
@@ -251,7 +251,7 @@ impl Instance {
         }
         .unwrap();
         unsafe {
-            let result = match self.swapchain_loader.acquire_next_image(
+            match self.swapchain_loader.acquire_next_image(
                 self.swapchain,
                 u64::MAX,
                 self.image_available_semaphores[self.frame],
@@ -262,10 +262,10 @@ impl Instance {
                     self.device
                         .wait_for_fences(&[image_in_flight], true, u64::max_value())
                         .unwrap();
-                    return Some(index);
+                    Some(index)
                 }
-                Err(_) => return None,
-            };
+                Err(_) => None,
+            }
         }
     }
 
@@ -404,7 +404,7 @@ impl Instance {
                 .map(|i| i as u32);
 
             let mut present = None;
-            for (index, properties) in properties.iter().enumerate() {
+            for (index, _properties) in properties.iter().enumerate() {
                 if unsafe {
                     surface_loader.get_physical_device_surface_support(
                         pdevice,
@@ -725,7 +725,7 @@ impl Instance {
     }
 }
 
-impl Drop for Instance {
+impl Drop for VulkanInstance {
     fn drop(&mut self) {
         unsafe {
             self.device.device_wait_idle().unwrap();
