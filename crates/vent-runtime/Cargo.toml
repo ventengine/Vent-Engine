@@ -11,7 +11,7 @@ vent-assets = { path = "../vent-assets" }
 vent-ecs = { path = "../vent-ecs"}
 
 winit = "0.28.6"
-wgpu = "0.16.2"
+wgpu = "0.18.0"
 pollster = "0.3.0"
 log = "0.4"
 

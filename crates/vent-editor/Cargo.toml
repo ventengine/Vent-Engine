@@ -14,7 +14,7 @@ egui = "0.22.0"
 egui_dock = "0.6.1"
 
 winit = "0.28.6"
-wgpu = "0.16.2"
+wgpu = "0.18.0"
 pollster = "0.3.0"
 
 log = "0.4"

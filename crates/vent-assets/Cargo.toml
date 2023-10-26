@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 vent-sdk = { path = "../vent-sdk" }
 
-wgpu = "0.16.2"
+wgpu = "0.18.0"
 bytemuck = { version = "1.14.0", features = ["derive"] }
 log = "0.4"
 cfg-if = "1"
