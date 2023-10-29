@@ -70,7 +70,6 @@ pub struct VulkanInstance {
 
     pub descriptor_pool: vk::DescriptorPool,
     pub descriptor_set_layout: vk::DescriptorSetLayout,
-    pub descriptor_sets: Vec<vk::DescriptorSet>,
 
     pub render_pass: vk::RenderPass,
     pub command_pool: vk::CommandPool,
@@ -203,12 +202,6 @@ impl VulkanInstance {
 
         let descriptor_pool = Self::create_descriptor_pool(&device);
         let descriptor_set_layout = Self::create_descriptor_set_layout(&device);
-        let descriptor_sets = Self::allocate_descriptor_sets(
-            &device,
-            descriptor_pool,
-            descriptor_set_layout,
-            &swapchain_images,
-        );
 
         Self {
             memory_allocator,
@@ -227,7 +220,6 @@ impl VulkanInstance {
             debug_utils: debug_utils_loader,
             descriptor_pool,
             descriptor_set_layout,
-            descriptor_sets,
             debug_messenger,
             depth_image,
             frame_buffers,
@@ -626,7 +618,7 @@ impl VulkanInstance {
         unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
     }
 
-    fn allocate_descriptor_sets(
+    pub fn allocate_descriptor_sets(
         device: &ash::Device,
         descriptor_pool: vk::DescriptorPool,
         descriptor_set_layout: vk::DescriptorSetLayout,

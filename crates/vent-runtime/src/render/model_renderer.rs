@@ -45,7 +45,7 @@ impl ModelRenderer3D {
         self.map.iter_mut()
     }
 
-    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, ubo: &mut UBO3D) {
+    pub fn render(, ubo: &mut UBO3D) {
         for model in self.map.values() {
             ubo.transformation = Self::calc_trans_matrix(model).to_cols_array_2d();
             model.rendering_model.draw(rpass);

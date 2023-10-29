@@ -24,5 +24,5 @@ pub struct Mesh3D {
     index_buf: VulkanBuffer,
     index_count: u32,
 
-    descriptor_set: Option<vk::DescriptorSet>,
+    descriptor_sets: Option<Vec<vk::DescriptorSet>>,
 }

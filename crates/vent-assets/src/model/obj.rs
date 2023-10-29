@@ -1,10 +1,11 @@
-use std::path::Path;
+use std::{mem::size_of, path::Path};
 
 use ash::vk;
-use vent_rendering::{allocator::MemoryAllocator, image::VulkanImage, instance::VulkanInstance};
-use wgpu::{util::DeviceExt, BindGroupLayout};
+use vent_rendering::{
+    buffer::VulkanBuffer, image::VulkanImage, instance::VulkanInstance, Vertex3D,
+};
 
-use crate::{Model3D, Texture, Vertex3D};
+use crate::Model3D;
 
 use super::{Material, Mesh3D, ModelError};
 
@@ -31,17 +32,16 @@ impl OBJLoader {
             .into_iter()
             .map(|model| {
                 Self::load_mesh(
-                    &instance.device,
-                    &instance.memory_allocator,
+                    instance,
                     &model.name,
                     &model.mesh,
                 )
             })
             .collect::<Vec<_>>();
 
-        let _final_materials = materials
+        let _descriptor_sets = materials
             .into_iter()
-            .map(|material| Self::load_material(&instance, path.parent().unwrap(), &material))
+            .map(|material| Self::load_material(instance, path.parent().unwrap(), &material))
             .collect::<Vec<_>>();
 
         Ok(Model3D { meshes })
@@ -51,7 +51,7 @@ impl OBJLoader {
         instance: &VulkanInstance,
         model_dir: &Path,
         material: &tobj::Material,
-    ) -> wgpu::BindGroup {
+    ) -> Vec<vk::DescriptorSet> {
         let diffuse_texture = if let Some(texture) = &material.diffuse_texture {
             VulkanImage::from_image(
                 &instance.device,
@@ -73,90 +73,75 @@ impl OBJLoader {
         };
         let diffuse = material.diffuse.unwrap_or([1.0, 1.0, 1.0]);
 
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: bytemuck::bytes_of(&Material {
-                base_color: [diffuse[0], diffuse[1], diffuse[2], 1.0],
-            }),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: buffer.as_entire_binding(),
-                },
-            ],
-            label: Some(&material.name),
-        })
+        let binding = Material {
+            base_color: [diffuse[0], diffuse[1], diffuse[2], 1.0],
+        };
+        let buffer_data = bytemuck::bytes_of(&binding);
+        
+        let mut uniform_buffers = vec![];
+        Self::create_uniform_buffers(instance, buffer_data, &mut uniform_buffers);
+        
+        Self::write_sets(instance, diffuse_texture, &uniform_buffers)
     }
 
     fn create_uniform_buffers(
-        instance: &Instance,
-        device: &Device,
-        data: &mut AppData,
-    ) -> Result<()> {
-        for _ in 0..data.swapchain_images.len() {
-            let (uniform_buffer, uniform_buffer_memory) = create_buffer(
-                instance,
-                device,
-                data,
-                size_of::<UniformBufferObject>() as u64,
+        instance: &VulkanInstance,
+        data: &[u8],
+        uniform_buffers: &mut Vec<VulkanBuffer>,
+    ) {
+        for _ in 0..instance.swapchain_images.len() {
+            let buffer = VulkanBuffer::new_init(
+                &instance.device,
+                &instance.memory_allocator,
+                size_of::<Material>() as u64,
                 vk::BufferUsageFlags::UNIFORM_BUFFER,
-                vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::HOST_VISIBLE,
-            )?;
-
-            data.uniform_buffers.push(uniform_buffer);
-            data.uniform_buffers_memory.push(uniform_buffer_memory);
+                data,
+            );
+            uniform_buffers.push(buffer)
         }
-
-        Ok(())
     }
 
-    fn write_sets(instance: &VulkanInstance, diffuse_texture: VulkanImage) {
-        for i in 0..instance.swapchain_images.len() {
+    fn write_sets(instance: &VulkanInstance, diffuse_texture: VulkanImage, uniforms_buffers: &Vec<VulkanBuffer>) -> Vec<vk::DescriptorSet> {
+        let descriptor_sets = VulkanInstance::allocate_descriptor_sets(&instance.device, instance.descriptor_pool, instance.descriptor_set_layout, &instance.swapchain_images);
+
+        for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
             let image_info = vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
                 .image_view(diffuse_texture.image_view)
                 .sampler(diffuse_texture.sampler)
                 .build();
 
-            let sampler_write = vk::WriteDescriptorSet::builder()
-                .dst_set(instance.descriptor_sets[i])
+            let _sampler_write = vk::WriteDescriptorSet::builder()
+                .dst_set(descriptor_sets[i])
                 .dst_binding(0)
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
                 .image_info(&[image_info]);
 
             let buffer_info = vk::DescriptorBufferInfo::builder()
-                .buffer(data.uniform_buffers[i])
+                .buffer(uniforms_buffers[i].buffer)
                 .offset(0)
-                .range(size_of::<UniformBufferObject>() as u64)
+                .range(size_of::<Material>() as u64)
                 .build();
 
             let ubo_write = vk::WriteDescriptorSet::builder()
-                .dst_set(instance.descriptor_sets[i])
+                .dst_set(descriptor_sets[i])
                 .dst_binding(1)
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .buffer_info(&[buffer_info])
                 .build();
+
+            unsafe {
+                instance.device.update_descriptor_sets(&[ubo_write], &[]);
+            }
         }
+        descriptor_sets
     }
 
     fn load_mesh(
-        device: &ash::Device,
-        allocator: &MemoryAllocator,
+        instance: &VulkanInstance,
+       // bind_group: Vec<vk::DescriptorSet>, TODO
         name: &str,
         mesh: &tobj::Mesh,
     ) -> Mesh3D {
@@ -177,8 +162,8 @@ impl OBJLoader {
             .collect::<Vec<_>>();
 
         Mesh3D::new(
-            device,
-            allocator,
+            &instance.device,
+            &instance.memory_allocator,
             &vertices,
             &mesh.indices,
             None, // TODO

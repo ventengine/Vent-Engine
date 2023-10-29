@@ -5,7 +5,7 @@ use ash::vk;
 use bytemuck::{Pod, Zeroable};
 use vent_rendering::allocator::MemoryAllocator;
 use vent_rendering::buffer::VulkanBuffer;
-use vent_rendering::instance::{self, VulkanInstance};
+use vent_rendering::instance::{VulkanInstance};
 use vent_rendering::Vertex3D;
 use vent_sdk::utils::stopwatch::Stopwatch;
 
@@ -51,10 +51,11 @@ impl Model3D {
         device: &ash::Device,
         pipeline_layout: vk::PipelineLayout,
         command_buffer: vk::CommandBuffer,
+        buffer_index: u32,
     ) {
         self.meshes.iter().for_each(|mesh| {
             // rpass.push_debug_group("Bind Mesh");
-            mesh.bind(device, command_buffer, pipeline_layout, true);
+            mesh.bind(device, command_buffer, buffer_index, pipeline_layout, true);
             // rpass.pop_debug_group();
             // rpass.insert_debug_marker("Draw!");
             mesh.draw(device, command_buffer);
@@ -86,13 +87,13 @@ impl Mesh3D {
         allocator: &MemoryAllocator,
         vertices: &[Vertex3D],
         indices: &[u32],
-        bind_group: Option<vk::DescriptorSet>,
-        name: Option<&str>,
+        descriptor_sets: Option<Vec<vk::DescriptorSet>>,
+        _name: Option<&str>,
     ) -> Self {
         let vertex_buf = VulkanBuffer::new_init(
             device,
             allocator,
-            (size_of::<Vertex3D>() * vertices.len()) as vk::DeviceSize,
+            std::mem::size_of_val(vertices) as vk::DeviceSize,
             vk::BufferUsageFlags::VERTEX_BUFFER,
             bytemuck::cast_slice(vertices),
         );
@@ -109,7 +110,7 @@ impl Mesh3D {
             vertex_buf,
             index_buf,
             index_count: indices.len() as u32,
-            descriptor_set: bind_group,
+            descriptor_sets,
         }
     }
 
@@ -117,6 +118,7 @@ impl Mesh3D {
         &self,
         device: &ash::Device,
         command_buffer: vk::CommandBuffer,
+        buffer_index: u32,
         pipeline_layout: vk::PipelineLayout,
         with_descriptor_set: bool,
     ) {
@@ -124,13 +126,13 @@ impl Mesh3D {
             device.cmd_bind_vertex_buffers(command_buffer, 0, &[*self.vertex_buf], &[0]);
             device.cmd_bind_index_buffer(command_buffer, *self.index_buf, 0, vk::IndexType::UINT32);
             if with_descriptor_set {
-                if let Some(ds) = self.descriptor_set {
+                if let Some(ds) = &self.descriptor_sets {
                     device.cmd_bind_descriptor_sets(
                         command_buffer,
                         vk::PipelineBindPoint::GRAPHICS,
                         pipeline_layout,
                         0,
-                        &[ds],
+                        &[ds[buffer_index as usize]],
                         &[],
                     )
                 }
@@ -142,8 +144,11 @@ impl Mesh3D {
         unsafe { device.cmd_draw_indexed(command_buffer, self.index_count, 1, 0, 0, 0) };
     }
 
-    pub fn destroy(&self, device: &ash::Device) {
+    pub fn destroy(self, descriptor_pool: vk::DescriptorPool, device: &ash::Device) {
         self.vertex_buf.destroy(device);
         self.index_buf.destroy(device);
+        if let Some(ds) = self.descriptor_sets {
+            unsafe { device.free_descriptor_sets(descriptor_pool, &ds) };
+        }
     }
 }
