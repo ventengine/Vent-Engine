@@ -10,7 +10,7 @@ vent-common = { path = "../vent-common"}
 vent-assets = { path = "../vent-assets" }
 vent-ecs = { path = "../vent-ecs"}
 
-winit = "0.28.6"
+winit = "0.29.3"
 wgpu = "0.16.2"
 pollster = "0.3.0"
 log = "0.4"
