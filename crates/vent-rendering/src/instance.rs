@@ -1,7 +1,7 @@
 use ash::extensions::khr::{Surface, Swapchain};
-use ash::vk::{Extent2D, SwapchainKHR};
+use ash::vk::{make_version, Extent2D, SwapchainKHR};
 use ash::{extensions::ext::DebugUtils, vk, Entry};
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::borrow::Cow;
 use std::{default::Default, ffi::CStr};
 
@@ -12,6 +12,7 @@ use ash::vk::{
 
 use crate::allocator::MemoryAllocator;
 use crate::image::VulkanImage;
+use crate::surface;
 
 const VALIDATION_ENABLED: bool = cfg!(debug_assertions);
 
@@ -52,6 +53,7 @@ pub struct VulkanInstance {
     pub memory_allocator: MemoryAllocator,
 
     pub instance: ash::Instance,
+    pub physical_device: vk::PhysicalDevice,
     pub device: ash::Device,
 
     pub surface_loader: Surface,
@@ -90,8 +92,10 @@ pub struct VulkanInstance {
 }
 
 impl VulkanInstance {
-    pub fn new(application_name: &str, window: winit::window::Window) -> Self {
+    pub fn new(application_name: &str, window: &winit::window::Window) -> Self {
         let entry = Entry::linked();
+
+        let engine_version: u32 = (env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap());
 
         let app_info = unsafe {
             vk::ApplicationInfo::builder()
@@ -100,15 +104,17 @@ impl VulkanInstance {
                 ))
                 .application_version(0) // TODO
                 .engine_name(CStr::from_bytes_with_nul_unchecked(b"Vent-Engine\0"))
-                .engine_version(env!("CARGO_PKG_VERSION").parse().unwrap())
+                .engine_version(engine_version)
                 .api_version(vk::API_VERSION_1_2)
                 .build()
         };
 
-        let mut extension_names =
-            ash_window::enumerate_required_extensions(window.raw_display_handle())
-                .expect("Unsupported Surface Extension")
-                .to_vec();
+        let display_handle = window.display_handle().expect("No Display Handle");
+        let window_handle = window.window_handle().expect("No Window Handle");
+
+        let mut extension_names = surface::enumerate_required_extensions(display_handle)
+            .expect("Unsupported Surface Extension")
+            .to_vec();
         extension_names.push(DebugUtils::name().as_ptr());
 
         #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -140,13 +146,7 @@ impl VulkanInstance {
         #[cfg(debug_assertions)]
         let debug_messenger = Self::create_debug_messenger(&debug_utils_loader);
         let surface = unsafe {
-            ash_window::create_surface(
-                &entry,
-                &instance,
-                window.raw_display_handle(),
-                window.raw_window_handle(),
-                None,
-            )
+            surface::create_surface(&entry, &instance, display_handle, window_handle, None)
         }
         .unwrap();
         let surface_loader = Surface::new(&entry, &instance);
@@ -206,6 +206,7 @@ impl VulkanInstance {
         Self {
             memory_allocator,
             instance,
+            physical_device: pdevice,
             device,
             surface,
             surface_loader,
@@ -217,9 +218,11 @@ impl VulkanInstance {
             graphics_queue,
             present_queue,
             render_pass,
+            #[cfg(debug_assertions)]
             debug_utils: debug_utils_loader,
             descriptor_pool,
             descriptor_set_layout,
+            #[cfg(debug_assertions)]
             debug_messenger,
             depth_image,
             frame_buffers,
@@ -330,6 +333,7 @@ impl VulkanInstance {
         })
     }
 
+    #[cfg(debug_assertions)]
     fn create_debug_messenger(debug_utils_loader: &DebugUtils) -> vk::DebugUtilsMessengerEXT {
         let debug_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
             .message_severity(
@@ -752,6 +756,7 @@ impl Drop for VulkanInstance {
             self.surface_loader.destroy_surface(self.surface, None);
             self.swapchain_loader
                 .destroy_swapchain(self.swapchain, None);
+            #[cfg(debug_assertions)]
             self.debug_utils
                 .destroy_debug_utils_messenger(self.debug_messenger, None);
             self.instance.destroy_instance(None)

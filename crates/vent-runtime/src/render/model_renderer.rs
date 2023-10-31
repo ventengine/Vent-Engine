@@ -1,6 +1,8 @@
+use ash::vk;
 use glam::{Mat4, Quat};
 use std::collections::HashMap;
 use vent_ecs::entity::Entity;
+use vent_rendering::instance::VulkanInstance;
 
 use super::{d3::UBO3D, model::Entity3D};
 
@@ -45,10 +47,19 @@ impl ModelRenderer3D {
         self.map.iter_mut()
     }
 
-    pub fn render(, ubo: &mut UBO3D) {
+    pub fn render(
+        &self,
+        instance: VulkanInstance,
+        pipeline_layout: vk::PipelineLayout,
+        ubo: &mut UBO3D,
+    ) {
         for model in self.map.values() {
             ubo.transformation = Self::calc_trans_matrix(model).to_cols_array_2d();
-            model.rendering_model.draw(rpass);
+            for (i, buffer) in instance.command_buffers.iter().enumerate() {
+                model
+                    .rendering_model
+                    .draw(&instance.device, pipeline_layout, *buffer, i as u32);
+            }
         }
     }
 

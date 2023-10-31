@@ -1,12 +1,15 @@
 use std::{
     fs::{self, File},
     io::BufReader,
+    mem::size_of,
     path::Path,
-    sync, thread, mem::size_of,
+    sync, thread,
 };
 
 use ash::vk;
-use vent_rendering::{image::VulkanImage, instance::VulkanInstance, Vertex3D, buffer::VulkanBuffer};
+use vent_rendering::{
+    buffer::VulkanBuffer, image::VulkanImage, instance::VulkanInstance, Vertex3D,
+};
 
 use crate::Model3D;
 
@@ -157,10 +160,10 @@ impl GLTFLoader {
             base_color: pbr.base_color_factor(),
         };
         let buffer_data = bytemuck::bytes_of(&binding);
-        
+
         let mut uniform_buffers = vec![];
         Self::create_uniform_buffers(instance, buffer_data, &mut uniform_buffers);
-        
+
         Self::write_sets(instance, diffuse_texture, &uniform_buffers)
     }
 
@@ -181,8 +184,17 @@ impl GLTFLoader {
         }
     }
 
-    fn write_sets(instance: &VulkanInstance, diffuse_texture: VulkanImage, uniforms_buffers: &Vec<VulkanBuffer>) -> Vec<vk::DescriptorSet> {
-        let descriptor_sets = VulkanInstance::allocate_descriptor_sets(&instance.device, instance.descriptor_pool, instance.descriptor_set_layout, &instance.swapchain_images);
+    fn write_sets(
+        instance: &VulkanInstance,
+        diffuse_texture: VulkanImage,
+        uniforms_buffers: &Vec<VulkanBuffer>,
+    ) -> Vec<vk::DescriptorSet> {
+        let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
+            &instance.device,
+            instance.descriptor_pool,
+            instance.descriptor_set_layout,
+            &instance.swapchain_images,
+        );
 
         for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
             let image_info = vk::DescriptorImageInfo::builder()

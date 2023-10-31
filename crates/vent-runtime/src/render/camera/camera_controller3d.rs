@@ -1,4 +1,7 @@
-use winit::event::VirtualKeyCode;
+use winit::{
+    event::{ElementState, KeyEvent},
+    keyboard::{self, Key, NamedKey, PhysicalKey},
+};
 
 use super::Camera3D;
 
@@ -25,41 +28,44 @@ impl CameraController3D {
     pub fn process_keyboard(
         &self,
         camera: &mut Camera3D,
-        key: &VirtualKeyCode,
+        event: &KeyEvent,
         delta_time: f32,
     ) -> bool {
-        let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
-        match key {
-            VirtualKeyCode::W | VirtualKeyCode::Up => {
-                camera.add_x(sin_pitch * self.speed * delta_time);
-                camera.add_z(cos_pitch * self.speed * delta_time);
-                true
+        if event.state == ElementState::Pressed {
+            let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
+            match event.logical_key.as_ref() {
+                Key::Character("W") | Key::Named(NamedKey::ArrowUp) => {
+                    camera.add_x(sin_pitch * self.speed * delta_time);
+                    camera.add_z(cos_pitch * self.speed * delta_time);
+                    return true;
+                }
+                Key::Character("S") | Key::Named(NamedKey::ArrowDown) => {
+                    camera.minus_x(sin_pitch * self.speed * delta_time);
+                    camera.minus_z(cos_pitch * self.speed * delta_time);
+                    return true;
+                }
+                Key::Character("A") | Key::Named(NamedKey::ArrowLeft) => {
+                    camera.minus_x(cos_pitch * self.speed * delta_time);
+                    camera.add_z(sin_pitch * self.speed * delta_time);
+                    return true;
+                }
+                Key::Character("D") | Key::Named(NamedKey::ArrowRight) => {
+                    camera.add_x(cos_pitch * self.speed * delta_time);
+                    camera.minus_z(sin_pitch * self.speed * delta_time);
+                    return true;
+                }
+                Key::Named(NamedKey::Space) => {
+                    camera.add_y(self.speed * delta_time);
+                    return true;
+                }
+                Key::Named(NamedKey::Shift) => {
+                    camera.minus_y(self.speed * delta_time);
+                    return true;
+                }
+                _ => return false,
             }
-            VirtualKeyCode::S | VirtualKeyCode::Down => {
-                camera.minus_x(sin_pitch * self.speed * delta_time);
-                camera.minus_z(cos_pitch * self.speed * delta_time);
-                true
-            }
-            VirtualKeyCode::A | VirtualKeyCode::Left => {
-                camera.minus_x(cos_pitch * self.speed * delta_time);
-                camera.add_z(sin_pitch * self.speed * delta_time);
-                true
-            }
-            VirtualKeyCode::D | VirtualKeyCode::Right => {
-                camera.add_x(cos_pitch * self.speed * delta_time);
-                camera.minus_z(sin_pitch * self.speed * delta_time);
-                true
-            }
-            VirtualKeyCode::Space => {
-                camera.add_y(self.speed * delta_time);
-                true
-            }
-            VirtualKeyCode::LShift => {
-                camera.minus_y(self.speed * delta_time);
-                true
-            }
-            _ => false,
         }
+        false
     }
 
     pub fn process_mouse_input(

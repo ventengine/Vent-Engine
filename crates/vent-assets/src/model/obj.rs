@@ -30,13 +30,7 @@ impl OBJLoader {
 
         let meshes = models
             .into_iter()
-            .map(|model| {
-                Self::load_mesh(
-                    instance,
-                    &model.name,
-                    &model.mesh,
-                )
-            })
+            .map(|model| Self::load_mesh(instance, &model.name, &model.mesh))
             .collect::<Vec<_>>();
 
         let _descriptor_sets = materials
@@ -77,10 +71,10 @@ impl OBJLoader {
             base_color: [diffuse[0], diffuse[1], diffuse[2], 1.0],
         };
         let buffer_data = bytemuck::bytes_of(&binding);
-        
+
         let mut uniform_buffers = vec![];
         Self::create_uniform_buffers(instance, buffer_data, &mut uniform_buffers);
-        
+
         Self::write_sets(instance, diffuse_texture, &uniform_buffers)
     }
 
@@ -101,8 +95,17 @@ impl OBJLoader {
         }
     }
 
-    fn write_sets(instance: &VulkanInstance, diffuse_texture: VulkanImage, uniforms_buffers: &Vec<VulkanBuffer>) -> Vec<vk::DescriptorSet> {
-        let descriptor_sets = VulkanInstance::allocate_descriptor_sets(&instance.device, instance.descriptor_pool, instance.descriptor_set_layout, &instance.swapchain_images);
+    fn write_sets(
+        instance: &VulkanInstance,
+        diffuse_texture: VulkanImage,
+        uniforms_buffers: &Vec<VulkanBuffer>,
+    ) -> Vec<vk::DescriptorSet> {
+        let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
+            &instance.device,
+            instance.descriptor_pool,
+            instance.descriptor_set_layout,
+            &instance.swapchain_images,
+        );
 
         for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
             let image_info = vk::DescriptorImageInfo::builder()
@@ -141,7 +144,7 @@ impl OBJLoader {
 
     fn load_mesh(
         instance: &VulkanInstance,
-       // bind_group: Vec<vk::DescriptorSet>, TODO
+        // bind_group: Vec<vk::DescriptorSet>, TODO
         name: &str,
         mesh: &tobj::Mesh,
     ) -> Mesh3D {

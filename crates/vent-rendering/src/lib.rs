@@ -8,6 +8,7 @@ pub mod buffer;
 pub mod image;
 pub mod instance;
 pub mod pipeline;
+mod surface;
 
 pub trait Vertex<'a> {
     const BINDING_DESCRIPTION: vk::VertexInputBindingDescription;

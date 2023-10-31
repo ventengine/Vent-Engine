@@ -5,7 +5,7 @@ use ash::vk;
 use bytemuck::{Pod, Zeroable};
 use vent_rendering::allocator::MemoryAllocator;
 use vent_rendering::buffer::VulkanBuffer;
-use vent_rendering::instance::{VulkanInstance};
+use vent_rendering::instance::VulkanInstance;
 use vent_rendering::Vertex3D;
 use vent_sdk::utils::stopwatch::Stopwatch;
 

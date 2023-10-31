@@ -1,6 +1,6 @@
 use egui::epaint::ahash::{HashSet, HashSetExt};
 use egui::{CentralPanel, Color32, Frame, RichText, TopBottomPanel, Ui, WidgetText};
-use egui_dock::{DockArea, Node, NodeIndex, TabViewer, Tree};
+use egui_dock::{DockArea, DockState, Node, NodeIndex, TabViewer, Tree};
 use vent_runtime::render::gui::debug_gui::RenderData;
 use vent_runtime::render::gui::GUI;
 
@@ -37,7 +37,7 @@ impl EditorViewer {
         });
     }
 
-    fn view_tab_file(&self, ui: &mut Ui, _tree: &mut Tree<String>) {
+    fn view_tab_file(&self, ui: &mut Ui, _tree: &mut DockState<String>) {
         for tab in &["New Project", "Open Project"] {
             if ui
                 .selectable_label(self.open_tabs.contains(*tab), *tab)
@@ -51,7 +51,7 @@ impl EditorViewer {
 }
 
 pub(crate) struct EditorGUI {
-    tree: Tree<String>,
+    tree: DockState<String>,
     viewer: EditorViewer,
 }
 
@@ -74,7 +74,8 @@ impl GUI for EditorGUI {
 
 impl EditorGUI {
     pub fn new() -> Self {
-        let mut tree = Tree::new(vec!["Vent-Engine Placeholder".to_owned()]);
+        let mut state = DockState::new(vec!["Vent-Engine Placeholder".to_owned()]);
+        let mut tree = state.main_surface_mut();
         let [a, _] = tree.split_left(NodeIndex::root(), 0.3, vec!["Files".to_owned()]);
         let [_, _] = tree.split_below(a, 0.6, vec!["Console".to_owned()]);
 
@@ -90,6 +91,9 @@ impl EditorGUI {
 
         let viewer = EditorViewer { open_tabs };
 
-        Self { tree, viewer }
+        Self {
+            tree: state,
+            viewer,
+        }
     }
 }

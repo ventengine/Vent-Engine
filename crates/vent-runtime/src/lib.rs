@@ -8,7 +8,7 @@ use vent_common::project::VentApplicationProject;
 
 use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
-use winit::event::{DeviceEvent, ElementState, Event, KeyboardInput, WindowEvent};
+use winit::event::{DeviceEvent, ElementState, Event, WindowEvent};
 use winit::window::WindowBuilder;
 
 pub mod render;
@@ -56,55 +56,48 @@ impl VentApplication {
 
         let mut controller = CameraController3D::new(3000.0, 10.0);
         let mut delta_time = 0.0;
-        vent_window.event_loop.run(move |event, _, control_flow| {
-            control_flow.set_wait();
+        vent_window
+            .event_loop
+            .run(move |event, elwt| {
+                match event {
+                    Event::WindowEvent {
+                        ref event,
+                        window_id,
+                    } if window_id == vent_window.window.id() => {
+                        renderer.progress_event(event);
 
-            match event {
-                Event::WindowEvent {
-                    ref event,
-                    window_id,
-                } if window_id == vent_window.window.id() => {
-                    renderer.progress_event(event);
-
-                    match event {
-                        WindowEvent::CloseRequested => control_flow.set_exit(),
-                        WindowEvent::MouseInput { button, state, .. } => {
-                            controller.process_mouse_input(&vent_window.window, button, state);
+                        match event {
+                            WindowEvent::CloseRequested => elwt.exit(),
+                            WindowEvent::MouseInput { button, state, .. } => {
+                                controller.process_mouse_input(&vent_window.window, button, state);
+                            }
+                            WindowEvent::KeyboardInput { event, .. } => {
+                                controller.process_keyboard(&mut cam, event, delta_time);
+                            }
+                            WindowEvent::Resized(physical_size) => {
+                                renderer.resize(physical_size, &mut cam);
+                            }
+                            // WindowEvent::ScaleFactorChanged {
+                            //     inner_size_writer, ..
+                            // } => {
+                            //     // new_inner_size is &mut so w have to dereference it twice
+                            //     renderer.resize(new_inner_size, &mut cam);
+                            // }
+                            WindowEvent::RedrawRequested => {
+                                delta_time = renderer.render(&vent_window.window, &mut cam);
+                            }
+                            _ => {}
                         }
-                        WindowEvent::KeyboardInput {
-                            input:
-                                KeyboardInput {
-                                    state: ElementState::Pressed,
-                                    virtual_keycode: Some(key),
-                                    ..
-                                },
-                            ..
-                        } => {
-                            controller.process_keyboard(&mut cam, key, delta_time);
-                        }
-                        WindowEvent::Resized(physical_size) => {
-                            renderer.resize(physical_size, &mut cam);
-                        }
-                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                            // new_inner_size is &mut so w have to dereference it twice
-                            renderer.resize(new_inner_size, &mut cam);
-                        }
-                        _ => {}
                     }
+                    Event::DeviceEvent {
+                        event: DeviceEvent::MouseMotion { delta },
+                        ..
+                    } => controller.process_mouse_movement(&mut cam, delta.0, delta.1, delta_time),
+
+                    // ...
+                    _ => {}
                 }
-                Event::DeviceEvent {
-                    event: DeviceEvent::MouseMotion { delta },
-                    ..
-                } => controller.process_mouse_movement(&mut cam, delta.0, delta.1, delta_time),
-                Event::RedrawRequested(window_id) if window_id == vent_window.window.id() => {
-                    delta_time = renderer.render(&vent_window.window, &mut cam);
-                }
-                Event::MainEventsCleared => {
-                    vent_window.window.request_redraw();
-                }
-                // ...
-                _ => {}
-            }
-        });
+            })
+            .expect("Window Event Loop Error");
     }
 }
