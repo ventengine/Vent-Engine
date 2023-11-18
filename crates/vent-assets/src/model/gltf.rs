@@ -13,7 +13,7 @@ use vent_rendering::{
 
 use crate::Model3D;
 
-use super::{Material, Mesh3D, ModelError};
+use super::{Light, Material, Mesh3D, ModelError};
 
 pub(crate) struct GLTFLoader {}
 
@@ -159,29 +159,27 @@ impl GLTFLoader {
         let binding = Material {
             base_color: pbr.base_color_factor(),
         };
-        let buffer_data = bytemuck::bytes_of(&binding);
 
-        let mut uniform_buffers = vec![];
-        Self::create_uniform_buffers(instance, buffer_data, &mut uniform_buffers);
+        let mut uniform_buffers = Self::create_uniform_buffers(instance, &binding);
 
         Self::write_sets(instance, diffuse_texture, &uniform_buffers)
     }
 
-    fn create_uniform_buffers(
-        instance: &VulkanInstance,
-        data: &[u8],
-        uniform_buffers: &mut Vec<VulkanBuffer>,
-    ) {
+    fn create_uniform_buffers(instance: &VulkanInstance, material: &Material) -> Vec<VulkanBuffer> {
+        let mut uniform_buffers = vec![];
         for _ in 0..instance.swapchain_images.len() {
-            let buffer = VulkanBuffer::new_init(
-                &instance.device,
-                &instance.memory_allocator,
-                size_of::<Material>() as u64,
-                vk::BufferUsageFlags::UNIFORM_BUFFER,
-                data,
-            );
+            let buffer = unsafe {
+                VulkanBuffer::new_init_type(
+                    &instance.device,
+                    &instance.memory_allocator,
+                    size_of::<Material>() as vk::DeviceSize,
+                    vk::BufferUsageFlags::UNIFORM_BUFFER,
+                    material,
+                )
+            };
             uniform_buffers.push(buffer)
         }
+        uniform_buffers
     }
 
     fn write_sets(
@@ -193,7 +191,7 @@ impl GLTFLoader {
             &instance.device,
             instance.descriptor_pool,
             instance.descriptor_set_layout,
-            &instance.swapchain_images,
+            uniforms_buffers.len(),
         );
 
         for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
@@ -203,29 +201,58 @@ impl GLTFLoader {
                 .sampler(diffuse_texture.sampler)
                 .build();
 
-            let _sampler_write = vk::WriteDescriptorSet::builder()
-                .dst_set(descriptor_sets[i])
-                .dst_binding(0)
-                .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .image_info(&[image_info]);
-
-            let buffer_info = vk::DescriptorBufferInfo::builder()
+            let material_buffer_info = vk::DescriptorBufferInfo::builder()
                 .buffer(uniforms_buffers[i].buffer)
                 .offset(0)
-                .range(size_of::<Material>() as u64)
+                .range(size_of::<Material>() as vk::DeviceSize)
                 .build();
 
-            let ubo_write = vk::WriteDescriptorSet::builder()
-                .dst_set(descriptor_sets[i])
-                .dst_binding(1)
-                .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                .buffer_info(&[buffer_info])
+            let light_buffer_info = vk::DescriptorBufferInfo::builder()
+                .buffer(uniforms_buffers[i].buffer)
+                .offset(0)
+                .range(size_of::<Light>() as vk::DeviceSize)
                 .build();
+
+            let desc_sets = [
+                // Vertex
+                vk::WriteDescriptorSet {
+                    dst_set: descriptor_sets[0],
+                    dst_binding: 0,
+                    descriptor_count: 1,
+                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                    p_buffer_info: &buffer_info,
+                    ..Default::default()
+                },
+                // Fragment
+                vk::WriteDescriptorSet {
+                    dst_set: descriptor_sets[0],
+                    descriptor_count: 1,
+                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                    p_image_info: &image_info,
+                    ..Default::default()
+                },
+                vk::WriteDescriptorSet {
+                    dst_set: descriptor_sets[0],
+                    dst_binding: 1,
+                    descriptor_count: 1,
+                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                    p_buffer_info: &material_buffer_info,
+                    ..Default::default()
+                },
+                vk::WriteDescriptorSet {
+                    dst_set: descriptor_sets[0],
+                    dst_binding: 2,
+                    descriptor_count: 1,
+                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                    p_buffer_info: &light_buffer_info,
+                    ..Default::default()
+                },
+            ];
 
             unsafe {
-                instance.device.update_descriptor_sets(&[ubo_write], &[]);
+                instance
+                    .device
+                    .update_descriptor_sets(&fragment_desc_sets, &[]);
             }
         }
         descriptor_sets
@@ -249,11 +276,11 @@ impl GLTFLoader {
             ),
             |filter| match filter {
                 gltf::texture::MinFilter::Nearest => {
-                    (vk::Filter::NEAREST, vk::SamplerMipmapMode::LINEAR)
+                    (vk::Filter::NEAREST, vk::SamplerMipmapMode::NEAREST)
                 }
                 gltf::texture::MinFilter::Linear
                 | gltf::texture::MinFilter::LinearMipmapNearest => {
-                    (vk::Filter::LINEAR, vk::SamplerMipmapMode::LINEAR)
+                    (vk::Filter::LINEAR, vk::SamplerMipmapMode::NEAREST)
                 }
                 gltf::texture::MinFilter::NearestMipmapNearest => {
                     (vk::Filter::NEAREST, vk::SamplerMipmapMode::NEAREST)

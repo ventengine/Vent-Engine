@@ -88,10 +88,10 @@ pub unsafe fn create_surface(
     }
 }
 
-pub fn enumerate_required_extensions(
-    display_handle: DisplayHandle<'_>,
+pub const fn enumerate_required_extensions(
+    display_handle: RawDisplayHandle,
 ) -> VkResult<&'static [*const c_char]> {
-    let extensions = match display_handle.as_raw() {
+    let extensions = match display_handle {
         RawDisplayHandle::Windows(_) => {
             const WINDOWS_EXTS: [*const c_char; 2] = [
                 khr::Surface::name().as_ptr(),

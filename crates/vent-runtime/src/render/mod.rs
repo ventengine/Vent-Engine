@@ -4,7 +4,7 @@ use vent_rendering::instance::VulkanInstance;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-use self::camera::Camera;
+use self::camera::{from_dimension, Camera};
 use self::d2::Renderer2D;
 use self::d3::Renderer3D;
 use self::gui::debug_gui::{DebugGUI, RenderData};
@@ -22,6 +22,7 @@ mod d3;
 pub(crate) struct DefaultRuntimeRenderer {
     instance: VulkanInstance,
     runtime_renderer: RawRuntimeRenderer,
+    pub camera: Box<dyn Camera>,
 }
 
 impl DefaultRuntimeRenderer {
@@ -29,13 +30,15 @@ impl DefaultRuntimeRenderer {
         dimension: Dimension,
         window: &winit::window::Window,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
-        camera: &mut dyn Camera,
     ) -> Self {
         let instance = VulkanInstance::new("TODO", window);
-        let runtime_renderer = RawRuntimeRenderer::new(dimension, &instance, event_loop, camera);
+        let mut camera = from_dimension(&instance, &dimension);
+        let runtime_renderer =
+            RawRuntimeRenderer::new(dimension, &instance, event_loop, camera.as_mut());
         Self {
             instance,
             runtime_renderer,
+            camera,
         }
     }
 
@@ -43,19 +46,20 @@ impl DefaultRuntimeRenderer {
         self.runtime_renderer.progress_event(event);
     }
 
-    pub(crate) fn render(
-        &mut self,
-        window: &winit::window::Window,
-        camera: &mut dyn Camera,
-    ) -> f32 {
-        let detla = self.runtime_renderer.render(&self.instance, window, camera);
-
-        detla
+    pub(crate) fn render(&mut self, window: &winit::window::Window) -> f32 {
+        self.runtime_renderer
+            .render(&mut self.instance, window, self.camera.as_mut())
     }
 
-    pub(crate) fn resize(&mut self, new_size: &PhysicalSize<u32>, camera: &mut dyn Camera) {
+    pub(crate) fn resize(&mut self, new_size: &PhysicalSize<u32>) {
         self.runtime_renderer
-            .resize(&self.instance, new_size, camera);
+            .resize(&self.instance, new_size, self.camera.as_mut());
+    }
+}
+
+impl Drop for DefaultRuntimeRenderer {
+    fn drop(&mut self) {
+        self.runtime_renderer.destroy(&self.instance);
     }
 }
 
@@ -76,7 +80,9 @@ pub trait Renderer {
         camera: &mut dyn Camera,
     );
 
-    fn render(&mut self, instance: &VulkanInstance, camera: &mut dyn Camera);
+    fn render(&mut self, instance: &VulkanInstance, image_index: u32, camera: &mut dyn Camera);
+
+    fn destroy(&mut self, instance: &VulkanInstance);
 }
 
 pub struct RawRuntimeRenderer {
@@ -94,7 +100,7 @@ impl RawRuntimeRenderer {
     pub fn new(
         dimension: Dimension,
         instance: &VulkanInstance,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
+        _event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
         let multi_renderer: Box<dyn Renderer> = match dimension {
@@ -121,13 +127,18 @@ impl RawRuntimeRenderer {
 
     pub fn render(
         &mut self,
-        instance: &VulkanInstance,
-        window: &Window,
+        instance: &mut VulkanInstance,
+        _window: &Window,
         camera: &mut dyn Camera,
     ) -> f32 {
         let frame_start = Instant::now();
 
-        self.multi_renderer.render(instance, camera);
+        let image = instance.next_image();
+
+        if let Some(image_index) = image {
+            self.multi_renderer.render(instance, image_index, camera);
+            instance.submit(image_index);
+        }
 
         // self.gui_renderer.render(
         //     surface_view,
@@ -137,8 +148,6 @@ impl RawRuntimeRenderer {
         //     &mut encoder2,
         //     &self.current_data,
         // );
-
-        // queue.submit(Some(encoder2.finish()));
 
         // TODO
         #[cfg(target_arch = "wasm32")]
@@ -191,5 +200,10 @@ impl RawRuntimeRenderer {
     ) {
         // Uses the NEW Resized config
         self.multi_renderer.resize(instance, new_size, camera)
+    }
+
+    pub fn destroy(&mut self, instance: &VulkanInstance) {
+        self.multi_renderer.destroy(instance);
+        // TODO Egui destroy
     }
 }

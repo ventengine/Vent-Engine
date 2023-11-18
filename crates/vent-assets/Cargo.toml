@@ -11,9 +11,7 @@ vent-rendering = { path = "../vent-rendering"}
 
 image = "0.24.7"
 
-bytemuck = { version = "1.14.0" }
 log = "0.4"
-cfg-if = "1"
 
 ash = { version= "0.37.3", default-features = false, features = ["linked"] }
 

@@ -45,7 +45,7 @@ impl OBJLoader {
         instance: &VulkanInstance,
         model_dir: &Path,
         material: &tobj::Material,
-    ) -> Vec<vk::DescriptorSet> {
+    ) -> Vec<vk::W> {
         let diffuse_texture = if let Some(texture) = &material.diffuse_texture {
             VulkanImage::from_image(
                 &instance.device,
@@ -70,27 +70,28 @@ impl OBJLoader {
         let binding = Material {
             base_color: [diffuse[0], diffuse[1], diffuse[2], 1.0],
         };
-        let buffer_data = bytemuck::bytes_of(&binding);
 
         let mut uniform_buffers = vec![];
-        Self::create_uniform_buffers(instance, buffer_data, &mut uniform_buffers);
+        Self::create_uniform_buffers(instance, &binding, &mut uniform_buffers);
 
         Self::write_sets(instance, diffuse_texture, &uniform_buffers)
     }
 
     fn create_uniform_buffers(
         instance: &VulkanInstance,
-        data: &[u8],
+        material: &Material,
         uniform_buffers: &mut Vec<VulkanBuffer>,
     ) {
         for _ in 0..instance.swapchain_images.len() {
-            let buffer = VulkanBuffer::new_init(
-                &instance.device,
-                &instance.memory_allocator,
-                size_of::<Material>() as u64,
-                vk::BufferUsageFlags::UNIFORM_BUFFER,
-                data,
-            );
+            let buffer = unsafe {
+                VulkanBuffer::new_init_type(
+                    &instance.device,
+                    &instance.memory_allocator,
+                    size_of::<Material>() as vk::DeviceSize,
+                    vk::BufferUsageFlags::UNIFORM_BUFFER,
+                    material,
+                )
+            };
             uniform_buffers.push(buffer)
         }
     }
@@ -104,7 +105,7 @@ impl OBJLoader {
             &instance.device,
             instance.descriptor_pool,
             instance.descriptor_set_layout,
-            &instance.swapchain_images,
+            uniforms_buffers.len(),
         );
 
         for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
@@ -124,7 +125,7 @@ impl OBJLoader {
             let buffer_info = vk::DescriptorBufferInfo::builder()
                 .buffer(uniforms_buffers[i].buffer)
                 .offset(0)
-                .range(size_of::<Material>() as u64)
+                .range(size_of::<Material>() as vk::DeviceSize)
                 .build();
 
             let ubo_write = vk::WriteDescriptorSet::builder()

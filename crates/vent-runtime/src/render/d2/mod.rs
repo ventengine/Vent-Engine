@@ -1,13 +1,12 @@
 use super::{camera::Camera, Renderer};
 
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy)]
 pub struct UBO2D {}
 
 pub struct Renderer2D {}
 
 impl Renderer for Renderer2D {
-    fn init(instance: &vent_rendering::instance::VulkanInstance, camera: &mut dyn Camera) -> Self
+    fn init(_instance: &vent_rendering::instance::VulkanInstance, _camera: &mut dyn Camera) -> Self
     where
         Self: Sized,
     {
@@ -16,18 +15,23 @@ impl Renderer for Renderer2D {
 
     fn resize(
         &mut self,
-        instance: &vent_rendering::instance::VulkanInstance,
-        new_size: &winit::dpi::PhysicalSize<u32>,
-        camera: &mut dyn Camera,
+        _instance: &vent_rendering::instance::VulkanInstance,
+        _new_size: &winit::dpi::PhysicalSize<u32>,
+        _camera: &mut dyn Camera,
     ) {
         todo!()
     }
 
     fn render(
         &mut self,
-        instance: &vent_rendering::instance::VulkanInstance,
-        camera: &mut dyn Camera,
+        _instance: &vent_rendering::instance::VulkanInstance,
+        _image_index: u32,
+        _camera: &mut dyn Camera,
     ) {
+        todo!()
+    }
+
+    fn destroy(&mut self, _instance: &vent_rendering::instance::VulkanInstance) {
         todo!()
     }
 }

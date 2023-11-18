@@ -1,8 +1,7 @@
 use ash::extensions::khr::{Surface, Swapchain};
-use ash::vk::{make_version, Extent2D, SwapchainKHR};
+use ash::vk::{Extent2D, SwapchainKHR};
 use ash::{extensions::ext::DebugUtils, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use std::borrow::Cow;
 use std::{default::Default, ffi::CStr};
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -11,43 +10,14 @@ use ash::vk::{
 };
 
 use crate::allocator::MemoryAllocator;
-use crate::image::VulkanImage;
+use crate::debug::{
+    check_validation_layer_support, get_layer_names_and_pointers, setup_debug_messenger,
+    ENABLE_VALIDATION_LAYERS,
+};
+use crate::image::{DepthImage, VulkanImage};
 use crate::surface;
 
-const VALIDATION_ENABLED: bool = cfg!(debug_assertions);
-
 const MAX_FRAMES_IN_FLIGHT: u8 = 2;
-
-#[cfg(debug_assertions)]
-// const VALIDATION_LAYER: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"VK_LAYER_KHRONOS_validation\n") };
-#[cfg(debug_assertions)]
-unsafe extern "system" fn vulkan_debug_callback(
-    message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
-    message_type: vk::DebugUtilsMessageTypeFlagsEXT,
-    p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
-    _user_data: *mut std::os::raw::c_void,
-) -> vk::Bool32 {
-    let callback_data = *p_callback_data;
-    let message_id_number = callback_data.message_id_number;
-
-    let message_id_name = if callback_data.p_message_id_name.is_null() {
-        Cow::from("")
-    } else {
-        CStr::from_ptr(callback_data.p_message_id_name).to_string_lossy()
-    };
-
-    let message = if callback_data.p_message.is_null() {
-        Cow::from("")
-    } else {
-        CStr::from_ptr(callback_data.p_message).to_string_lossy()
-    };
-
-    println!(
-        "{message_severity:?}:\n{message_type:?} [{message_id_name} ({message_id_number})] : {message}\n",
-    );
-
-    vk::FALSE
-}
 
 pub struct VulkanInstance {
     pub memory_allocator: MemoryAllocator,
@@ -58,6 +28,7 @@ pub struct VulkanInstance {
 
     pub surface_loader: Surface,
     pub surface: vk::SurfaceKHR,
+    pub surface_resolution: vk::Extent2D,
 
     pub swapchain_loader: Swapchain,
     pub swapchain: vk::SwapchainKHR,
@@ -66,7 +37,7 @@ pub struct VulkanInstance {
     pub swapchain_images: Vec<vk::Image>,
     pub swapchain_image_views: Vec<vk::ImageView>,
     pub frame_buffers: Vec<vk::Framebuffer>,
-    pub depth_image: VulkanImage,
+    pub depth_image: DepthImage,
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
 
@@ -95,7 +66,7 @@ impl VulkanInstance {
     pub fn new(application_name: &str, window: &winit::window::Window) -> Self {
         let entry = Entry::linked();
 
-        let engine_version: u32 = (env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap());
+        let engine_version: u32 = env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap();
 
         let app_info = unsafe {
             vk::ApplicationInfo::builder()
@@ -105,17 +76,19 @@ impl VulkanInstance {
                 .application_version(0) // TODO
                 .engine_name(CStr::from_bytes_with_nul_unchecked(b"Vent-Engine\0"))
                 .engine_version(engine_version)
-                .api_version(vk::API_VERSION_1_2)
+                .api_version(vk::API_VERSION_1_3)
                 .build()
         };
 
         let display_handle = window.display_handle().expect("No Display Handle");
         let window_handle = window.window_handle().expect("No Window Handle");
 
-        let mut extension_names = surface::enumerate_required_extensions(display_handle)
+        let mut extension_names = surface::enumerate_required_extensions(display_handle.as_raw())
             .expect("Unsupported Surface Extension")
             .to_vec();
-        extension_names.push(DebugUtils::name().as_ptr());
+        if ENABLE_VALIDATION_LAYERS {
+            extension_names.push(DebugUtils::name().as_ptr());
+        }
 
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         {
@@ -130,9 +103,13 @@ impl VulkanInstance {
             vk::InstanceCreateFlags::default()
         };
 
+        let (_layer_names, layer_names_ptrs) = get_layer_names_and_pointers();
+        check_validation_layer_support(&entry);
+
         let create_info = vk::InstanceCreateInfo::builder()
             .application_info(&app_info)
             .enabled_extension_names(&extension_names)
+            .enabled_layer_names(&layer_names_ptrs)
             .flags(create_flags)
             .build();
 
@@ -142,9 +119,8 @@ impl VulkanInstance {
                 .expect("Failed Create Vulkan Instance")
         };
         #[cfg(debug_assertions)]
-        let debug_utils_loader = DebugUtils::new(&entry, &instance);
-        #[cfg(debug_assertions)]
-        let debug_messenger = Self::create_debug_messenger(&debug_utils_loader);
+        let (debug_utils_loader, debug_messenger) = setup_debug_messenger(&entry, &instance);
+
         let surface = unsafe {
             surface::create_surface(&entry, &instance, display_handle, window_handle, None)
         }
@@ -153,10 +129,12 @@ impl VulkanInstance {
 
         let (pdevice, graphics_queue_family_index, present_queue_family_index) =
             Self::create_physical_device(&instance, &surface_loader, surface);
+
         let surface_format =
             unsafe { surface_loader.get_physical_device_surface_formats(pdevice, surface) }
                 .unwrap()[0];
         let device = Self::create_device(&instance, pdevice, graphics_queue_family_index);
+
         let graphics_queue = unsafe { device.get_device_queue(graphics_queue_family_index, 0) };
         let present_queue = unsafe { device.get_device_queue(present_queue_family_index, 0) };
 
@@ -173,11 +151,19 @@ impl VulkanInstance {
 
         let (swapchain_image_views, swapchain_images) =
             Self::create_image_views(&device, &swapchain_loader, swapchain, surface_format);
-        let pipeline_layout = Self::create_pipeline_layout(&device);
+
         let render_pass = Self::create_render_pass(&device, surface_format);
 
-        let depth_image =
-            VulkanImage::new_depth(&device, vk::Format::D16_UNORM, surface_resolution);
+        let memory_allocator = MemoryAllocator::new(unsafe {
+            instance.get_physical_device_memory_properties(pdevice)
+        });
+
+        let depth_image = VulkanImage::new_depth(
+            &device,
+            &memory_allocator,
+            Self::get_depth_format(&instance, pdevice),
+            surface_resolution,
+        );
         let frame_buffers = Self::create_frame_buffers(
             &swapchain_image_views,
             render_pass,
@@ -196,12 +182,10 @@ impl VulkanInstance {
             images_in_flight,
         ) = Self::create_sync_objects(&device, &swapchain_images);
 
-        let memory_allocator = MemoryAllocator::new(unsafe {
-            instance.get_physical_device_memory_properties(pdevice)
-        });
-
         let descriptor_pool = Self::create_descriptor_pool(&device);
         let descriptor_set_layout = Self::create_descriptor_set_layout(&device);
+
+        let pipeline_layout = Self::create_pipeline_layout(&device, descriptor_set_layout);
 
         Self {
             memory_allocator,
@@ -211,6 +195,7 @@ impl VulkanInstance {
             surface,
             surface_loader,
             swapchain_loader,
+            surface_resolution,
             swapchain,
             pipeline_layout,
             swapchain_images,
@@ -264,30 +249,40 @@ impl VulkanInstance {
         }
     }
 
-    pub fn submit(&self, image_index: u32, in_flight_fence: vk::Fence) {
-        let wait_semaphores = &[self.image_available_semaphores[self.frame]];
-        let wait_stages = &[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-        let command_buffers = &[self.command_buffers[image_index as usize]];
-        let signal_semaphores = &[self.render_finished_semaphores[self.frame]];
-        let submit_info = vk::SubmitInfo::builder()
-            .wait_semaphores(wait_semaphores)
-            .wait_dst_stage_mask(wait_stages)
-            .command_buffers(command_buffers)
-            .signal_semaphores(signal_semaphores)
+    pub fn submit(&mut self, image_index: u32) {
+        let in_flight_fence = self.in_flight_fences[self.frame];
+
+        let wait_semaphores = vk::SemaphoreSubmitInfo::builder()
+            .semaphore(self.image_available_semaphores[self.frame])
+            .stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
+            .build();
+
+        let command_buffers = vk::CommandBufferSubmitInfo::builder()
+            .command_buffer(self.command_buffers[image_index as usize])
+            .build();
+
+        let signal_semaphores = vk::SemaphoreSubmitInfo::builder()
+            .semaphore(self.render_finished_semaphores[self.frame])
+            .build();
+
+        let submit_info = vk::SubmitInfo2::builder()
+            .wait_semaphore_infos(&[wait_semaphores])
+            .command_buffer_infos(&[command_buffers])
+            .signal_semaphore_infos(&[signal_semaphores])
             .build();
 
         unsafe {
             self.device.reset_fences(&[in_flight_fence]).unwrap();
 
             self.device
-                .queue_submit(self.graphics_queue, &[submit_info], in_flight_fence)
+                .queue_submit2(self.graphics_queue, &[submit_info], in_flight_fence)
                 .unwrap();
         }
 
         let swapchains = &[self.swapchain];
         let image_indices = &[image_index];
         let present_info = vk::PresentInfoKHR::builder()
-            .wait_semaphores(signal_semaphores)
+            .wait_semaphores(&[self.render_finished_semaphores[self.frame]])
             .swapchains(swapchains)
             .image_indices(image_indices)
             .build();
@@ -297,6 +292,7 @@ impl VulkanInstance {
                 .queue_present(self.present_queue, &present_info)
         }
         .unwrap();
+        self.frame = (self.frame + 1) % MAX_FRAMES_IN_FLIGHT as usize;
     }
 
     fn get_depth_format(instance: &ash::Instance, pdevice: vk::PhysicalDevice) -> vk::Format {
@@ -304,6 +300,7 @@ impl VulkanInstance {
             vk::Format::D32_SFLOAT,
             vk::Format::D32_SFLOAT_S8_UINT,
             vk::Format::D24_UNORM_S8_UINT,
+            vk::Format::D16_UNORM,
         ];
 
         Self::get_supported_format(
@@ -331,25 +328,6 @@ impl VulkanInstance {
                 _ => false,
             }
         })
-    }
-
-    #[cfg(debug_assertions)]
-    fn create_debug_messenger(debug_utils_loader: &DebugUtils) -> vk::DebugUtilsMessengerEXT {
-        let debug_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
-            .message_severity(
-                vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
-                    | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
-                    | vk::DebugUtilsMessageSeverityFlagsEXT::INFO,
-            )
-            .message_type(
-                vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
-                    | vk::DebugUtilsMessageTypeFlagsEXT::DEVICE_ADDRESS_BINDING
-                    | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE,
-            )
-            .pfn_user_callback(Some(vulkan_debug_callback))
-            .build();
-
-        unsafe { debug_utils_loader.create_debug_utils_messenger(&debug_info, None) }.unwrap()
     }
 
     fn create_frame_buffers(
@@ -432,8 +410,17 @@ impl VulkanInstance {
             #[cfg(any(target_os = "macos", target_os = "ios"))]
             KhrPortabilitySubsetFn::name().as_ptr(),
         ];
+
+        let mut features_1_3 = vk::PhysicalDeviceVulkan13Features {
+            synchronization2: 1,
+            maintenance4: 1,
+            ..Default::default()
+        };
+
         let features = vk::PhysicalDeviceFeatures {
             shader_clip_distance: 1,
+            sampler_anisotropy: 1,
+
             ..Default::default()
         };
         let priorities = [1.0];
@@ -447,6 +434,7 @@ impl VulkanInstance {
             .queue_create_infos(std::slice::from_ref(&queue_info))
             .enabled_extension_names(&device_extension_names_raw)
             .enabled_features(&features)
+            .push_next(&mut features_1_3)
             .build();
 
         unsafe { instance.create_device(pdevice, &device_create_info, None) }.unwrap()
@@ -610,13 +598,20 @@ impl VulkanInstance {
     }
 
     fn create_descriptor_pool(device: &ash::Device) -> vk::DescriptorPool {
-        let pool_sizes = [vk::DescriptorPoolSize::builder()
-            .ty(vk::DescriptorType::UNIFORM_BUFFER)
-            .descriptor_count(1000)
-            .build()];
+        let pool_sizes = [
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1000,
+            },
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1000,
+            },
+        ];
 
         let create_info = vk::DescriptorPoolCreateInfo::builder()
             .pool_sizes(&pool_sizes)
+            .max_sets(1000)
             .build();
 
         unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
@@ -626,9 +621,9 @@ impl VulkanInstance {
         device: &ash::Device,
         descriptor_pool: vk::DescriptorPool,
         descriptor_set_layout: vk::DescriptorSetLayout,
-        swapchain_images: &Vec<vk::Image>,
+        size: usize,
     ) -> Vec<vk::DescriptorSet> {
-        let layouts = vec![descriptor_set_layout; swapchain_images.len()];
+        let layouts = (0..size).map(|_| descriptor_set_layout).collect::<Vec<_>>();
         let info = vk::DescriptorSetAllocateInfo::builder()
             .descriptor_pool(descriptor_pool)
             .set_layouts(&layouts)
@@ -638,30 +633,52 @@ impl VulkanInstance {
     }
 
     fn create_descriptor_set_layout(device: &ash::Device) -> vk::DescriptorSetLayout {
-        let ubo_binding = vk::DescriptorSetLayoutBinding::builder()
-            .binding(0)
-            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-            .descriptor_count(1)
-            .stage_flags(vk::ShaderStageFlags::VERTEX)
-            .build();
+        let desc_layout_bindings = [
+            // Vertex
+            vk::DescriptorSetLayoutBinding {
+                binding: 0,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::VERTEX,
+                ..Default::default()
+            },
+            // Fragment
+            vk::DescriptorSetLayoutBinding {
+                binding: 1,
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
+            vk::DescriptorSetLayoutBinding {
+                binding: 2,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
+            vk::DescriptorSetLayoutBinding {
+                binding: 3,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
+        ];
 
-        let sampler_binding = vk::DescriptorSetLayoutBinding::builder()
-            .binding(1)
-            .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-            .descriptor_count(1)
-            .stage_flags(vk::ShaderStageFlags::FRAGMENT)
-            .build();
-
-        let bindings = &[ubo_binding, sampler_binding];
         let info = vk::DescriptorSetLayoutCreateInfo::builder()
-            .bindings(bindings)
+            .bindings(&desc_layout_bindings)
             .build();
 
         unsafe { device.create_descriptor_set_layout(&info, None) }.unwrap()
     }
 
-    fn create_pipeline_layout(device: &ash::Device) -> vk::PipelineLayout {
-        let create_info = vk::PipelineLayoutCreateInfo::default();
+    fn create_pipeline_layout(
+        device: &ash::Device,
+        layout: vk::DescriptorSetLayout,
+    ) -> vk::PipelineLayout {
+        let binding = [layout];
+        let create_info = vk::PipelineLayoutCreateInfo::builder().set_layouts(&binding);
 
         unsafe { device.create_pipeline_layout(&create_info, None) }.unwrap()
     }
@@ -725,6 +742,8 @@ impl Drop for VulkanInstance {
     fn drop(&mut self) {
         unsafe {
             self.device.device_wait_idle().unwrap();
+            self.device
+                .destroy_pipeline_layout(self.pipeline_layout, None);
             self.in_flight_fences
                 .iter()
                 .for_each(|f| self.device.destroy_fence(*f, None));

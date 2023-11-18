@@ -1,14 +1,13 @@
 use crate::render::Dimension;
 
 use render::camera::camera_controller3d::CameraController3D;
-use render::camera::{Camera, Camera3D};
 use render::DefaultRuntimeRenderer;
 use simple_logger::SimpleLogger;
 use vent_common::project::VentApplicationProject;
 
 use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
-use winit::event::{DeviceEvent, ElementState, Event, WindowEvent};
+use winit::event::{DeviceEvent, Event, WindowEvent};
 use winit::window::WindowBuilder;
 
 pub mod render;
@@ -45,17 +44,15 @@ impl VentApplication {
         let vent_window = VentWindow::new(window_builder);
 
         // TODO
-        let mut cam = Camera3D::new();
-
         let mut renderer = DefaultRuntimeRenderer::new(
             Dimension::D3,
             &vent_window.window,
             &vent_window.event_loop,
-            &mut cam,
         );
 
         let mut controller = CameraController3D::new(3000.0, 10.0);
         let mut delta_time = 0.0;
+
         vent_window
             .event_loop
             .run(move |event, elwt| {
@@ -72,10 +69,14 @@ impl VentApplication {
                                 controller.process_mouse_input(&vent_window.window, button, state);
                             }
                             WindowEvent::KeyboardInput { event, .. } => {
-                                controller.process_keyboard(&mut cam, event, delta_time);
+                                controller.process_keyboard(
+                                    renderer.camera.downcast_mut().expect("TODO"),
+                                    event,
+                                    delta_time,
+                                );
                             }
                             WindowEvent::Resized(physical_size) => {
-                                renderer.resize(physical_size, &mut cam);
+                                renderer.resize(physical_size);
                             }
                             // WindowEvent::ScaleFactorChanged {
                             //     inner_size_writer, ..
@@ -84,7 +85,7 @@ impl VentApplication {
                             //     renderer.resize(new_inner_size, &mut cam);
                             // }
                             WindowEvent::RedrawRequested => {
-                                delta_time = renderer.render(&vent_window.window, &mut cam);
+                                delta_time = renderer.render(&vent_window.window);
                             }
                             _ => {}
                         }
@@ -92,7 +93,12 @@ impl VentApplication {
                     Event::DeviceEvent {
                         event: DeviceEvent::MouseMotion { delta },
                         ..
-                    } => controller.process_mouse_movement(&mut cam, delta.0, delta.1, delta_time),
+                    } => controller.process_mouse_movement(
+                        renderer.camera.downcast_mut().expect("TODO"),
+                        delta.0,
+                        delta.1,
+                        delta_time,
+                    ),
 
                     // ...
                     _ => {}

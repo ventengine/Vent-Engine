@@ -34,8 +34,8 @@ impl EditorRuntimeRenderer {
 
     pub fn resize(
         &mut self,
-        instance: &VulkanInstance,
-        new_size: &winit::dpi::PhysicalSize<u32>,
+        _instance: &VulkanInstance,
+        _new_size: &winit::dpi::PhysicalSize<u32>,
         _camera: &mut dyn Camera,
     ) {
 

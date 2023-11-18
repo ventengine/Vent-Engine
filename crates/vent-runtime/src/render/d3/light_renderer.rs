@@ -1,5 +1,3 @@
-use std::mem;
-
 use vent_assets::Mesh3D;
 
 #[allow(dead_code)]
@@ -9,17 +7,6 @@ pub struct LightRenderer {
     // pub light_bind_group_layout: wgpu::BindGroupLayout,
     // pub light_bind_group: wgpu::BindGroup,
     // light_render_pipeline: wgpu::RenderPipeline,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct LightUBO {
-    position: [f32; 3],
-    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
-    _padding: u32,
-    color: [f32; 3],
-    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
-    _padding2: u32,
 }
 
 #[allow(dead_code)]
@@ -121,7 +108,7 @@ impl LightRenderer {
     pub fn render(
         &self,
         // camera_bind_group: &'rp wgpu::BindGroup,
-        mesh: &Mesh3D,
+        _mesh: &Mesh3D,
     ) {
         // rpass.set_pipeline(&self.light_render_pipeline);
         // rpass.set_bind_group(0, camera_bind_group, &[]);

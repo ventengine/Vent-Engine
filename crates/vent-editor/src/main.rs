@@ -6,7 +6,7 @@ use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
 use vent_runtime::render::camera::{Camera, Camera3D};
 
-use winit::event::{ElementState, Event, WindowEvent};
+use winit::event::{Event, WindowEvent};
 use winit::window::WindowBuilder;
 
 mod gui;

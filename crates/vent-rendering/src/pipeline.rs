@@ -2,19 +2,25 @@ use std::{ffi::CStr, fs::File};
 
 use ash::{util::read_spv, vk};
 
-use crate::{instance::VulkanInstance, Vertex, Vertex3D};
+use crate::instance::VulkanInstance;
 
-pub fn create_pipeline(
-    instance: VulkanInstance,
+pub fn create_pipeline<'a>(
+    instance: &VulkanInstance,
     vertex_file: String,
     fragment_file: String,
+    binding_desc: vk::VertexInputBindingDescription,
+    attrib_desc: &'a [vk::VertexInputAttributeDescription],
     surface_resolution: vk::Extent2D,
 ) -> vk::Pipeline {
-    let vertex_code = read_spv(&mut File::open(vertex_file).unwrap()).unwrap();
+    let vertex_code =
+        read_spv(&mut File::open(vertex_file + ".spv").expect("Failed to open Vertex File"))
+            .unwrap();
     let vertex_module_info = vk::ShaderModuleCreateInfo::builder()
         .code(&vertex_code)
         .build();
-    let fragment_code = read_spv(&mut File::open(fragment_file).unwrap()).unwrap();
+    let fragment_code =
+        read_spv(&mut File::open(fragment_file + ".spv").expect("Failed to open Vertex File"))
+            .unwrap();
     let fragment_module_info = vk::ShaderModuleCreateInfo::builder()
         .code(&fragment_code)
         .build();
@@ -49,8 +55,8 @@ pub fn create_pipeline(
     ];
 
     let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::builder()
-        .vertex_attribute_descriptions(&Vertex3D::create_input_descriptions())
-        .vertex_binding_descriptions(&[Vertex3D::BINDING_DESCRIPTION])
+        .vertex_attribute_descriptions(&attrib_desc)
+        .vertex_binding_descriptions(&[binding_desc])
         .build();
     let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
         topology: vk::PrimitiveTopology::TRIANGLE_LIST,

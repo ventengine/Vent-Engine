@@ -1,6 +1,3 @@
-use vent_rendering::instance::VulkanInstance;
-use winit::raw_window_handle::DisplayHandle;
-
 use super::{debug_gui::RenderData, GUI};
 
 pub struct EguiRenderer {
@@ -22,7 +19,7 @@ impl EguiRenderer {
         }
     }
 
-    pub fn render(&mut self, render_data: &RenderData) {
+    pub fn render(&mut self, _render_data: &RenderData) {
         // let input = self.state.take_egui_input(window);
         // let output = self.context.run(input, |ctx| {
         //     for gui in self.guis.iter_mut() {
@@ -86,7 +83,7 @@ impl EguiRenderer {
         // )
     }
 
-    pub fn progress_event(&mut self, event: &winit::event::WindowEvent) {
+    pub fn progress_event(&mut self, _event: &winit::event::WindowEvent) {
         // let _ = self.state.on_event(&self.context, event);
     }
 }

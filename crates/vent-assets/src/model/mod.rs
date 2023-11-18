@@ -2,7 +2,6 @@ use std::mem::size_of;
 use std::path::Path;
 
 use ash::vk;
-use bytemuck::{Pod, Zeroable};
 use vent_rendering::allocator::MemoryAllocator;
 use vent_rendering::buffer::VulkanBuffer;
 use vent_rendering::instance::VulkanInstance;
@@ -25,9 +24,20 @@ pub enum ModelError {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
+#[derive(Clone, Copy)]
 pub struct Material {
     pub base_color: [f32; 4],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct Light {
+    position: [f32; 3],
+    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
+    _padding: u32,
+    color: [f32; 3],
+    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
+    _padding2: u32,
 }
 
 impl Model3D {
@@ -51,7 +61,7 @@ impl Model3D {
         device: &ash::Device,
         pipeline_layout: vk::PipelineLayout,
         command_buffer: vk::CommandBuffer,
-        buffer_index: u32,
+        buffer_index: usize,
     ) {
         self.meshes.iter().for_each(|mesh| {
             // rpass.push_debug_group("Bind Mesh");
@@ -60,6 +70,12 @@ impl Model3D {
             // rpass.insert_debug_marker("Draw!");
             mesh.draw(device, command_buffer);
         })
+    }
+
+    pub fn destroy(&mut self, instance: &VulkanInstance) {
+        self.meshes
+            .iter_mut()
+            .for_each(|mesh| mesh.destroy(instance.descriptor_pool, &instance.device));
     }
 }
 
@@ -90,21 +106,25 @@ impl Mesh3D {
         descriptor_sets: Option<Vec<vk::DescriptorSet>>,
         _name: Option<&str>,
     ) -> Self {
-        let vertex_buf = VulkanBuffer::new_init(
-            device,
-            allocator,
-            std::mem::size_of_val(vertices) as vk::DeviceSize,
-            vk::BufferUsageFlags::VERTEX_BUFFER,
-            bytemuck::cast_slice(vertices),
-        );
+        let vertex_buf = unsafe {
+            VulkanBuffer::new_init_type(
+                device,
+                allocator,
+                std::mem::size_of_val(vertices) as vk::DeviceSize,
+                vk::BufferUsageFlags::VERTEX_BUFFER,
+                vertices.as_ptr(),
+            )
+        };
 
-        let index_buf = VulkanBuffer::new_init(
-            device,
-            allocator,
-            (size_of::<Vertex3D>() * indices.len()) as vk::DeviceSize,
-            vk::BufferUsageFlags::INDEX_BUFFER,
-            bytemuck::cast_slice(indices),
-        );
+        let index_buf = unsafe {
+            VulkanBuffer::new_init_type(
+                device,
+                allocator,
+                (size_of::<Vertex3D>() * indices.len()) as vk::DeviceSize, // TODO
+                vk::BufferUsageFlags::INDEX_BUFFER,
+                indices.as_ptr(),
+            )
+        };
 
         Self {
             vertex_buf,
@@ -118,7 +138,7 @@ impl Mesh3D {
         &self,
         device: &ash::Device,
         command_buffer: vk::CommandBuffer,
-        buffer_index: u32,
+        buffer_index: usize,
         pipeline_layout: vk::PipelineLayout,
         with_descriptor_set: bool,
     ) {
@@ -132,7 +152,7 @@ impl Mesh3D {
                         vk::PipelineBindPoint::GRAPHICS,
                         pipeline_layout,
                         0,
-                        &[ds[buffer_index as usize]],
+                        &[ds[buffer_index]],
                         &[],
                     )
                 }
@@ -144,11 +164,15 @@ impl Mesh3D {
         unsafe { device.cmd_draw_indexed(command_buffer, self.index_count, 1, 0, 0, 0) };
     }
 
-    pub fn destroy(self, descriptor_pool: vk::DescriptorPool, device: &ash::Device) {
+    pub fn destroy(&mut self, descriptor_pool: vk::DescriptorPool, device: &ash::Device) {
         self.vertex_buf.destroy(device);
         self.index_buf.destroy(device);
-        if let Some(ds) = self.descriptor_sets {
-            unsafe { device.free_descriptor_sets(descriptor_pool, &ds) };
+        if let Some(ds) = &self.descriptor_sets {
+            unsafe {
+                device
+                    .free_descriptor_sets(descriptor_pool, &ds)
+                    .expect("Failed to free Descriptor")
+            };
         }
     }
 }

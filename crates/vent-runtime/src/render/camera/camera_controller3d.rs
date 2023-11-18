@@ -1,6 +1,6 @@
 use winit::{
     event::{ElementState, KeyEvent},
-    keyboard::{self, Key, NamedKey, PhysicalKey},
+    keyboard::{Key, NamedKey},
 };
 
 use super::Camera3D;

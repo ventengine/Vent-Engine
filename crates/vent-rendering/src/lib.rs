@@ -1,22 +1,34 @@
 use std::mem;
 
 use ash::vk;
-use bytemuck::offset_of;
 
 pub mod allocator;
 pub mod buffer;
+mod debug;
 pub mod image;
 pub mod instance;
 pub mod pipeline;
 mod surface;
 
+// Simple offset_of macro akin to C++ offsetof
+#[macro_export]
+macro_rules! offset_of {
+    ($base:path, $field:ident) => {{
+        #[allow(unused_unsafe)]
+        unsafe {
+            let b: $base = mem::zeroed();
+            std::ptr::addr_of!(b.$field) as isize - std::ptr::addr_of!(b) as isize
+        }
+    }};
+}
+
 pub trait Vertex<'a> {
     const BINDING_DESCRIPTION: vk::VertexInputBindingDescription;
-    fn create_input_descriptions() -> [vk::VertexInputAttributeDescription; 3];
+    fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3];
 }
 
 #[repr(C)]
-#[derive(Default, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy)]
 pub struct Vertex3D {
     pub position: [f32; 3],
     pub tex_coord: [f32; 2],
@@ -30,7 +42,7 @@ impl<'a> Vertex<'a> for Vertex3D {
             stride: mem::size_of::<Self>() as u32,
             input_rate: vk::VertexInputRate::VERTEX,
         };
-    fn create_input_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
+    fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
         [
             vk::VertexInputAttributeDescription {
                 location: 0,
@@ -41,7 +53,7 @@ impl<'a> Vertex<'a> for Vertex3D {
             vk::VertexInputAttributeDescription {
                 location: 1,
                 binding: 0,
-                format: vk::Format::R32G32B32A32_SFLOAT,
+                format: vk::Format::R32G32_SFLOAT,
                 offset: offset_of!(Self, tex_coord) as u32,
             },
             vk::VertexInputAttributeDescription {
@@ -95,19 +107,21 @@ pub fn end_single_time_command(
             .expect("Failed to record Command Buffer at Ending!");
     }
 
-    let buffers_to_submit = [command_buffer];
+    let buffers_to_submit = vk::CommandBufferSubmitInfo::builder()
+        .command_buffer(command_buffer)
+        .build();
 
-    let submit_info = vk::SubmitInfo::builder()
-        .command_buffers(&buffers_to_submit)
+    let submit_info = vk::SubmitInfo2::builder()
+        .command_buffer_infos(&[buffers_to_submit])
         .build();
 
     unsafe {
         device
-            .queue_submit(submit_queue, &[submit_info], vk::Fence::null())
+            .queue_submit2(submit_queue, &[submit_info], vk::Fence::null())
             .expect("Failed to Queue Submit!");
         device
             .queue_wait_idle(submit_queue)
             .expect("Failed to wait Queue idle!");
-        device.free_command_buffers(command_pool, &buffers_to_submit);
+        device.free_command_buffers(command_pool, &[command_buffer]);
     }
 }

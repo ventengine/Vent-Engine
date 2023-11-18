@@ -11,6 +11,8 @@ pub trait Asset {}
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
 pub struct Model3D {
     meshes: Vec<Mesh3D>,
+    write_sets: Vec<vk::WriteDescriptorSet>,
+    buffers: Vec<VulkanBuffer>,
 }
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
 
@@ -23,6 +25,4 @@ pub struct Mesh3D {
     vertex_buf: VulkanBuffer,
     index_buf: VulkanBuffer,
     index_count: u32,
-
-    descriptor_sets: Option<Vec<vk::DescriptorSet>>,
 }

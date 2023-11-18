@@ -1,21 +1,25 @@
+use std::mem::size_of;
+
+use ash::vk;
 use downcast_rs::{impl_downcast, Downcast};
 use glam::{Quat, Vec3};
+use vent_rendering::{buffer::VulkanBuffer, instance::VulkanInstance};
 
 use super::{d3::UBO3D, Dimension};
 
 pub mod camera_controller3d;
 
 pub trait Camera: Downcast {
-    fn new() -> Self
+    fn new(instance: &VulkanInstance) -> Self
     where
         Self: Sized;
 }
 impl_downcast!(Camera);
 
-pub fn from_dimension(dimension: Dimension) -> Box<dyn Camera> {
+pub fn from_dimension(instance: &VulkanInstance, dimension: &Dimension) -> Box<dyn Camera> {
     match dimension {
-        Dimension::D2 => Box::new(Camera2D::new()),
-        Dimension::D3 => Box::new(Camera3D::new()),
+        Dimension::D2 => Box::new(Camera2D::new(instance)),
+        Dimension::D3 => Box::new(Camera3D::new(instance)),
     }
 }
 
@@ -27,7 +31,7 @@ pub struct Camera2D {
 impl Camera for Camera2D {
     #[inline]
     #[must_use]
-    fn new() -> Self
+    fn new(_instance: &VulkanInstance) -> Self
     where
         Self: Sized,
     {
@@ -42,6 +46,7 @@ pub struct Camera3D {
     znear: f32,
     zfar: f32,
     ubo: UBO3D,
+    ubo_buffers: Vec<VulkanBuffer>,
 
     position: glam::Vec3,
     rotation: glam::Quat,
@@ -50,10 +55,20 @@ pub struct Camera3D {
 impl Camera for Camera3D {
     #[inline]
     #[must_use]
-    fn new() -> Self
+    fn new(instance: &VulkanInstance) -> Self
     where
         Self: Sized,
     {
+        let mut ubo_buffers = vec![];
+        for _ in 0..instance.swapchain_images.len() {
+            ubo_buffers.push(VulkanBuffer::new(
+                &instance.device,
+                &instance.memory_allocator,
+                size_of::<UBO3D>() as vk::DeviceSize,
+                vk::BufferUsageFlags::UNIFORM_BUFFER,
+            ))
+        }
+
         Self {
             fovy: 60.0,
             znear: 0.1,
@@ -61,6 +76,7 @@ impl Camera for Camera3D {
             rotation: glam::Quat::IDENTITY,
             position: Vec3::ZERO,
             ubo: Default::default(),
+            ubo_buffers,
         }
     }
 }
@@ -77,6 +93,16 @@ impl Camera3D {
         let projection =
             glam::Mat4::perspective_lh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
         self.ubo.projection = projection.to_cols_array_2d();
+    }
+
+    pub fn write(&self, instance: &VulkanInstance, index: u32) {
+        unsafe {
+            self.ubo_buffers[index as usize].upload_type(
+                &instance.device,
+                &self.ubo,
+                size_of::<UBO3D>() as vk::DeviceSize,
+            )
+        }
     }
 
     pub fn set_x(&mut self, x: f32) {
