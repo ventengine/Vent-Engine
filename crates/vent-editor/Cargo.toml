@@ -17,7 +17,7 @@ ash = { version= "0.37.3", default-features = false, features = ["linked", "debu
 egui = "0.23.0"
 egui_dock = "0.8.2"
 
-winit = "0.29.3"
+winit = "0.29.4"
 pollster = "0.3.0"
 
 log = "0.4"
@@ -25,4 +25,4 @@ log = "0.4"
 # rfd = { version="0.12.1",  default-features = false, features = ["xdg-portal"]}
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
-simple_logger = "4.2.0"
+simple_logger = "4.3.0"

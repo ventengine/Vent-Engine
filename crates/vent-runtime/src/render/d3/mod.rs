@@ -3,7 +3,9 @@ use glam::Mat4;
 use vent_assets::Mesh3D;
 
 use vent_ecs::world::World;
-use vent_rendering::{instance::VulkanInstance, Vertex, Vertex3D};
+use vent_rendering::{
+    buffer::VulkanBuffer, image::VulkanImage, instance::VulkanInstance, Vertex, Vertex3D,
+};
 use winit::dpi::PhysicalSize;
 
 use super::{
@@ -81,10 +83,10 @@ impl Renderer for Renderer3D {
             "/res/models/test/Sponza-GLTF/Sponza.gltf"
         );
 
-        pollster::block_on(async {
-            let mesh = Entity3D::new(vent_assets::Model3D::load(instance, model).await);
-            mesh_renderer.insert(world.create_entity(), mesh);
-        });
+        // pollster::block_on(async {
+        //     let mesh = Entity3D::new(vent_assets::Model3D::load(instance, model).await);
+        //     mesh_renderer.insert(world.create_entity(), mesh);
+        // });
 
         // Record Command Buffers
         let render_area = vk::Rect2D::builder()
@@ -94,7 +96,7 @@ impl Renderer for Renderer3D {
 
         let color_clear_value = vk::ClearValue {
             color: vk::ClearColorValue {
-                float32: [0.0, 0.0, 0.0, 1.0],
+                float32: [0.5, 0.5, 0.5, 1.0],
             },
         };
 
@@ -235,81 +237,81 @@ impl Renderer for Renderer3D {
     }
 }
 
-fn write_sets(
-    instance: &VulkanInstance,
-    diffuse_texture: VulkanImage,
-    uniforms_buffers: &Vec<VulkanBuffer>,
-) -> Vec<vk::DescriptorSet> {
-    let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
-        &instance.device,
-        instance.descriptor_pool,
-        instance.descriptor_set_layout,
-        uniforms_buffers.len(),
-    );
+// fn write_sets(
+//     instance: &VulkanInstance,
+//     diffuse_texture: VulkanImage,
+//     uniforms_buffers: &Vec<VulkanBuffer>,
+// ) -> Vec<vk::DescriptorSet> {
+//     let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
+//         &instance.device,
+//         instance.descriptor_pool,
+//         instance.descriptor_set_layout,
+//         uniforms_buffers.len(),
+//     );
 
-    for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
-        let image_info = vk::DescriptorImageInfo::builder()
-            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-            .image_view(diffuse_texture.image_view)
-            .sampler(diffuse_texture.sampler)
-            .build();
+//     for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
+//         let image_info = vk::DescriptorImageInfo::builder()
+//             .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+//             .image_view(diffuse_texture.image_view)
+//             .sampler(diffuse_texture.sampler)
+//             .build();
 
-        let material_buffer_info = vk::DescriptorBufferInfo::builder()
-            .buffer(uniforms_buffers[i].buffer)
-            .offset(0)
-            .range(size_of::<Material>() as vk::DeviceSize)
-            .build();
+//         let material_buffer_info = vk::DescriptorBufferInfo::builder()
+//             .buffer(uniforms_buffers[i].buffer)
+//             .offset(0)
+//             .range(size_of::<Material>() as vk::DeviceSize)
+//             .build();
 
-        let light_buffer_info = vk::DescriptorBufferInfo::builder()
-            .buffer(uniforms_buffers[i].buffer)
-            .offset(0)
-            .range(size_of::<Light>() as vk::DeviceSize)
-            .build();
+//         let light_buffer_info = vk::DescriptorBufferInfo::builder()
+//             .buffer(uniforms_buffers[i].buffer)
+//             .offset(0)
+//             .range(size_of::<Light>() as vk::DeviceSize)
+//             .build();
 
-        let desc_sets = [
-            // Vertex
-            vk::WriteDescriptorSet {
-                dst_set: descriptor_sets[0],
-                dst_binding: 0,
-                descriptor_count: 1,
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                p_buffer_info: &buffer_info,
-                ..Default::default()
-            },
-            // Fragment
-            vk::WriteDescriptorSet {
-                dst_set: descriptor_sets[0],
-                descriptor_count: 1,
-                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                p_image_info: &image_info,
-                ..Default::default()
-            },
-            vk::WriteDescriptorSet {
-                dst_set: descriptor_sets[0],
-                dst_binding: 1,
-                descriptor_count: 1,
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                p_buffer_info: &material_buffer_info,
-                ..Default::default()
-            },
-            vk::WriteDescriptorSet {
-                dst_set: descriptor_sets[0],
-                dst_binding: 2,
-                descriptor_count: 1,
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                p_buffer_info: &light_buffer_info,
-                ..Default::default()
-            },
-        ];
+//         let desc_sets = [
+//             // Vertex
+//             vk::WriteDescriptorSet {
+//                 dst_set: descriptor_sets[0],
+//                 dst_binding: 0,
+//                 descriptor_count: 1,
+//                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+//                 p_buffer_info: &buffer_info,
+//                 ..Default::default()
+//             },
+//             // Fragment
+//             vk::WriteDescriptorSet {
+//                 dst_set: descriptor_sets[0],
+//                 descriptor_count: 1,
+//                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+//                 p_image_info: &image_info,
+//                 ..Default::default()
+//             },
+//             vk::WriteDescriptorSet {
+//                 dst_set: descriptor_sets[0],
+//                 dst_binding: 1,
+//                 descriptor_count: 1,
+//                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+//                 p_buffer_info: &material_buffer_info,
+//                 ..Default::default()
+//             },
+//             vk::WriteDescriptorSet {
+//                 dst_set: descriptor_sets[0],
+//                 dst_binding: 2,
+//                 descriptor_count: 1,
+//                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+//                 p_buffer_info: &light_buffer_info,
+//                 ..Default::default()
+//             },
+//         ];
 
-        unsafe {
-            instance
-                .device
-                .update_descriptor_sets(&fragment_desc_sets, &[]);
-        }
-    }
-    descriptor_sets
-}
+//         unsafe {
+//             instance
+//                 .device
+//                 .update_descriptor_sets(&fragment_desc_sets, &[]);
+//         }
+//     }
+//     descriptor_sets
+// }
 
 fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
     let indices = [
@@ -370,6 +372,7 @@ fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
         &instance.memory_allocator,
         &vertices,
         &indices,
+        None,
         None,
         None,
     )

@@ -29,17 +29,6 @@ pub struct Material {
     pub base_color: [f32; 4],
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct Light {
-    position: [f32; 3],
-    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
-    _padding: u32,
-    color: [f32; 3],
-    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
-    _padding2: u32,
-}
-
 impl Model3D {
     #[inline]
     pub async fn load<P: AsRef<Path>>(instance: &VulkanInstance, path: P) -> Self {
@@ -104,6 +93,7 @@ impl Mesh3D {
         vertices: &[Vertex3D],
         indices: &[u32],
         descriptor_sets: Option<Vec<vk::DescriptorSet>>,
+        buffers: Option<Vec<VulkanBuffer>>,
         _name: Option<&str>,
     ) -> Self {
         let vertex_buf = unsafe {
@@ -131,6 +121,7 @@ impl Mesh3D {
             index_buf,
             index_count: indices.len() as u32,
             descriptor_sets,
+            buffers,
         }
     }
 

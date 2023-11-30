@@ -28,15 +28,31 @@ impl OBJLoader {
             }
         };
 
-        let meshes = models
-            .into_iter()
-            .map(|model| Self::load_mesh(instance, &model.name, &model.mesh))
-            .collect::<Vec<_>>();
+        let mut meshes = vec![];
+        for model in models.into_iter() {
+            let mesh = Self::load_mesh(&model.mesh);
 
-        let _descriptor_sets = materials
-            .into_iter()
-            .map(|material| Self::load_material(instance, path.parent().unwrap(), &material))
-            .collect::<Vec<_>>();
+            let matieral = Self::load_material(
+                instance,
+                path.parent().unwrap(),
+                &materials[model.mesh.material_id.unwrap()],
+            );
+
+            meshes.push(Mesh3D::new(
+                &instance.device,
+                &instance.memory_allocator,
+                &mesh.0,
+                &mesh.1,
+                None, // TODO
+                Some(matieral.1),
+                Some(&model.name),
+            ));
+        }
+
+        // let _descriptor_sets = materials
+        //     .into_iter()
+        //     .map(|material| Self::load_material(instance, path.parent().unwrap(), &material))
+        //     .collect::<Vec<_>>();
 
         Ok(Model3D { meshes })
     }
@@ -45,7 +61,7 @@ impl OBJLoader {
         instance: &VulkanInstance,
         model_dir: &Path,
         material: &tobj::Material,
-    ) -> Vec<vk::W> {
+    ) -> (Vec<vk::DescriptorSet>, Vec<VulkanBuffer>) {
         let diffuse_texture = if let Some(texture) = &material.diffuse_texture {
             VulkanImage::from_image(
                 &instance.device,
@@ -74,7 +90,10 @@ impl OBJLoader {
         let mut uniform_buffers = vec![];
         Self::create_uniform_buffers(instance, &binding, &mut uniform_buffers);
 
-        Self::write_sets(instance, diffuse_texture, &uniform_buffers)
+        (
+            Self::write_sets(instance, diffuse_texture, &uniform_buffers),
+            uniform_buffers,
+        )
     }
 
     fn create_uniform_buffers(
@@ -143,12 +162,7 @@ impl OBJLoader {
         descriptor_sets
     }
 
-    fn load_mesh(
-        instance: &VulkanInstance,
-        // bind_group: Vec<vk::DescriptorSet>, TODO
-        name: &str,
-        mesh: &tobj::Mesh,
-    ) -> Mesh3D {
+    fn load_mesh(mesh: &tobj::Mesh) -> (Vec<Vertex3D>, &[u32]) {
         let vertices = (0..mesh.positions.len() / 3)
             .map(|i| Vertex3D {
                 position: [
@@ -164,14 +178,6 @@ impl OBJLoader {
                 ],
             })
             .collect::<Vec<_>>();
-
-        Mesh3D::new(
-            &instance.device,
-            &instance.memory_allocator,
-            &vertices,
-            &mesh.indices,
-            None, // TODO
-            Some(name),
-        )
+        (vertices, &mesh.indices)
     }
 }

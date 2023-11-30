@@ -13,7 +13,7 @@ use vent_rendering::{
 
 use crate::Model3D;
 
-use super::{Light, Material, Mesh3D, ModelError};
+use super::{Material, Mesh3D, ModelError};
 
 pub(crate) struct GLTFLoader {}
 
@@ -75,13 +75,18 @@ impl GLTFLoader {
                     let loaded_material =
                         Self::load_material(instance, model_dir, primitive.material(), buffer_data);
 
-                    let loaded_mesh = Self::load_primitive(
-                        instance,
-                        loaded_material,
+                    let primitive = Self::load_primitive(buffer_data, primitive);
+
+                    let loaded_mesh = Mesh3D::new(
+                        &instance.device,
+                        &instance.memory_allocator,
+                        &primitive.0,
+                        &primitive.1,
+                        Some(loaded_material.0),
+                        Some(loaded_material.1),
                         mesh.name(),
-                        buffer_data,
-                        primitive,
                     );
+
                     tx.send(loaded_mesh).unwrap();
                 });
             }
@@ -98,7 +103,7 @@ impl GLTFLoader {
         material: gltf::Material<'_>,
         buffer_data: &[gltf::buffer::Data],
         // image_data: &[gltf::image::Data],
-    ) -> Vec<vk::DescriptorSet> {
+    ) -> (Vec<vk::DescriptorSet>, Vec<VulkanBuffer>) {
         let pbr = material.pbr_metallic_roughness();
 
         let diffuse_texture = if let Some(texture) = pbr.base_color_texture() {
@@ -162,7 +167,10 @@ impl GLTFLoader {
 
         let mut uniform_buffers = Self::create_uniform_buffers(instance, &binding);
 
-        Self::write_sets(instance, diffuse_texture, &uniform_buffers)
+        (
+            Self::write_sets(instance, diffuse_texture, &uniform_buffers),
+            uniform_buffers,
+        )
     }
 
     fn create_uniform_buffers(instance: &VulkanInstance, material: &Material) -> Vec<VulkanBuffer> {
@@ -207,22 +215,22 @@ impl GLTFLoader {
                 .range(size_of::<Material>() as vk::DeviceSize)
                 .build();
 
-            let light_buffer_info = vk::DescriptorBufferInfo::builder()
-                .buffer(uniforms_buffers[i].buffer)
-                .offset(0)
-                .range(size_of::<Light>() as vk::DeviceSize)
-                .build();
+            // let light_buffer_info = vk::DescriptorBufferInfo::builder()
+            //     .buffer(uniforms_buffers[i].buffer)
+            //     .offset(0)
+            //     .range(size_of::<Light>() as vk::DeviceSize)
+            //     .build();
 
             let desc_sets = [
                 // Vertex
-                vk::WriteDescriptorSet {
-                    dst_set: descriptor_sets[0],
-                    dst_binding: 0,
-                    descriptor_count: 1,
-                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                    p_buffer_info: &buffer_info,
-                    ..Default::default()
-                },
+                // vk::WriteDescriptorSet {
+                //     dst_set: descriptor_sets[0],
+                //     dst_binding: 0,
+                //     descriptor_count: 1,
+                //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                //     p_buffer_info: &buffer_info,
+                //     ..Default::default()
+                // },
                 // Fragment
                 vk::WriteDescriptorSet {
                     dst_set: descriptor_sets[0],
@@ -239,20 +247,18 @@ impl GLTFLoader {
                     p_buffer_info: &material_buffer_info,
                     ..Default::default()
                 },
-                vk::WriteDescriptorSet {
-                    dst_set: descriptor_sets[0],
-                    dst_binding: 2,
-                    descriptor_count: 1,
-                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                    p_buffer_info: &light_buffer_info,
-                    ..Default::default()
-                },
+                // vk::WriteDescriptorSet {
+                //     dst_set: descriptor_sets[0],
+                //     dst_binding: 2,
+                //     descriptor_count: 1,
+                //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                //     p_buffer_info: &light_buffer_info,
+                //     ..Default::default()
+                // },
             ];
 
             unsafe {
-                instance
-                    .device
-                    .update_descriptor_sets(&fragment_desc_sets, &[]);
+                instance.device.update_descriptor_sets(&desc_sets, &[]);
             }
         }
         descriptor_sets
@@ -314,12 +320,9 @@ impl GLTFLoader {
     }
 
     fn load_primitive(
-        instance: &VulkanInstance,
-        bind_group: Vec<vk::DescriptorSet>,
-        name: Option<&str>,
         buffer_data: &[gltf::buffer::Data],
         primitive: gltf::Primitive,
-    ) -> Mesh3D {
+    ) -> (Vec<Vertex3D>, Vec<u32>) {
         let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
 
         let mut vertices: Vec<Vertex3D> = reader
@@ -345,14 +348,6 @@ impl GLTFLoader {
         }
 
         let indices: Vec<_> = reader.read_indices().unwrap().into_u32().collect();
-
-        Mesh3D::new(
-            &instance.device,
-            &instance.memory_allocator,
-            &vertices,
-            &indices,
-            Some(bind_group),
-            name,
-        )
+        (vertices, indices)
     }
 }

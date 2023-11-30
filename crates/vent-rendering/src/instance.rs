@@ -2,6 +2,7 @@ use ash::extensions::khr::{Surface, Swapchain};
 use ash::vk::{Extent2D, SwapchainKHR};
 use ash::{extensions::ext::DebugUtils, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
+use std::ffi::CString;
 use std::{default::Default, ffi::CStr};
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -130,6 +131,9 @@ impl VulkanInstance {
         let (pdevice, graphics_queue_family_index, present_queue_family_index) =
             Self::create_physical_device(&instance, &surface_loader, surface);
 
+        let info = unsafe { instance.get_physical_device_properties(pdevice) };
+        log::info!("Selected graphics device (`{}`).", unsafe { CStr::from_ptr(info.device_name.as_ptr()).to_string_lossy() } );
+
         let surface_format =
             unsafe { surface_loader.get_physical_device_surface_formats(pdevice, surface) }
                 .unwrap()[0];
@@ -152,18 +156,16 @@ impl VulkanInstance {
         let (swapchain_image_views, swapchain_images) =
             Self::create_image_views(&device, &swapchain_loader, swapchain, surface_format);
 
-        let render_pass = Self::create_render_pass(&device, surface_format);
+        let depth_format = Self::get_depth_format(&instance, pdevice);
+
+        let render_pass = Self::create_render_pass(&device, surface_format, depth_format);
 
         let memory_allocator = MemoryAllocator::new(unsafe {
             instance.get_physical_device_memory_properties(pdevice)
         });
 
-        let depth_image = VulkanImage::new_depth(
-            &device,
-            &memory_allocator,
-            Self::get_depth_format(&instance, pdevice),
-            surface_resolution,
-        );
+        let depth_image =
+            VulkanImage::new_depth(&device, &memory_allocator, depth_format, surface_resolution);
         let frame_buffers = Self::create_frame_buffers(
             &swapchain_image_views,
             render_pass,
@@ -238,10 +240,10 @@ impl VulkanInstance {
                 vk::Fence::null(),
             ) {
                 Ok((index, _)) => {
-                    let image_in_flight = self.images_in_flight[index as usize];
-                    self.device
-                        .wait_for_fences(&[image_in_flight], true, u64::max_value())
-                        .unwrap();
+                    // let image_in_flight = self.images_in_flight[index as usize];
+                    // self.device
+                    //     .wait_for_fences(&[image_in_flight], true, u64::max_value())
+                    //     .unwrap();
                     Some(index)
                 }
                 Err(_) => None,
@@ -263,6 +265,7 @@ impl VulkanInstance {
 
         let signal_semaphores = vk::SemaphoreSubmitInfo::builder()
             .semaphore(self.render_finished_semaphores[self.frame])
+            .stage_mask(vk::PipelineStageFlags2::ALL_GRAPHICS)
             .build();
 
         let submit_info = vk::SubmitInfo2::builder()
@@ -686,6 +689,7 @@ impl VulkanInstance {
     fn create_render_pass(
         device: &ash::Device,
         surface_format: vk::SurfaceFormatKHR,
+        depth_format: vk::Format,
     ) -> vk::RenderPass {
         let renderpass_attachments = [
             vk::AttachmentDescription {
@@ -697,10 +701,9 @@ impl VulkanInstance {
                 ..Default::default()
             },
             vk::AttachmentDescription {
-                format: vk::Format::D16_UNORM,
+                format: depth_format,
                 samples: vk::SampleCountFlags::TYPE_1,
                 load_op: vk::AttachmentLoadOp::CLEAR,
-                initial_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 ..Default::default()
             },
@@ -742,6 +745,7 @@ impl Drop for VulkanInstance {
     fn drop(&mut self) {
         unsafe {
             self.device.device_wait_idle().unwrap();
+
             self.device
                 .destroy_pipeline_layout(self.pipeline_layout, None);
             self.in_flight_fences
@@ -764,6 +768,11 @@ impl Drop for VulkanInstance {
                 .iter()
                 .for_each(|f| self.device.destroy_framebuffer(*f, None));
             self.depth_image.destroy(&self.device);
+
+            self.device
+                .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+            self.device
+                .destroy_descriptor_pool(self.descriptor_pool, None);
 
             self.device
                 .free_command_buffers(self.command_pool, &self.command_buffers);
