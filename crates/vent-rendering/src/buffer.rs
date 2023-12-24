@@ -1,4 +1,4 @@
-use std::ptr::copy_nonoverlapping;
+use std::{mem::align_of, ptr::copy_nonoverlapping};
 
 use ash::vk;
 
@@ -32,6 +32,12 @@ impl VulkanBuffer {
             requirements,
             vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::HOST_VISIBLE,
         );
+
+        unsafe {
+            device
+                .bind_buffer_memory(buffer, buffer_memory, 0)
+                .expect("Failed to bind Buffer Memory");
+        }
 
         Self {
             buffer,
@@ -78,7 +84,8 @@ impl VulkanBuffer {
             let memory = device
                 .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
                 .unwrap();
-            copy_nonoverlapping(data.as_ptr(), memory.cast(), data.len());
+            let mut align = ash::util::Align::new(memory, align_of::<f32>() as _, size);
+            align.copy_from_slice(&data);
             device.unmap_memory(self.buffer_memory);
         }
     }
@@ -93,18 +100,12 @@ impl VulkanBuffer {
             let memory = device
                 .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
                 .unwrap();
-            copy_nonoverlapping(data, memory.cast(), 1);
+            let mut align = ash::util::Align::new(memory, align_of::<f32>() as _, size);
+            align.copy_from_slice(&[data]);
             device.unmap_memory(self.buffer_memory);
         }
     }
 
-    pub fn bind(&self, device: &ash::Device) {
-        unsafe {
-            device
-                .bind_buffer_memory(self.buffer, self.buffer_memory, 0)
-                .expect("Failed to bind Buffer Memory");
-        }
-    }
 
     pub fn destroy(&mut self, device: &ash::Device) {
         unsafe {

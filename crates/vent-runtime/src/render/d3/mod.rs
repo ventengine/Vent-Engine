@@ -1,3 +1,5 @@
+use std::mem::size_of;
+
 use ash::vk;
 use glam::Mat4;
 use vent_assets::Mesh3D;
@@ -8,6 +10,8 @@ use vent_rendering::{
 };
 use winit::dpi::PhysicalSize;
 
+use self::light_renderer::LightUBO;
+
 use super::{
     camera::{Camera, Camera3D},
     model::Entity3D,
@@ -17,11 +21,15 @@ use super::{
 
 pub mod light_renderer;
 
-#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MaterialUBO {
+    pub base_color: [f32; 4],
+}
+
 #[derive(Clone, Copy)]
 pub struct UBO3D {
     pub view_position: [f32; 3],
-    pub _padding: u32,
+    // pub _padding: u32,
     pub projection: [[f32; 4]; 4],
     pub view: [[f32; 4]; 4],
     pub transformation: [[f32; 4]; 4],
@@ -31,7 +39,6 @@ impl Default for UBO3D {
     fn default() -> Self {
         Self {
             view_position: Default::default(),
-            _padding: Default::default(),
             projection: Default::default(),
             view: Default::default(),
             transformation: Mat4::IDENTITY.to_cols_array_2d(),
@@ -83,10 +90,122 @@ impl Renderer for Renderer3D {
             "/res/models/test/Sponza-GLTF/Sponza.gltf"
         );
 
-        // pollster::block_on(async {
-        //     let mesh = Entity3D::new(vent_assets::Model3D::load(instance, model).await);
-        //     mesh_renderer.insert(world.create_entity(), mesh);
-        // });
+
+        pollster::block_on(async {
+            let mut mesh = Entity3D::new(vent_assets::Model3D::load(instance, model).await);
+            for mesh in mesh.rendering_model.meshes.iter_mut() {
+                if let Some(material) = &mesh.material {
+                    let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
+                        &instance.device,
+                        instance.descriptor_pool,
+                        instance.descriptor_set_layout,
+                        instance.swapchain_images.len(),
+                    );
+
+                    let mut material_buffers = vec![];
+                    let mut light_buffers = vec![];
+
+                    for _ in 0..instance.swapchain_images.len() {
+                        let buffer = unsafe {
+                            VulkanBuffer::new_init_type(
+                                &instance.device,
+                                &instance.memory_allocator,
+                                size_of::<MaterialUBO>() as vk::DeviceSize,
+                                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                                &MaterialUBO {
+                                    base_color: material.base_color,
+                                },
+                            )
+                        };
+                        material_buffers.push(buffer);
+                        let buffer = unsafe {
+                            VulkanBuffer::new_init_type(
+                                &instance.device,
+                                &instance.memory_allocator,
+                                size_of::<LightUBO>() as vk::DeviceSize,
+                                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                                &LightUBO {
+                                    position: [2.0, 100.0, 2.0],
+                                    color: [1.0, 1.0, 1.0],
+                                },
+                            )
+                        };
+                        light_buffers.push(buffer)
+                    }
+
+                    for (i, &descriptor_set) in descriptor_sets.iter().enumerate() {
+                        let diffuse_texture = &material.diffuse_texture;
+
+                        let image_info = vk::DescriptorImageInfo::builder()
+                            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+                            .image_view(diffuse_texture.image_view)
+                            .sampler(diffuse_texture.sampler)
+                            .build();
+
+                        let camera_info = vk::DescriptorBufferInfo::builder()
+                            .buffer(camera.ubo_buffers[i].buffer)
+                            .offset(0)
+                            .range(size_of::<UBO3D>() as vk::DeviceSize)
+                            .build();
+
+                        let material_buffer_info = vk::DescriptorBufferInfo::builder()
+                            .buffer(material_buffers[i].buffer)
+                            .offset(0)
+                            .range(size_of::<MaterialUBO>() as vk::DeviceSize)
+                            .build();
+
+                        let light_buffer_info = vk::DescriptorBufferInfo::builder()
+                            .buffer(light_buffers[i].buffer)
+                            .offset(0)
+                            .range(size_of::<LightUBO>() as vk::DeviceSize)
+                            .build();
+
+                        let desc_sets = [
+                            vk::WriteDescriptorSet {
+                                dst_set: descriptor_set,
+                                dst_binding: 0,
+                                descriptor_count: 1,
+                                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                                p_buffer_info: &camera_info,
+                                ..Default::default()
+                            },
+                            vk::WriteDescriptorSet {
+                                dst_set: descriptor_set,
+                                dst_binding: 1, // From DescriptorSetLayoutBinding
+                                descriptor_count: 1,
+                                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                                p_image_info: &image_info,
+                                ..Default::default()
+                            },
+                            vk::WriteDescriptorSet {
+                                dst_set: descriptor_set,
+                                dst_binding: 2,
+                                descriptor_count: 1,
+                                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                                p_buffer_info: &material_buffer_info,
+                                ..Default::default()
+                            },
+                            vk::WriteDescriptorSet {
+                                dst_set: descriptor_set,
+                                dst_binding: 3,
+                                descriptor_count: 1,
+                                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                                p_buffer_info: &light_buffer_info,
+                                ..Default::default()
+                            },
+                        ];
+
+                        unsafe {
+                            instance.device.update_descriptor_sets(&desc_sets, &[]);
+                        }
+
+                    }
+                    mesh.set_descriptor_set(descriptor_sets);
+                }
+            }
+
+            mesh_renderer.insert(world.create_entity(), mesh);
+        });
 
         // Record Command Buffers
         let render_area = vk::Rect2D::builder()
@@ -121,16 +240,38 @@ impl Renderer for Renderer3D {
                     .render_area(render_area)
                     .clear_values(clear_values);
 
-                instance.device.cmd_begin_render_pass(
-                    *command_buffer,
-                    &info,
-                    vk::SubpassContents::INLINE,
-                );
+                let subpass_info =
+                    vk::SubpassBeginInfo::builder().contents(vk::SubpassContents::INLINE);
+
+                instance
+                    .device
+                    .cmd_begin_render_pass2(*command_buffer, &info, &subpass_info);
                 instance.device.cmd_bind_pipeline(
                     *command_buffer,
                     vk::PipelineBindPoint::GRAPHICS,
                     pipeline,
                 );
+
+                // instance.device.cmd_bind_descriptor_sets(
+                //     *command_buffer,
+                //     vk::PipelineBindPoint::GRAPHICS,
+                //     instance.pipeline_layout,
+                //     0,
+                //     &descriptor_sets,
+                //     &[],
+                // );
+
+                instance
+                    .device
+                    .cmd_set_scissor(*command_buffer, 0, &[render_area]);
+
+                let viewport = vk::Viewport::builder()
+                    .height(instance.surface_resolution.height as f32)
+                    .width(instance.surface_resolution.width as f32)
+                    .max_depth(1.0);
+                instance
+                    .device
+                    .cmd_set_viewport(*command_buffer, 0, &[*viewport]);
 
                 mesh_renderer.record_buffer(
                     instance,
@@ -141,7 +282,10 @@ impl Renderer for Renderer3D {
                 );
 
                 // END
-                instance.device.cmd_end_render_pass(*command_buffer);
+                let subpass_end_info = vk::SubpassEndInfo::default();
+                instance
+                    .device
+                    .cmd_end_render_pass2(*command_buffer, &subpass_end_info);
                 instance.device.end_command_buffer(*command_buffer);
             }
         }
@@ -372,7 +516,6 @@ fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
         &instance.memory_allocator,
         &vertices,
         &indices,
-        None,
         None,
         None,
     )

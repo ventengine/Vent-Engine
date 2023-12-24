@@ -17,5 +17,5 @@ ash = { version= "0.37.3", default-features = false, features = ["linked"] }
 
 # model
 tobj = { version = "4.0.0", features = ["async"] }
-gltf = "1.3.0"
+gltf = "1.4.0"
 

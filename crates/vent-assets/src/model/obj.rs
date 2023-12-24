@@ -44,7 +44,6 @@ impl OBJLoader {
                 &mesh.0,
                 &mesh.1,
                 None, // TODO
-                Some(matieral.1),
                 Some(&model.name),
             ));
         }
@@ -61,7 +60,7 @@ impl OBJLoader {
         instance: &VulkanInstance,
         model_dir: &Path,
         material: &tobj::Material,
-    ) -> (Vec<vk::DescriptorSet>, Vec<VulkanBuffer>) {
+    ) -> Material {
         let diffuse_texture = if let Some(texture) = &material.diffuse_texture {
             VulkanImage::from_image(
                 &instance.device,
@@ -81,85 +80,14 @@ impl OBJLoader {
                 },
             )
         };
-        let diffuse = material.diffuse.unwrap_or([1.0, 1.0, 1.0]);
+        let base_color = material.diffuse.unwrap_or([1.0, 1.0, 1.0]);
+        // OBJ does not have an Alpha :c
+        let base_color = [base_color[0], base_color[1], base_color[2], 1.0];
 
-        let binding = Material {
-            base_color: [diffuse[0], diffuse[1], diffuse[2], 1.0],
-        };
-
-        let mut uniform_buffers = vec![];
-        Self::create_uniform_buffers(instance, &binding, &mut uniform_buffers);
-
-        (
-            Self::write_sets(instance, diffuse_texture, &uniform_buffers),
-            uniform_buffers,
-        )
-    }
-
-    fn create_uniform_buffers(
-        instance: &VulkanInstance,
-        material: &Material,
-        uniform_buffers: &mut Vec<VulkanBuffer>,
-    ) {
-        for _ in 0..instance.swapchain_images.len() {
-            let buffer = unsafe {
-                VulkanBuffer::new_init_type(
-                    &instance.device,
-                    &instance.memory_allocator,
-                    size_of::<Material>() as vk::DeviceSize,
-                    vk::BufferUsageFlags::UNIFORM_BUFFER,
-                    material,
-                )
-            };
-            uniform_buffers.push(buffer)
+        Material {
+            diffuse_texture,
+            base_color,
         }
-    }
-
-    fn write_sets(
-        instance: &VulkanInstance,
-        diffuse_texture: VulkanImage,
-        uniforms_buffers: &Vec<VulkanBuffer>,
-    ) -> Vec<vk::DescriptorSet> {
-        let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
-            &instance.device,
-            instance.descriptor_pool,
-            instance.descriptor_set_layout,
-            uniforms_buffers.len(),
-        );
-
-        for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
-            let image_info = vk::DescriptorImageInfo::builder()
-                .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(diffuse_texture.image_view)
-                .sampler(diffuse_texture.sampler)
-                .build();
-
-            let _sampler_write = vk::WriteDescriptorSet::builder()
-                .dst_set(descriptor_sets[i])
-                .dst_binding(0)
-                .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .image_info(&[image_info]);
-
-            let buffer_info = vk::DescriptorBufferInfo::builder()
-                .buffer(uniforms_buffers[i].buffer)
-                .offset(0)
-                .range(size_of::<Material>() as vk::DeviceSize)
-                .build();
-
-            let ubo_write = vk::WriteDescriptorSet::builder()
-                .dst_set(descriptor_sets[i])
-                .dst_binding(1)
-                .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                .buffer_info(&[buffer_info])
-                .build();
-
-            unsafe {
-                instance.device.update_descriptor_sets(&[ubo_write], &[]);
-            }
-        }
-        descriptor_sets
     }
 
     fn load_mesh(mesh: &tobj::Mesh) -> (Vec<Vertex3D>, &[u32]) {

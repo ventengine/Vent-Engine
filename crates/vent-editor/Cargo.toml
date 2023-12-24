@@ -17,7 +17,7 @@ ash = { version= "0.37.3", default-features = false, features = ["linked", "debu
 egui = "0.23.0"
 egui_dock = "0.8.2"
 
-winit = "0.29.4"
+winit = "0.29.5"
 pollster = "0.3.0"
 
 log = "0.4"

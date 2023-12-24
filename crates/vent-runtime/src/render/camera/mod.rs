@@ -13,6 +13,8 @@ pub trait Camera: Downcast {
     fn new(instance: &VulkanInstance) -> Self
     where
         Self: Sized;
+
+    fn destroy(&mut self, pool: vk::DescriptorPool, device: &ash::Device);
 }
 impl_downcast!(Camera);
 
@@ -39,6 +41,10 @@ impl Camera for Camera2D {
             position: glam::Vec2::ZERO,
         }
     }
+
+    fn destroy(&mut self, pool: vk::DescriptorPool, device: &ash::Device) {
+        todo!()
+    }
 }
 
 pub struct Camera3D {
@@ -46,7 +52,7 @@ pub struct Camera3D {
     znear: f32,
     zfar: f32,
     ubo: UBO3D,
-    ubo_buffers: Vec<VulkanBuffer>,
+    pub ubo_buffers: Vec<VulkanBuffer>,
 
     position: glam::Vec3,
     rotation: glam::Quat,
@@ -79,9 +85,15 @@ impl Camera for Camera3D {
             ubo_buffers,
         }
     }
+
+    fn destroy(&mut self, pool: vk::DescriptorPool, device: &ash::Device) {
+        self.ubo_buffers.iter_mut().for_each(|f| f.destroy(device))
+    }
 }
 
 impl Camera3D {
+    pub fn update_set() {}
+
     fn recreate_view(&mut self) {
         let view =
             glam::Mat4::look_to_lh(self.position, self.direction_from_rotation(), glam::Vec3::Y);

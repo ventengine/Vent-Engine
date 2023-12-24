@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use ash::vk;
 use vent_rendering::instance::VulkanInstance;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
@@ -59,6 +60,8 @@ impl DefaultRuntimeRenderer {
 
 impl Drop for DefaultRuntimeRenderer {
     fn drop(&mut self) {
+        self.camera
+            .destroy(self.instance.descriptor_pool, &self.instance.device);
         self.runtime_renderer.destroy(&self.instance);
     }
 }
@@ -135,9 +138,18 @@ impl RawRuntimeRenderer {
 
         let image = instance.next_image();
 
-        if let Some(image_index) = image {
-            self.multi_renderer.render(instance, image_index, camera);
-            instance.submit(image_index);
+        match image {
+            Ok((image_index, _)) => {
+                self.multi_renderer.render(instance, image_index, camera);
+                instance.submit(image_index);
+            }
+            Err(err) => {
+                // if err == vk::Result::ERROR_OUT_OF_DATE_KHR {
+                //     self.resize(instance, instance.surface_resolution, camera)
+                // } else if err == vk::Result::ERROR_SURFACE_LOST_KHR {
+                //     self.resize(instance, instance.surface_resolution, camera)
+                // }
+            }
         }
 
         // self.gui_renderer.render(

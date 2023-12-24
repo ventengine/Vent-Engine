@@ -8,7 +8,7 @@ use vent_rendering::instance::VulkanInstance;
 use vent_rendering::Vertex3D;
 use vent_sdk::utils::stopwatch::Stopwatch;
 
-use crate::{Mesh3D, Model3D};
+use crate::{Material, Mesh3D, Model3D};
 
 use self::gltf::GLTFLoader;
 use self::obj::OBJLoader;
@@ -23,16 +23,11 @@ pub enum ModelError {
     LoadingError(String),
 }
 
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct Material {
-    pub base_color: [f32; 4],
-}
-
 impl Model3D {
     #[inline]
     pub async fn load<P: AsRef<Path>>(instance: &VulkanInstance, path: P) -> Self {
         let sw = Stopwatch::new_and_start();
+        log::info!("Loading new Model...");
         let model = load_model_from_path(instance, path.as_ref())
             .await
             .expect("Failed to Load 3D Model");
@@ -92,8 +87,7 @@ impl Mesh3D {
         allocator: &MemoryAllocator,
         vertices: &[Vertex3D],
         indices: &[u32],
-        descriptor_sets: Option<Vec<vk::DescriptorSet>>,
-        buffers: Option<Vec<VulkanBuffer>>,
+        material: Option<Material>,
         _name: Option<&str>,
     ) -> Self {
         let vertex_buf = unsafe {
@@ -120,9 +114,13 @@ impl Mesh3D {
             vertex_buf,
             index_buf,
             index_count: indices.len() as u32,
-            descriptor_sets,
-            buffers,
+            material,
+            descriptor_set: None,
         }
+    }
+
+    pub fn set_descriptor_set(&mut self, descriptor_set: Vec<vk::DescriptorSet>) {
+        self.descriptor_set = Some(descriptor_set);
     }
 
     pub fn bind(
@@ -137,13 +135,13 @@ impl Mesh3D {
             device.cmd_bind_vertex_buffers(command_buffer, 0, &[*self.vertex_buf], &[0]);
             device.cmd_bind_index_buffer(command_buffer, *self.index_buf, 0, vk::IndexType::UINT32);
             if with_descriptor_set {
-                if let Some(ds) = &self.descriptor_sets {
+                if let Some(ds) = &self.descriptor_set {
                     device.cmd_bind_descriptor_sets(
                         command_buffer,
                         vk::PipelineBindPoint::GRAPHICS,
                         pipeline_layout,
                         0,
-                        &[ds[buffer_index]],
+                        &ds[buffer_index..=buffer_index],
                         &[],
                     )
                 }
@@ -158,12 +156,11 @@ impl Mesh3D {
     pub fn destroy(&mut self, descriptor_pool: vk::DescriptorPool, device: &ash::Device) {
         self.vertex_buf.destroy(device);
         self.index_buf.destroy(device);
-        if let Some(ds) = &self.descriptor_sets {
-            unsafe {
-                device
-                    .free_descriptor_sets(descriptor_pool, &ds)
-                    .expect("Failed to free Descriptor")
-            };
+        if let Some(descriptor_set) = &mut self.descriptor_set {
+            unsafe { device.free_descriptor_sets(descriptor_pool, descriptor_set) };
+        }
+        if let Some(material) = &mut self.material {
+            material.diffuse_texture.destroy(device);
         }
     }
 }

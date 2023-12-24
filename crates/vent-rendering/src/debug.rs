@@ -1,5 +1,5 @@
 use ash::extensions::ext::DebugUtils;
-use ash::{vk, Entry, Instance};
+use ash::{vk, Device, Entry, Instance};
 use std::os::raw::c_void;
 use std::{
     ffi::{CStr, CString},
@@ -67,6 +67,7 @@ pub fn check_validation_layer_support(entry: &Entry) {
 }
 
 /// Setup the debug message if validation layers are enabled.
+#[must_use]
 pub fn setup_debug_messenger(
     entry: &Entry,
     instance: &Instance,

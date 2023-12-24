@@ -1,5 +1,5 @@
 use ash::vk;
-use vent_rendering::buffer::VulkanBuffer;
+use vent_rendering::{buffer::VulkanBuffer, image::VulkanImage};
 
 pub mod model;
 pub mod pool;
@@ -10,7 +10,7 @@ pub trait Asset {}
 /// A Full Model that can be Loaded from a 3D Model File
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
 pub struct Model3D {
-    meshes: Vec<Mesh3D>,
+    pub meshes: Vec<Mesh3D>,
 }
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
 
@@ -23,6 +23,12 @@ pub struct Mesh3D {
     vertex_buf: VulkanBuffer,
     index_buf: VulkanBuffer,
     index_count: u32,
-    descriptor_sets: Option<Vec<vk::DescriptorSet>>,
-    buffers: Option<Vec<VulkanBuffer>>,
+    // So every App is Specfic and you will need to create your own DescriptorSet's out of this
+    pub material: Option<Material>,
+    pub descriptor_set: Option<Vec<vk::DescriptorSet>>,
+}
+
+pub struct Material {
+    pub diffuse_texture: VulkanImage,
+    pub base_color: [f32; 4],
 }

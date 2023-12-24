@@ -11,9 +11,9 @@ use vent_rendering::{
     buffer::VulkanBuffer, image::VulkanImage, instance::VulkanInstance, Vertex3D,
 };
 
-use crate::Model3D;
+use crate::{Material, Model3D};
 
-use super::{Material, Mesh3D, ModelError};
+use super::{Mesh3D, ModelError};
 
 pub(crate) struct GLTFLoader {}
 
@@ -44,56 +44,83 @@ impl GLTFLoader {
         meshes: &mut Vec<Mesh3D>,
     ) {
         if let Some(mesh) = node.mesh() {
-            Self::load_mesh_multithreaded(instance, model_dir, mesh, buffer_data, meshes);
+            Self::load_mesh_singlethreaded(instance, model_dir, mesh, buffer_data, meshes);
         }
 
         node.children()
             .for_each(|child| Self::load_node(instance, model_dir, child, buffer_data, meshes))
     }
 
-    fn load_mesh_multithreaded(
+    // fn load_mesh_multithreaded(
+    //     instance: &VulkanInstance,
+    //     camera_set: vk::WriteDescriptorSet,
+    //     model_dir: &Path,
+    //     mesh: gltf::Mesh,
+    //     buffer_data: &[gltf::buffer::Data],
+    //     meshes: &mut Vec<Mesh3D>,
+    // ) {
+    //     let primitive_len = mesh.primitives().size_hint().0;
+    //     let (tx, rx) = sync::mpsc::sync_channel(primitive_len); // Create bounded channels
+
+    //     // Spawn threads to load mesh primitive
+    //     thread::scope(|s| {
+    //         let tx = tx.clone();
+    //         for primitive in mesh.primitives() {
+    //             let tx = tx.clone();
+    //             let camera_set = camera_set.clone();
+    //             let mesh = mesh.clone();
+    //             let instance = instance;
+    //             let model_dir = model_dir;
+    //             let buffer_data = buffer_data;
+
+    //             s.spawn(move || {
+    //                 let loaded_material =
+    //                     Self::load_material(instance, camera_set, model_dir, primitive.material(), buffer_data);
+
+    //                 let primitive = Self::load_primitive(buffer_data, primitive);
+
+    //                 let loaded_mesh = Mesh3D::new(
+    //                     &instance.device,
+    //                     &instance.memory_allocator,
+    //                     &primitive.0,
+    //                     &primitive.1,
+    //                     Some(loaded_material),
+    //                     mesh.name(),
+    //                 );
+
+    //                 tx.send(loaded_mesh).unwrap();
+    //             });
+    //         }
+    //     });
+    //     for _ in 0..primitive_len {
+    //         let mesh = rx.recv().unwrap();
+    //         meshes.push(mesh);
+    //     }
+    // }
+
+    #[deprecated]
+    fn load_mesh_singlethreaded(
         instance: &VulkanInstance,
         model_dir: &Path,
         mesh: gltf::Mesh,
         buffer_data: &[gltf::buffer::Data],
         meshes: &mut Vec<Mesh3D>,
     ) {
-        let primitive_len = mesh.primitives().size_hint().0;
-        let (tx, rx) = sync::mpsc::sync_channel(primitive_len); // Create bounded channels
+        for primitive in mesh.primitives() {
+            let loaded_material =
+                Self::load_material(instance, model_dir, primitive.material(), buffer_data);
 
-        // Spawn threads to load mesh primitive
-        thread::scope(|s| {
-            let tx = tx.clone();
-            for primitive in mesh.primitives() {
-                let tx = tx.clone();
-                let mesh = mesh.clone();
-                let instance = instance;
-                let model_dir = model_dir;
-                let buffer_data = buffer_data;
+            let primitive = Self::load_primitive(buffer_data, primitive);
 
-                s.spawn(move || {
-                    let loaded_material =
-                        Self::load_material(instance, model_dir, primitive.material(), buffer_data);
-
-                    let primitive = Self::load_primitive(buffer_data, primitive);
-
-                    let loaded_mesh = Mesh3D::new(
-                        &instance.device,
-                        &instance.memory_allocator,
-                        &primitive.0,
-                        &primitive.1,
-                        Some(loaded_material.0),
-                        Some(loaded_material.1),
-                        mesh.name(),
-                    );
-
-                    tx.send(loaded_mesh).unwrap();
-                });
-            }
-        });
-        for _ in 0..primitive_len {
-            let mesh = rx.recv().unwrap();
-            meshes.push(mesh);
+            let loaded_mesh = Mesh3D::new(
+                &instance.device,
+                &instance.memory_allocator,
+                &primitive.0,
+                &primitive.1,
+                Some(loaded_material),
+                mesh.name(),
+            );
+            meshes.push(loaded_mesh);
         }
     }
 
@@ -103,7 +130,7 @@ impl GLTFLoader {
         material: gltf::Material<'_>,
         buffer_data: &[gltf::buffer::Data],
         // image_data: &[gltf::image::Data],
-    ) -> (Vec<vk::DescriptorSet>, Vec<VulkanBuffer>) {
+    ) -> Material {
         let pbr = material.pbr_metallic_roughness();
 
         let diffuse_texture = if let Some(texture) = pbr.base_color_texture() {
@@ -151,6 +178,7 @@ impl GLTFLoader {
                 }
             }
         } else {
+            // Default Diffuse color
             VulkanImage::from_color(
                 &instance.device,
                 [255, 255, 255, 255],
@@ -161,107 +189,10 @@ impl GLTFLoader {
             )
         };
 
-        let binding = Material {
+        Material {
+            diffuse_texture,
             base_color: pbr.base_color_factor(),
-        };
-
-        let mut uniform_buffers = Self::create_uniform_buffers(instance, &binding);
-
-        (
-            Self::write_sets(instance, diffuse_texture, &uniform_buffers),
-            uniform_buffers,
-        )
-    }
-
-    fn create_uniform_buffers(instance: &VulkanInstance, material: &Material) -> Vec<VulkanBuffer> {
-        let mut uniform_buffers = vec![];
-        for _ in 0..instance.swapchain_images.len() {
-            let buffer = unsafe {
-                VulkanBuffer::new_init_type(
-                    &instance.device,
-                    &instance.memory_allocator,
-                    size_of::<Material>() as vk::DeviceSize,
-                    vk::BufferUsageFlags::UNIFORM_BUFFER,
-                    material,
-                )
-            };
-            uniform_buffers.push(buffer)
         }
-        uniform_buffers
-    }
-
-    fn write_sets(
-        instance: &VulkanInstance,
-        diffuse_texture: VulkanImage,
-        uniforms_buffers: &Vec<VulkanBuffer>,
-    ) -> Vec<vk::DescriptorSet> {
-        let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
-            &instance.device,
-            instance.descriptor_pool,
-            instance.descriptor_set_layout,
-            uniforms_buffers.len(),
-        );
-
-        for (i, &_descritptor_set) in descriptor_sets.iter().enumerate() {
-            let image_info = vk::DescriptorImageInfo::builder()
-                .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(diffuse_texture.image_view)
-                .sampler(diffuse_texture.sampler)
-                .build();
-
-            let material_buffer_info = vk::DescriptorBufferInfo::builder()
-                .buffer(uniforms_buffers[i].buffer)
-                .offset(0)
-                .range(size_of::<Material>() as vk::DeviceSize)
-                .build();
-
-            // let light_buffer_info = vk::DescriptorBufferInfo::builder()
-            //     .buffer(uniforms_buffers[i].buffer)
-            //     .offset(0)
-            //     .range(size_of::<Light>() as vk::DeviceSize)
-            //     .build();
-
-            let desc_sets = [
-                // Vertex
-                // vk::WriteDescriptorSet {
-                //     dst_set: descriptor_sets[0],
-                //     dst_binding: 0,
-                //     descriptor_count: 1,
-                //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                //     p_buffer_info: &buffer_info,
-                //     ..Default::default()
-                // },
-                // Fragment
-                vk::WriteDescriptorSet {
-                    dst_set: descriptor_sets[0],
-                    descriptor_count: 1,
-                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                    p_image_info: &image_info,
-                    ..Default::default()
-                },
-                vk::WriteDescriptorSet {
-                    dst_set: descriptor_sets[0],
-                    dst_binding: 1,
-                    descriptor_count: 1,
-                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                    p_buffer_info: &material_buffer_info,
-                    ..Default::default()
-                },
-                // vk::WriteDescriptorSet {
-                //     dst_set: descriptor_sets[0],
-                //     dst_binding: 2,
-                //     descriptor_count: 1,
-                //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                //     p_buffer_info: &light_buffer_info,
-                //     ..Default::default()
-                // },
-            ];
-
-            unsafe {
-                instance.device.update_descriptor_sets(&desc_sets, &[]);
-            }
-        }
-        descriptor_sets
     }
 
     /// Converts an gltf Texture Sampler into Vulkan Sampler Info

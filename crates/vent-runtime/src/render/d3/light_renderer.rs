@@ -1,14 +1,15 @@
 use vent_assets::Mesh3D;
 
-#[repr(C)]
+use crate::render::model_renderer::ModelRenderer3D;
+
 #[derive(Copy, Clone)]
 pub struct LightUBO {
-    position: [f32; 3],
+    pub position: [f32; 3],
     // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
-    _padding: u32,
-    color: [f32; 3],
+    //  _padding: u32,
+    pub color: [f32; 3],
     // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
-    _padding2: u32,
+    // _padding2: u32,
 }
 
 #[allow(dead_code)]
@@ -22,17 +23,11 @@ pub struct LightRenderer {
 
 #[allow(dead_code)]
 impl LightRenderer {
-    pub fn new(// device: &wgpu::Device,
-        // camera_bind_group_layout: &wgpu::BindGroupLayout,
-        // format: wgpu::TextureFormat,
-    ) -> Self {
-        todo!()
-        // let light_uniform = LightUBO {
-        //     position: [2.0, 100.0, 2.0],
-        //     _padding: 0,
-        //     color: [1.0, 1.0, 1.0],
-        //     _padding2: 0,
-        // };
+    pub fn new(device: &ash::Device, model_renderer: &ModelRenderer3D) -> Self {
+        let light_uniform = LightUBO {
+            position: [2.0, 100.0, 2.0],
+            color: [1.0, 1.0, 1.0],
+        };
 
         // let light_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         //     label: Some("Light VB"),
@@ -107,13 +102,13 @@ impl LightRenderer {
         //         multiview: None,
         //     });
 
-        // Self {
-        //     light_uniform,
-        //     light_buffer,
-        //     light_bind_group_layout,
-        //     light_bind_group,
-        //     light_render_pipeline,
-        // }
+        Self {
+            light_uniform,
+            // light_buffer,
+            // light_bind_group_layout,
+            // light_bind_group,
+            // light_render_pipeline,
+        }
     }
 
     pub fn render(

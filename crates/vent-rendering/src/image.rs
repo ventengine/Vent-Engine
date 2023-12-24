@@ -149,8 +149,6 @@ impl VulkanImage {
         width: u32,
         height: u32,
     ) {
-        staging_buffer.bind(device);
-
         let command_buffer = begin_single_time_command(device, command_pool);
 
         let image_barrier = vk::ImageMemoryBarrier2 {

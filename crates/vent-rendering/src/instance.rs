@@ -1,4 +1,5 @@
 use ash::extensions::khr::{Surface, Swapchain};
+use ash::prelude::VkResult;
 use ash::vk::{Extent2D, SwapchainKHR};
 use ash::{extensions::ext::DebugUtils, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
@@ -132,7 +133,9 @@ impl VulkanInstance {
             Self::create_physical_device(&instance, &surface_loader, surface);
 
         let info = unsafe { instance.get_physical_device_properties(pdevice) };
-        log::info!("Selected graphics device (`{}`).", unsafe { CStr::from_ptr(info.device_name.as_ptr()).to_string_lossy() } );
+        log::info!("Selected graphics device (`{}`).", unsafe {
+            CStr::from_ptr(info.device_name.as_ptr()).to_string_lossy()
+        });
 
         let surface_format =
             unsafe { surface_loader.get_physical_device_surface_formats(pdevice, surface) }
@@ -223,8 +226,8 @@ impl VulkanInstance {
         }
     }
 
-    // Returns None if Surface should be resized else returns image index
-    pub fn next_image(&self) -> Option<u32> {
+    // returns the next image's index and whether the swapchain is suboptimal for the surface.
+    pub fn next_image(&self) -> VkResult<(u32, bool)> {
         let in_flight_fence = self.in_flight_fences[self.frame];
 
         unsafe {
@@ -233,21 +236,12 @@ impl VulkanInstance {
         }
         .unwrap();
         unsafe {
-            match self.swapchain_loader.acquire_next_image(
+            self.swapchain_loader.acquire_next_image(
                 self.swapchain,
                 u64::MAX,
                 self.image_available_semaphores[self.frame],
                 vk::Fence::null(),
-            ) {
-                Ok((index, _)) => {
-                    // let image_in_flight = self.images_in_flight[index as usize];
-                    // self.device
-                    //     .wait_for_fences(&[image_in_flight], true, u64::max_value())
-                    //     .unwrap();
-                    Some(index)
-                }
-                Err(_) => None,
-            }
+            )
         }
     }
 
@@ -265,7 +259,7 @@ impl VulkanInstance {
 
         let signal_semaphores = vk::SemaphoreSubmitInfo::builder()
             .semaphore(self.render_finished_semaphores[self.frame])
-            .stage_mask(vk::PipelineStageFlags2::ALL_GRAPHICS)
+            //  .stage_mask(vk::PipelineStageFlags2::ALL_GRAPHICS)
             .build();
 
         let submit_info = vk::SubmitInfo2::builder()
@@ -692,7 +686,7 @@ impl VulkanInstance {
         depth_format: vk::Format,
     ) -> vk::RenderPass {
         let renderpass_attachments = [
-            vk::AttachmentDescription {
+            vk::AttachmentDescription2 {
                 format: surface_format.format,
                 samples: vk::SampleCountFlags::TYPE_1,
                 load_op: vk::AttachmentLoadOp::CLEAR,
@@ -700,7 +694,7 @@ impl VulkanInstance {
                 final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
                 ..Default::default()
             },
-            vk::AttachmentDescription {
+            vk::AttachmentDescription2 {
                 format: depth_format,
                 samples: vk::SampleCountFlags::TYPE_1,
                 load_op: vk::AttachmentLoadOp::CLEAR,
@@ -708,15 +702,17 @@ impl VulkanInstance {
                 ..Default::default()
             },
         ];
-        let color_attachment_refs = [vk::AttachmentReference {
+        let color_attachment_refs = [vk::AttachmentReference2 {
             attachment: 0,
             layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+            ..Default::default()
         }];
-        let depth_attachment_ref = vk::AttachmentReference {
+        let depth_attachment_ref = vk::AttachmentReference2 {
             attachment: 1,
             layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            ..Default::default()
         };
-        let dependencies = [vk::SubpassDependency {
+        let dependencies = [vk::SubpassDependency2 {
             src_subpass: vk::SUBPASS_EXTERNAL,
             src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
             dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_READ
@@ -725,19 +721,19 @@ impl VulkanInstance {
             ..Default::default()
         }];
 
-        let subpass = vk::SubpassDescription::builder()
+        let subpass = vk::SubpassDescription2::builder()
             .color_attachments(&color_attachment_refs)
             .depth_stencil_attachment(&depth_attachment_ref)
             .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
             .build();
 
-        let create_info = vk::RenderPassCreateInfo::builder()
+        let create_info = vk::RenderPassCreateInfo2::builder()
             .attachments(&renderpass_attachments)
             .subpasses(std::slice::from_ref(&subpass))
             .dependencies(&dependencies)
             .build();
 
-        unsafe { device.create_render_pass(&create_info, None) }.unwrap()
+        unsafe { device.create_render_pass2(&create_info, None) }.unwrap()
     }
 }
 
