@@ -223,7 +223,7 @@ impl Renderer for Renderer3D {
         let camera: &mut Camera3D = camera.downcast_mut().unwrap();
 
         camera.recreate_view();
-        camera.write(instance, image_index as u32);
+        camera.write(instance, image_index);
 
         let image_index = image_index as usize;
 

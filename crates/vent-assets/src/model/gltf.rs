@@ -2,10 +2,7 @@ use std::{
     fs::{self, File},
     io::BufReader,
     path::Path,
-    sync::{
-        self,
-        mpsc::{channel, sync_channel},
-    },
+    sync::{self},
     thread,
 };
 
@@ -86,7 +83,7 @@ impl GLTFLoader {
 
                     tx.send((material_data, primitive)).unwrap();
                 });
-            };
+            }
         });
         for _ in 0..primitive_len {
             let (material_data, primitive) = rx.recv().unwrap();
@@ -117,14 +114,12 @@ impl GLTFLoader {
 
         let diffuse_texture = if let Some(texture) = pbr.base_color_texture() {
             match texture.texture().source().source() {
-                gltf::image::Source::View {
-                    view,
-                    mime_type,
-                } => {
+                gltf::image::Source::View { view, mime_type } => {
                     let sampler = texture.texture().sampler();
                     let image = image::load_from_memory_with_format(
                         &buffer_data[view.buffer().index()],
-                        image::ImageFormat::from_mime_type(mime_type).expect("TODO: Error Handling"),
+                        image::ImageFormat::from_mime_type(mime_type)
+                            .expect("TODO: Error Handling"),
                     )
                     .unwrap();
                     (image, Some(sampler))

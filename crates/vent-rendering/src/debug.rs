@@ -77,7 +77,7 @@ pub fn get_validation_features() -> vk::ValidationFeaturesEXT {
             .enabled_validation_features(&features)
             .build();
     } else {
-        return vk::ValidationFeaturesEXT::default();
+        vk::ValidationFeaturesEXT::default()
     }
 }
 

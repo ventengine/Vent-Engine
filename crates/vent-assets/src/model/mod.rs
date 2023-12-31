@@ -1,4 +1,3 @@
-use std::mem::size_of;
 use std::path::Path;
 
 use ash::vk;
@@ -93,7 +92,7 @@ impl Mesh3D {
         let vertex_buf = VulkanBuffer::new_init(
             device,
             allocator,
-            (size_of::<Vertex3D>() * vertices.len()) as vk::DeviceSize,
+            std::mem::size_of_val(vertices) as vk::DeviceSize,
             vk::BufferUsageFlags::VERTEX_BUFFER,
             vertices,
         );
@@ -101,7 +100,7 @@ impl Mesh3D {
         let index_buf = VulkanBuffer::new_init(
             device,
             allocator,
-            (size_of::<u32>() * indices.len()) as vk::DeviceSize,
+            std::mem::size_of_val(indices) as vk::DeviceSize,
             vk::BufferUsageFlags::INDEX_BUFFER,
             indices,
         );
