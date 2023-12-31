@@ -1,15 +1,12 @@
+use glam::Vec3;
 use vent_assets::Mesh3D;
 
 use crate::render::model_renderer::ModelRenderer3D;
 
 #[derive(Copy, Clone)]
 pub struct LightUBO {
-    pub position: [f32; 3],
-    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
-    //  _padding: u32,
-    pub color: [f32; 3],
-    // Due to uniforms requiring 16 byte (4 float) spacing, we need to use a padding field here
-    // _padding2: u32,
+    pub position: Vec3,
+    pub color: Vec3,
 }
 
 #[allow(dead_code)]
@@ -23,10 +20,10 @@ pub struct LightRenderer {
 
 #[allow(dead_code)]
 impl LightRenderer {
-    pub fn new(device: &ash::Device, model_renderer: &ModelRenderer3D) -> Self {
+    pub fn new(_device: &ash::Device, _model_renderer: &ModelRenderer3D) -> Self {
         let light_uniform = LightUBO {
-            position: [2.0, 100.0, 2.0],
-            color: [1.0, 1.0, 1.0],
+            position: [2.0, 100.0, 2.0].into(),
+            color: [1.0, 1.0, 1.0].into(),
         };
 
         // let light_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

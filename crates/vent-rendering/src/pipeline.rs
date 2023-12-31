@@ -4,12 +4,12 @@ use ash::{util::read_spv, vk};
 
 use crate::instance::VulkanInstance;
 
-pub fn create_pipeline<'a>(
+pub fn create_pipeline(
     instance: &VulkanInstance,
     vertex_file: String,
     fragment_file: String,
     binding_desc: vk::VertexInputBindingDescription,
-    attrib_desc: &'a [vk::VertexInputAttributeDescription],
+    attrib_desc: &[vk::VertexInputAttributeDescription],
     surface_resolution: vk::Extent2D,
 ) -> vk::Pipeline {
     let vertex_code =
@@ -55,7 +55,7 @@ pub fn create_pipeline<'a>(
     ];
 
     let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::builder()
-        .vertex_attribute_descriptions(&attrib_desc)
+        .vertex_attribute_descriptions(attrib_desc)
         .vertex_binding_descriptions(&[binding_desc])
         .build();
     let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
@@ -80,44 +80,30 @@ pub fn create_pipeline<'a>(
         front_face: vk::FrontFace::COUNTER_CLOCKWISE,
         line_width: 1.0,
         polygon_mode: vk::PolygonMode::FILL,
+        cull_mode: vk::CullModeFlags::BACK,
         ..Default::default()
     };
     let multisample_state_info = vk::PipelineMultisampleStateCreateInfo {
         rasterization_samples: vk::SampleCountFlags::TYPE_1,
         ..Default::default()
     };
-    let noop_stencil_state = vk::StencilOpState {
-        fail_op: vk::StencilOp::KEEP,
-        pass_op: vk::StencilOp::KEEP,
-        depth_fail_op: vk::StencilOp::KEEP,
-        compare_op: vk::CompareOp::ALWAYS,
-        ..Default::default()
-    };
-    let depth_state_info = vk::PipelineDepthStencilStateCreateInfo {
-        depth_test_enable: 1,
-        depth_write_enable: 1,
-        depth_compare_op: vk::CompareOp::LESS_OR_EQUAL,
-        front: noop_stencil_state,
-        back: noop_stencil_state,
-        max_depth_bounds: 1.0,
-        ..Default::default()
-    };
+
+    let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::builder()
+        .depth_test_enable(true)
+        .depth_write_enable(true)
+        .depth_compare_op(vk::CompareOp::LESS)
+        .max_depth_bounds(1.0)
+        .build();
     let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
-        blend_enable: 0,
-        src_color_blend_factor: vk::BlendFactor::SRC_COLOR,
-        dst_color_blend_factor: vk::BlendFactor::ONE_MINUS_DST_COLOR,
-        color_blend_op: vk::BlendOp::ADD,
-        src_alpha_blend_factor: vk::BlendFactor::ZERO,
-        dst_alpha_blend_factor: vk::BlendFactor::ZERO,
-        alpha_blend_op: vk::BlendOp::ADD,
         color_write_mask: vk::ColorComponentFlags::RGBA,
+        ..Default::default()
     }];
     let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
-        .logic_op(vk::LogicOp::CLEAR)
+        .logic_op(vk::LogicOp::COPY)
         .attachments(&color_blend_attachment_states)
         .build();
 
-    let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
+    let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]; // TODO
     let dynamic_state_info = vk::PipelineDynamicStateCreateInfo::builder()
         .dynamic_states(&dynamic_state)
         .build();

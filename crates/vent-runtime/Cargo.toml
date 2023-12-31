@@ -13,7 +13,7 @@ vent-ecs = { path = "../vent-ecs"}
 
 ash = { version= "0.37.3", default-features = false, features = ["linked", "debug"] }
 
-winit = "0.29.5"
+winit = "0.29.7"
 pollster = "0.3.0"
 log = "0.4"
 
@@ -21,8 +21,8 @@ glam = "0.25"
 downcast-rs = "1.2.0"
 
 # egui
-egui = "0.23.0"
-egui-winit = "0.23.0"
+egui = "0.24.1"
+egui-winit = "0.24.1"
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
 simple_logger = "4.3.0"

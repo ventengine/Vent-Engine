@@ -56,7 +56,7 @@ impl ModelRenderer3D {
         ubo: &mut UBO3D,
     ) {
         for model in self.map.values() {
-            ubo.transformation = Self::calc_trans_matrix(model).to_cols_array_2d();
+            ubo.transformation = Self::calc_trans_matrix(model);
             model.rendering_model.draw(
                 &instance.device,
                 pipeline_layout,

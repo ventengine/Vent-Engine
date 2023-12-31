@@ -1,4 +1,4 @@
-use std::{mem::align_of, ptr::copy_nonoverlapping};
+use std::mem::align_of;
 
 use ash::vk;
 
@@ -11,6 +11,9 @@ pub struct VulkanBuffer {
 
 impl VulkanBuffer {
     // Size = (size_of::<Vertex>() * SIZE)
+    /**
+     * Allocates & Binds new uninitialized Memory based on Size and Usage
+     */
     pub fn new(
         device: &ash::Device,
         allocator: &MemoryAllocator,
@@ -36,7 +39,7 @@ impl VulkanBuffer {
         unsafe {
             device
                 .bind_buffer_memory(buffer, buffer_memory, 0)
-                .expect("Failed to bind Buffer Memory");
+                .expect("Failed to bind Buffer memory");
         }
 
         Self {
@@ -45,6 +48,9 @@ impl VulkanBuffer {
         }
     }
 
+    /**
+     * Allocates new Image memory & binds them
+     */
     pub fn new_image(
         device: &ash::Device,
         allocator: &MemoryAllocator,
@@ -52,22 +58,32 @@ impl VulkanBuffer {
     ) -> vk::DeviceMemory {
         let requirements = unsafe { device.get_image_memory_requirements(image) };
 
-        allocator.allocate(device, requirements, vk::MemoryPropertyFlags::DEVICE_LOCAL)
+        let memory =
+            allocator.allocate(device, requirements, vk::MemoryPropertyFlags::DEVICE_LOCAL);
+        unsafe {
+            device
+                .bind_image_memory(image, memory, 0)
+                .expect("Unable to bind Image memory")
+        };
+        memory
     }
 
-    pub fn new_init(
+    /**
+     * Allocates & Binds new initialized Memory based on Size and Usage
+     */
+    pub fn new_init<T: Copy>(
         device: &ash::Device,
         allocator: &MemoryAllocator,
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
-        data: &[u8],
+        data: &[T],
     ) -> Self {
         let buffer = Self::new(device, allocator, size, usage);
         buffer.upload_data(device, data, size);
         buffer
     }
 
-    pub unsafe fn new_init_type<T>(
+    pub fn new_init_type<T>(
         device: &ash::Device,
         allocator: &MemoryAllocator,
         size: vk::DeviceSize,
@@ -79,23 +95,18 @@ impl VulkanBuffer {
         buffer
     }
 
-    pub fn upload_data(&self, device: &ash::Device, data: &[u8], size: vk::DeviceSize) {
+    pub fn upload_data<T: Copy>(&self, device: &ash::Device, data: &[T], size: vk::DeviceSize) {
         unsafe {
             let memory = device
                 .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
                 .unwrap();
-            let mut align = ash::util::Align::new(memory, align_of::<f32>() as _, size);
-            align.copy_from_slice(&data);
+            let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
+            align.copy_from_slice(data);
             device.unmap_memory(self.buffer_memory);
         }
     }
 
-    pub unsafe fn upload_type<T>(
-        &self,
-        device: &ash::Device,
-        data: *const T,
-        size: vk::DeviceSize,
-    ) {
+    pub fn upload_type<T>(&self, device: &ash::Device, data: *const T, size: vk::DeviceSize) {
         unsafe {
             let memory = device
                 .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
@@ -106,11 +117,10 @@ impl VulkanBuffer {
         }
     }
 
-
     pub fn destroy(&mut self, device: &ash::Device) {
         unsafe {
-            device.destroy_buffer(self.buffer, None);
             device.free_memory(self.buffer_memory, None);
+            device.destroy_buffer(self.buffer, None);
         }
     }
 }

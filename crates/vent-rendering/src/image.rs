@@ -52,9 +52,7 @@ impl VulkanImage {
             }
             _ => image.to_rgb8().into_raw(),
         };
-        let image_data_size =
-            (std::mem::size_of::<u8>() as u32 * image_size.width * image_size.height * 4)
-                as vk::DeviceSize;
+        let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
 
         let mut staging_buffer = VulkanBuffer::new_init(
             device,
@@ -71,11 +69,7 @@ impl VulkanImage {
             vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
         );
         let memory = VulkanBuffer::new_image(device, allocator, image);
-        unsafe {
-            device
-                .bind_image_memory(image, memory, 0)
-                .expect("Unable to bind depth image memory")
-        };
+
         Self::copy_buffer_to_image(
             device,
             image,
@@ -120,11 +114,6 @@ impl VulkanImage {
             vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
         );
         let memory = VulkanBuffer::new_image(device, allocator, image);
-        unsafe {
-            device
-                .bind_image_memory(image, memory, 0)
-                .expect("Unable to bind depth image memory")
-        };
         let image_view =
             Self::create_image_view(image, device, format, vk::ImageAspectFlags::DEPTH);
 
@@ -135,9 +124,23 @@ impl VulkanImage {
         }
     }
 
-    pub fn from_color(_device: &ash::Device, color: [u8; 4], size: Extent2D) -> Self {
-        let _img = image::RgbaImage::from_pixel(size.width, size.height, image::Rgba(color));
-        todo!()
+    pub fn from_color(
+        device: &ash::Device,
+        command_pool: vk::CommandPool,
+        allocator: &MemoryAllocator,
+        submit_queue: vk::Queue,
+        color: [u8; 4],
+        size: Extent2D,
+    ) -> Self {
+        let color_img = image::RgbaImage::from_pixel(size.width, size.height, image::Rgba(color));
+        Self::from_image(
+            device,
+            image::DynamicImage::ImageRgba8(color_img),
+            command_pool,
+            allocator,
+            submit_queue,
+            None,
+        )
     }
 
     pub fn copy_buffer_to_image(
@@ -156,7 +159,7 @@ impl VulkanImage {
             new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             src_stage_mask: vk::PipelineStageFlags2::BOTTOM_OF_PIPE,
             dst_stage_mask: vk::PipelineStageFlags2::TRANSFER,
-            image: image,
+            image,
             subresource_range: vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::COLOR,
                 level_count: 1,
@@ -209,7 +212,7 @@ impl VulkanImage {
             dst_stage_mask: vk::PipelineStageFlags2::FRAGMENT_SHADER,
             old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            image: image,
+            image,
             subresource_range: vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::COLOR,
                 level_count: 1,
@@ -230,7 +233,7 @@ impl VulkanImage {
         end_single_time_command(device, command_pool, submit_queue, command_buffer);
     }
 
-    fn default_sampler() -> vk::SamplerCreateInfo {
+    pub fn default_sampler() -> vk::SamplerCreateInfo {
         vk::SamplerCreateInfo::builder()
             .mag_filter(Self::DEFAULT_TEXTURE_FILTER)
             .min_filter(Self::DEFAULT_TEXTURE_FILTER)
@@ -251,7 +254,7 @@ impl VulkanImage {
         format: vk::Format,
         mask: vk::ImageAspectFlags,
     ) -> vk::ImageView {
-        let depth_image_view_info = vk::ImageViewCreateInfo::builder()
+        let image_view_info = vk::ImageViewCreateInfo::builder()
             .subresource_range(
                 vk::ImageSubresourceRange::builder()
                     .aspect_mask(mask)
@@ -264,7 +267,7 @@ impl VulkanImage {
             .view_type(vk::ImageViewType::TYPE_2D)
             .build();
 
-        unsafe { device.create_image_view(&depth_image_view_info, None) }.unwrap()
+        unsafe { device.create_image_view(&image_view_info, None) }.unwrap()
     }
 
     fn create_image(
@@ -284,8 +287,8 @@ impl VulkanImage {
             .usage(usage)
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .build();
-        let image = unsafe { device.create_image(&create_info, None) }.unwrap();
-        image
+
+        unsafe { device.create_image(&create_info, None) }.unwrap()
     }
 
     pub fn destroy(&mut self, device: &ash::Device) {
@@ -293,9 +296,9 @@ impl VulkanImage {
             device.destroy_image_view(self.image_view, None);
             device.destroy_image(self.image, None);
             device.destroy_sampler(self.sampler, None);
-            self.memory.map(|memory| {
+            if let Some(memory) = self.memory {
                 device.free_memory(memory, None);
-            });
+            }
         }
     }
 }

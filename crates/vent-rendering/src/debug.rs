@@ -1,5 +1,5 @@
 use ash::extensions::ext::DebugUtils;
-use ash::{vk, Device, Entry, Instance};
+use ash::{vk, Entry, Instance};
 use std::os::raw::c_void;
 use std::{
     ffi::{CStr, CString},
@@ -66,6 +66,21 @@ pub fn check_validation_layer_support(entry: &Entry) {
     }
 }
 
+pub fn get_validation_features() -> vk::ValidationFeaturesEXT {
+    if ENABLE_VALIDATION_LAYERS {
+        let features = [
+            vk::ValidationFeatureEnableEXT::BEST_PRACTICES,
+            vk::ValidationFeatureEnableEXT::SYNCHRONIZATION_VALIDATION,
+        ];
+
+        return vk::ValidationFeaturesEXT::builder()
+            .enabled_validation_features(&features)
+            .build();
+    } else {
+        return vk::ValidationFeaturesEXT::default();
+    }
+}
+
 /// Setup the debug message if validation layers are enabled.
 #[must_use]
 pub fn setup_debug_messenger(
@@ -74,7 +89,8 @@ pub fn setup_debug_messenger(
 ) -> (DebugUtils, vk::DebugUtilsMessengerEXT) {
     let create_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
         .message_severity(
-            vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
+            vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+                | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
                 | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
                 | vk::DebugUtilsMessageSeverityFlagsEXT::INFO,
         )

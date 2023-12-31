@@ -7,6 +7,12 @@ pub struct EguiRenderer {
     guis: Vec<Box<dyn GUI>>,
 }
 
+impl Default for EguiRenderer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EguiRenderer {
     pub fn new() -> Self {
         //let renderer = egui_winit_ash_integration::Integration::new(event_loop, );

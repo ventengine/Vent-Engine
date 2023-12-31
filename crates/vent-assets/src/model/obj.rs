@@ -1,9 +1,7 @@
-use std::{mem::size_of, path::Path};
+use std::path::Path;
 
 use ash::vk;
-use vent_rendering::{
-    buffer::VulkanBuffer, image::VulkanImage, instance::VulkanInstance, Vertex3D,
-};
+use vent_rendering::{image::VulkanImage, instance::VulkanInstance, Vertex3D};
 
 use crate::Model3D;
 
@@ -29,7 +27,7 @@ impl OBJLoader {
         };
 
         let mut meshes = vec![];
-        for model in models.into_iter() {
+        for model in models {
             let mesh = Self::load_mesh(&model.mesh);
 
             let matieral = Self::load_material(
@@ -42,16 +40,11 @@ impl OBJLoader {
                 &instance.device,
                 &instance.memory_allocator,
                 &mesh.0,
-                &mesh.1,
-                None, // TODO
+                mesh.1,
+                Some(matieral), // TODO
                 Some(&model.name),
             ));
         }
-
-        // let _descriptor_sets = materials
-        //     .into_iter()
-        //     .map(|material| Self::load_material(instance, path.parent().unwrap(), &material))
-        //     .collect::<Vec<_>>();
 
         Ok(Model3D { meshes })
     }
@@ -73,6 +66,9 @@ impl OBJLoader {
         } else {
             VulkanImage::from_color(
                 &instance.device,
+                instance.command_pool,
+                &instance.memory_allocator,
+                instance.graphics_queue,
                 [255, 255, 255, 255],
                 vk::Extent2D {
                     width: 128,

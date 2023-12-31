@@ -31,35 +31,38 @@ impl CameraController3D {
         event: &KeyEvent,
         delta_time: f32,
     ) -> bool {
+        log::info!("{}", camera.position);
         if event.state == ElementState::Pressed {
             let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
             match event.logical_key.as_ref() {
+                // Arrow keys works but WASD not :C
                 Key::Character("W") | Key::Named(NamedKey::ArrowUp) => {
-                    camera.add_x(sin_pitch * self.speed * delta_time);
-                    camera.add_z(cos_pitch * self.speed * delta_time);
+                    print!("pressed W");
+                    camera.position.x += sin_pitch * self.speed * delta_time;
+                    camera.position.z += cos_pitch * self.speed * delta_time;
                     return true;
                 }
                 Key::Character("S") | Key::Named(NamedKey::ArrowDown) => {
-                    camera.minus_x(sin_pitch * self.speed * delta_time);
-                    camera.minus_z(cos_pitch * self.speed * delta_time);
+                    camera.position.x -= sin_pitch * self.speed * delta_time;
+                    camera.position.z -= cos_pitch * self.speed * delta_time;
                     return true;
                 }
                 Key::Character("A") | Key::Named(NamedKey::ArrowLeft) => {
-                    camera.minus_x(cos_pitch * self.speed * delta_time);
-                    camera.add_z(sin_pitch * self.speed * delta_time);
+                    camera.position.x -= cos_pitch * self.speed * delta_time;
+                    camera.position.x += sin_pitch * self.speed * delta_time;
                     return true;
                 }
                 Key::Character("D") | Key::Named(NamedKey::ArrowRight) => {
-                    camera.add_x(cos_pitch * self.speed * delta_time);
-                    camera.minus_z(sin_pitch * self.speed * delta_time);
+                    camera.position.x += cos_pitch * self.speed * delta_time;
+                    camera.position.z -= sin_pitch * self.speed * delta_time;
                     return true;
                 }
                 Key::Named(NamedKey::Space) => {
-                    camera.add_y(self.speed * delta_time);
+                    camera.position.y += self.speed * delta_time;
                     return true;
                 }
                 Key::Named(NamedKey::Shift) => {
-                    camera.minus_y(self.speed * delta_time);
+                    camera.position.y -= self.speed * delta_time;
                     return true;
                 }
                 _ => return false,
@@ -74,6 +77,7 @@ impl CameraController3D {
         button: &winit::event::MouseButton,
         state: &winit::event::ElementState,
     ) {
+        print!("aaa");
         if button == &winit::event::MouseButton::Left {
             self.mouse_left_down = state == &winit::event::ElementState::Pressed;
             window.set_cursor_visible(!self.mouse_left_down);
@@ -92,8 +96,8 @@ impl CameraController3D {
 
             let moveposition =
                 deltaposition * glam::vec2(self.sensitivity_x, self.sensitivity_y) * delta_time;
-            camera.add_yaw(moveposition.x);
-            camera.add_pitch(moveposition.y);
+            camera.rotation.x += moveposition.x;
+            camera.rotation.y += moveposition.y;
         }
     }
 }

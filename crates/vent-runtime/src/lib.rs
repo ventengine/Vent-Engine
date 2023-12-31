@@ -59,8 +59,8 @@ impl VentApplication {
                 match event {
                     Event::WindowEvent {
                         ref event,
-                        window_id,
-                    } if window_id == vent_window.window.id() => {
+                        window_id: _,
+                    } => {
                         renderer.progress_event(event);
 
                         match event {
@@ -90,6 +90,7 @@ impl VentApplication {
                             _ => {}
                         }
                     }
+                    Event::AboutToWait {} => vent_window.window.request_redraw(),
                     Event::DeviceEvent {
                         event: DeviceEvent::MouseMotion { delta },
                         ..

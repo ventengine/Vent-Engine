@@ -90,25 +90,21 @@ impl Mesh3D {
         material: Option<Material>,
         _name: Option<&str>,
     ) -> Self {
-        let vertex_buf = unsafe {
-            VulkanBuffer::new_init_type(
-                device,
-                allocator,
-                std::mem::size_of_val(vertices) as vk::DeviceSize,
-                vk::BufferUsageFlags::VERTEX_BUFFER,
-                vertices.as_ptr(),
-            )
-        };
+        let vertex_buf = VulkanBuffer::new_init(
+            device,
+            allocator,
+            (size_of::<Vertex3D>() * vertices.len()) as vk::DeviceSize,
+            vk::BufferUsageFlags::VERTEX_BUFFER,
+            vertices,
+        );
 
-        let index_buf = unsafe {
-            VulkanBuffer::new_init_type(
-                device,
-                allocator,
-                (size_of::<Vertex3D>() * indices.len()) as vk::DeviceSize, // TODO
-                vk::BufferUsageFlags::INDEX_BUFFER,
-                indices.as_ptr(),
-            )
-        };
+        let index_buf = VulkanBuffer::new_init(
+            device,
+            allocator,
+            (size_of::<u32>() * indices.len()) as vk::DeviceSize,
+            vk::BufferUsageFlags::INDEX_BUFFER,
+            indices,
+        );
 
         Self {
             vertex_buf,

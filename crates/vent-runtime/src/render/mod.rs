@@ -1,6 +1,5 @@
 use std::time::{Duration, Instant};
 
-use ash::vk;
 use vent_rendering::instance::VulkanInstance;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
@@ -33,7 +32,12 @@ impl DefaultRuntimeRenderer {
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
     ) -> Self {
         let instance = VulkanInstance::new("TODO", window);
-        let mut camera = from_dimension(&instance, &dimension);
+        let window_size = window.inner_size();
+        let mut camera = from_dimension(
+            &instance,
+            (window_size.width / window_size.height) as f32,
+            &dimension,
+        );
         let runtime_renderer =
             RawRuntimeRenderer::new(dimension, &instance, event_loop, camera.as_mut());
         Self {
@@ -53,6 +57,9 @@ impl DefaultRuntimeRenderer {
     }
 
     pub(crate) fn resize(&mut self, new_size: &PhysicalSize<u32>) {
+        log::info!("Resizing to {:?} ", new_size);
+        self.camera
+            .recreate_projection((new_size.width / new_size.width) as f32);
         self.runtime_renderer
             .resize(&self.instance, new_size, self.camera.as_mut());
     }
@@ -143,7 +150,7 @@ impl RawRuntimeRenderer {
                 self.multi_renderer.render(instance, image_index, camera);
                 instance.submit(image_index);
             }
-            Err(err) => {
+            Err(_err) => {
                 // if err == vk::Result::ERROR_OUT_OF_DATE_KHR {
                 //     self.resize(instance, instance.surface_resolution, camera)
                 // } else if err == vk::Result::ERROR_SURFACE_LOST_KHR {

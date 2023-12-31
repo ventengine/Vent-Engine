@@ -17,6 +17,7 @@ pub unsafe fn create_surface(
     allocation_callbacks: Option<&vk::AllocationCallbacks>,
 ) -> VkResult<vk::SurfaceKHR> {
     match (display_handle.as_raw(), window_handle.as_raw()) {
+        #[cfg(target_os = "windows")]
         (RawDisplayHandle::Windows(_), RawWindowHandle::Win32(window)) => {
             let hinstance = window.hinstance.expect("No Win32 Instance");
             let surface_desc = vk::Win32SurfaceCreateInfoKHR::builder()
@@ -26,6 +27,7 @@ pub unsafe fn create_surface(
             surface_fn.create_win32_surface(&surface_desc, allocation_callbacks)
         }
 
+        #[cfg(target_os = "linux")]
         (RawDisplayHandle::Wayland(display), RawWindowHandle::Wayland(window)) => {
             let surface_desc = vk::WaylandSurfaceCreateInfoKHR::builder()
                 .display(display.display.as_ptr())
@@ -34,6 +36,7 @@ pub unsafe fn create_surface(
             surface_fn.create_wayland_surface(&surface_desc, allocation_callbacks)
         }
 
+        #[cfg(target_os = "linux")]
         (RawDisplayHandle::Xlib(display), RawWindowHandle::Xlib(window)) => {
             let display = display.display.expect("No XOrg Display");
             let surface_desc = vk::XlibSurfaceCreateInfoKHR::builder()
@@ -43,6 +46,7 @@ pub unsafe fn create_surface(
             surface_fn.create_xlib_surface(&surface_desc, allocation_callbacks)
         }
 
+        #[cfg(target_os = "linux")]
         (RawDisplayHandle::Xcb(display), RawWindowHandle::Xcb(window)) => {
             let connection = display.connection.expect("No X-Server Connection");
             let surface_desc = vk::XcbSurfaceCreateInfoKHR::builder()
@@ -52,6 +56,7 @@ pub unsafe fn create_surface(
             surface_fn.create_xcb_surface(&surface_desc, allocation_callbacks)
         }
 
+        #[cfg(target_os = "android")]
         (RawDisplayHandle::Android(_), RawWindowHandle::AndroidNdk(window)) => {
             let surface_desc =
                 vk::AndroidSurfaceCreateInfoKHR::builder().window(window.a_native_window.as_ptr());

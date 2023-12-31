@@ -3,7 +3,7 @@ use ash::prelude::VkResult;
 use ash::vk::{Extent2D, SwapchainKHR};
 use ash::{extensions::ext::DebugUtils, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use std::ffi::CString;
+
 use std::{default::Default, ffi::CStr};
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -13,13 +13,13 @@ use ash::vk::{
 
 use crate::allocator::MemoryAllocator;
 use crate::debug::{
-    check_validation_layer_support, get_layer_names_and_pointers, setup_debug_messenger,
-    ENABLE_VALIDATION_LAYERS,
+    check_validation_layer_support, get_layer_names_and_pointers, get_validation_features,
+    setup_debug_messenger, ENABLE_VALIDATION_LAYERS,
 };
 use crate::image::{DepthImage, VulkanImage};
 use crate::surface;
 
-const MAX_FRAMES_IN_FLIGHT: u8 = 2;
+pub const MAX_FRAMES_IN_FLIGHT: u8 = 2;
 
 pub struct VulkanInstance {
     pub memory_allocator: MemoryAllocator,
@@ -89,6 +89,7 @@ impl VulkanInstance {
             .expect("Unsupported Surface Extension")
             .to_vec();
         if ENABLE_VALIDATION_LAYERS {
+            extension_names.push(vk::ExtValidationFeaturesFn::name().as_ptr());
             extension_names.push(DebugUtils::name().as_ptr());
         }
 
@@ -108,11 +109,14 @@ impl VulkanInstance {
         let (_layer_names, layer_names_ptrs) = get_layer_names_and_pointers();
         check_validation_layer_support(&entry);
 
+        let mut validation_features = get_validation_features();
+
         let create_info = vk::InstanceCreateInfo::builder()
             .application_info(&app_info)
             .enabled_extension_names(&extension_names)
             .enabled_layer_names(&layer_names_ptrs)
             .flags(create_flags)
+            .push_next(&mut validation_features)
             .build();
 
         let instance = unsafe {
@@ -233,8 +237,9 @@ impl VulkanInstance {
         unsafe {
             self.device
                 .wait_for_fences(&[in_flight_fence], true, u64::max_value())
+                .unwrap();
+            self.device.reset_fences(&[in_flight_fence]).unwrap();
         }
-        .unwrap();
         unsafe {
             self.swapchain_loader.acquire_next_image(
                 self.swapchain,
@@ -259,7 +264,7 @@ impl VulkanInstance {
 
         let signal_semaphores = vk::SemaphoreSubmitInfo::builder()
             .semaphore(self.render_finished_semaphores[self.frame])
-            //  .stage_mask(vk::PipelineStageFlags2::ALL_GRAPHICS)
+            .stage_mask(vk::PipelineStageFlags2::ALL_GRAPHICS)
             .build();
 
         let submit_info = vk::SubmitInfo2::builder()
@@ -269,8 +274,6 @@ impl VulkanInstance {
             .build();
 
         unsafe {
-            self.device.reset_fences(&[in_flight_fence]).unwrap();
-
             self.device
                 .queue_submit2(self.graphics_queue, &[submit_info], in_flight_fence)
                 .unwrap();
@@ -456,8 +459,14 @@ impl VulkanInstance {
         }
         let surface_resolution = match surface_capabilities.current_extent.width {
             std::u32::MAX => vk::Extent2D {
-                width: size.width,
-                height: size.height,
+                width: size.width.clamp(
+                    surface_capabilities.min_image_extent.width,
+                    surface_capabilities.max_image_extent.width,
+                ),
+                height: size.height.clamp(
+                    surface_capabilities.min_image_extent.height,
+                    surface_capabilities.max_image_extent.height,
+                ),
             },
             _ => surface_capabilities.current_extent,
         };
@@ -598,17 +607,17 @@ impl VulkanInstance {
         let pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1000,
+                descriptor_count: 10000,
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 1000,
+                descriptor_count: 10000,
             },
         ];
 
         let create_info = vk::DescriptorPoolCreateInfo::builder()
             .pool_sizes(&pool_sizes)
-            .max_sets(1000)
+            .max_sets(10000)
             .build();
 
         unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
@@ -691,6 +700,9 @@ impl VulkanInstance {
                 samples: vk::SampleCountFlags::TYPE_1,
                 load_op: vk::AttachmentLoadOp::CLEAR,
                 store_op: vk::AttachmentStoreOp::STORE,
+                stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
+                stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
+                initial_layout: vk::ImageLayout::UNDEFINED,
                 final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
                 ..Default::default()
             },
@@ -698,6 +710,10 @@ impl VulkanInstance {
                 format: depth_format,
                 samples: vk::SampleCountFlags::TYPE_1,
                 load_op: vk::AttachmentLoadOp::CLEAR,
+                store_op: vk::AttachmentStoreOp::DONT_CARE,
+                stencil_store_op: vk::AttachmentStoreOp::DONT_CARE,
+                stencil_load_op: vk::AttachmentLoadOp::DONT_CARE,
+                initial_layout: vk::ImageLayout::UNDEFINED,
                 final_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 ..Default::default()
             },
@@ -712,14 +728,27 @@ impl VulkanInstance {
             layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
             ..Default::default()
         };
-        let dependencies = [vk::SubpassDependency2 {
-            src_subpass: vk::SUBPASS_EXTERNAL,
-            src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
-            dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_READ
-                | vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
-            dst_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
-            ..Default::default()
-        }];
+        let dependencies = [
+            vk::SubpassDependency2 {
+                src_subpass: vk::SUBPASS_EXTERNAL,
+                src_stage_mask: vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS
+                    | vk::PipelineStageFlags::LATE_FRAGMENT_TESTS,
+                dst_stage_mask: vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS
+                    | vk::PipelineStageFlags::LATE_FRAGMENT_TESTS,
+                src_access_mask: vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+                dst_access_mask: vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
+                    | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+                ..Default::default()
+            },
+            vk::SubpassDependency2 {
+                src_subpass: vk::SUBPASS_EXTERNAL,
+                src_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+                dst_stage_mask: vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+                dst_access_mask: vk::AccessFlags::COLOR_ATTACHMENT_READ
+                    | vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
+                ..Default::default()
+            },
+        ];
 
         let subpass = vk::SubpassDescription2::builder()
             .color_attachments(&color_attachment_refs)
