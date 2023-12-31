@@ -152,7 +152,7 @@ impl Mesh3D {
         self.vertex_buf.destroy(device);
         self.index_buf.destroy(device);
         if let Some(descriptor_set) = &mut self.descriptor_set {
-            unsafe { device.free_descriptor_sets(descriptor_pool, descriptor_set) };
+            unsafe { device.free_descriptor_sets(descriptor_pool, descriptor_set).expect("Failed to free Model descriptor sets") };
         }
         if let Some(material) = &mut self.material {
             material.diffuse_texture.destroy(device);
