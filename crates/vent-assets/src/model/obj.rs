@@ -1,20 +1,16 @@
 use std::path::Path;
 
-use wgpu::{util::DeviceExt, BindGroupLayout};
+use ash::vk;
+use vent_rendering::{image::VulkanImage, instance::VulkanInstance, Vertex3D};
 
-use crate::{Model3D, Texture, Vertex3D};
+use crate::Model3D;
 
 use super::{Material, Mesh3D, ModelError};
 
 pub(crate) struct OBJLoader {}
 
 impl OBJLoader {
-    pub async fn load(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        path: &Path,
-        texture_bind_group_layout: &BindGroupLayout,
-    ) -> Result<Model3D, ModelError> {
+    pub async fn load(instance: &VulkanInstance, path: &Path) -> Result<Model3D, ModelError> {
         let (models, materials) = match tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS) {
             Ok(r) => r,
             Err(e) => return Err(ModelError::LoadingError(format!("{}", e))),
@@ -30,76 +26,67 @@ impl OBJLoader {
             }
         };
 
-        let meshes = models
-            .into_iter()
-            .map(|model| Self::load_mesh(device, &model.name, &model.mesh))
-            .collect::<Vec<_>>();
+        let mut meshes = vec![];
+        for model in models {
+            let mesh = Self::load_mesh(&model.mesh);
 
-        let _final_materials = materials
-            .into_iter()
-            .map(|material| {
-                Self::load_material(
-                    device,
-                    queue,
-                    path.parent().unwrap(),
-                    &material,
-                    texture_bind_group_layout,
-                )
-            })
-            .collect::<Vec<_>>();
+            let matieral = Self::load_material(
+                instance,
+                path.parent().unwrap(),
+                &materials[model.mesh.material_id.unwrap()],
+            );
+
+            meshes.push(Mesh3D::new(
+                &instance.device,
+                &instance.memory_allocator,
+                &mesh.0,
+                mesh.1,
+                Some(matieral), // TODO
+                Some(&model.name),
+            ));
+        }
 
         Ok(Model3D { meshes })
     }
 
     fn load_material(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        instance: &VulkanInstance,
         model_dir: &Path,
         material: &tobj::Material,
-        texture_bind_group_layout: &BindGroupLayout,
-    ) -> wgpu::BindGroup {
+    ) -> Material {
         let diffuse_texture = if let Some(texture) = &material.diffuse_texture {
-            Texture::from_image(
-                device,
-                queue,
+            VulkanImage::from_image(
+                &instance.device,
                 image::open(model_dir.join(texture)).unwrap(),
+                instance.command_pool,
+                &instance.memory_allocator,
+                instance.graphics_queue,
                 None,
-                Some(texture),
             )
         } else {
-            Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None)
+            VulkanImage::from_color(
+                &instance.device,
+                instance.command_pool,
+                &instance.memory_allocator,
+                instance.graphics_queue,
+                [255, 255, 255, 255],
+                vk::Extent2D {
+                    width: 128,
+                    height: 128,
+                },
+            )
         };
-        let diffuse = material.diffuse.unwrap_or([1.0, 1.0, 1.0]);
+        let base_color = material.diffuse.unwrap_or([1.0, 1.0, 1.0]);
+        // OBJ does not have an Alpha :c
+        let base_color = [base_color[0], base_color[1], base_color[2], 1.0];
 
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: bytemuck::bytes_of(&Material {
-                base_color: [diffuse[0], diffuse[1], diffuse[2], 1.0],
-            }),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: buffer.as_entire_binding(),
-                },
-            ],
-            label: Some(&material.name),
-        })
+        Material {
+            diffuse_texture,
+            base_color,
+        }
     }
 
-    fn load_mesh(device: &wgpu::Device, name: &str, mesh: &tobj::Mesh) -> Mesh3D {
+    fn load_mesh(mesh: &tobj::Mesh) -> (Vec<Vertex3D>, &[u32]) {
         let vertices = (0..mesh.positions.len() / 3)
             .map(|i| Vertex3D {
                 position: [
@@ -115,13 +102,6 @@ impl OBJLoader {
                 ],
             })
             .collect::<Vec<_>>();
-
-        Mesh3D::new(
-            device,
-            &vertices,
-            &mesh.indices,
-            None, // TODO
-            Some(name),
-        )
+        (vertices, &mesh.indices)
     }
 }

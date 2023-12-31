@@ -2,24 +2,29 @@ use std::{
     fs::{self, File},
     io::BufReader,
     path::Path,
-    sync, thread,
+    sync::{self},
+    thread,
 };
 
-use wgpu::{util::DeviceExt, BindGroupLayout};
+use ash::vk;
+use gltf::texture::Sampler;
+use image::DynamicImage;
+use vent_rendering::{image::VulkanImage, instance::VulkanInstance, Vertex3D};
 
-use crate::{Model3D, Texture, Vertex3D};
+use crate::{Material, Model3D};
 
-use super::{Material, Mesh3D, ModelError};
+use super::{Mesh3D, ModelError};
 
 pub(crate) struct GLTFLoader {}
 
+struct MaterialData<'a> {
+    image: DynamicImage,
+    sampler: Option<Sampler<'a>>,
+    base_color: [f32; 4],
+}
+
 impl GLTFLoader {
-    pub async fn load(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        path: &Path,
-        texture_bind_group_layout: &BindGroupLayout,
-    ) -> Result<Model3D, ModelError> {
+    pub async fn load(instance: &VulkanInstance, path: &Path) -> Result<Model3D, ModelError> {
         let doc = gltf::Gltf::from_reader(fs::File::open(path).unwrap()).unwrap();
 
         let path = path.parent().unwrap_or_else(|| Path::new("./"));
@@ -30,15 +35,7 @@ impl GLTFLoader {
         let mut meshes = Vec::new();
         doc.scenes().for_each(|scene| {
             scene.nodes().for_each(|node| {
-                Self::load_node(
-                    device,
-                    queue,
-                    path,
-                    node,
-                    &buffer_data,
-                    texture_bind_group_layout,
-                    &mut meshes,
-                );
+                Self::load_node(instance, path, node, &buffer_data, &mut meshes);
             })
         });
 
@@ -46,117 +43,89 @@ impl GLTFLoader {
     }
 
     fn load_node(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        instance: &VulkanInstance,
         model_dir: &Path,
         node: gltf::Node<'_>,
         buffer_data: &[gltf::buffer::Data],
-        texture_bind_group_layout: &BindGroupLayout,
         meshes: &mut Vec<Mesh3D>,
     ) {
         if let Some(mesh) = node.mesh() {
-            Self::load_mesh_multithreaded(
-                device,
-                queue,
-                model_dir,
-                mesh,
-                buffer_data,
-                texture_bind_group_layout,
-                meshes,
-            );
+            Self::load_mesh_multithreaded(instance, model_dir, mesh, buffer_data, meshes);
         }
 
-        node.children().for_each(|child| {
-            Self::load_node(
-                device,
-                queue,
-                model_dir,
-                child,
-                buffer_data,
-                texture_bind_group_layout,
-                meshes,
-            )
-        })
+        node.children()
+            .for_each(|child| Self::load_node(instance, model_dir, child, buffer_data, meshes))
     }
 
     fn load_mesh_multithreaded(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        instance: &VulkanInstance,
         model_dir: &Path,
         mesh: gltf::Mesh,
         buffer_data: &[gltf::buffer::Data],
-        texture_bind_group_layout: &BindGroupLayout,
         meshes: &mut Vec<Mesh3D>,
     ) {
         let primitive_len = mesh.primitives().size_hint().0;
         let (tx, rx) = sync::mpsc::sync_channel(primitive_len); // Create bounded channels
 
-        // Spawn threads to load mesh primitive
+        // Spawn threads to load mesh
         thread::scope(|s| {
             let tx = tx.clone();
             for primitive in mesh.primitives() {
                 let tx = tx.clone();
-                let mesh = mesh.clone();
-                let device = device;
-                let queue = queue;
                 let model_dir = model_dir;
                 let buffer_data = buffer_data;
-                let texture_bind_group_layout = texture_bind_group_layout;
 
                 s.spawn(move || {
-                    let loaded_material = Self::load_material(
-                        device,
-                        queue,
-                        model_dir,
-                        primitive.material(),
-                        buffer_data,
-                        texture_bind_group_layout,
-                    );
+                    let material_data =
+                        Self::parse_material_data(model_dir, primitive.material(), buffer_data);
 
-                    let loaded_mesh = Self::load_primitive(
-                        device,
-                        loaded_material,
-                        mesh.name(),
-                        buffer_data,
-                        primitive,
-                    );
-                    tx.send(loaded_mesh).unwrap();
+                    let primitive = Self::load_primitive(buffer_data, primitive);
+
+                    tx.send((material_data, primitive)).unwrap();
                 });
             }
         });
         for _ in 0..primitive_len {
-            let mesh = rx.recv().unwrap();
-            meshes.push(mesh);
+            let (material_data, primitive) = rx.recv().unwrap();
+            let material = Self::load_material(instance, material_data);
+            let loaded_mesh = Mesh3D::new(
+                &instance.device,
+                &instance.memory_allocator,
+                &primitive.0,
+                &primitive.1,
+                Some(material),
+                mesh.name(),
+            );
+            meshes.push(loaded_mesh);
         }
     }
 
-    fn load_material(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        model_dir: &Path,
-        material: gltf::Material<'_>,
-        buffer_data: &[gltf::buffer::Data],
+    /**
+     *  We will parse all Materials and save that what we need
+     *  the Data will be saved on RAM
+     */
+    fn parse_material_data<'a>(
+        model_dir: &'a Path,
+        material: gltf::Material<'a>,
+        buffer_data: &'a [gltf::buffer::Data],
         // image_data: &[gltf::image::Data],
-        texture_bind_group_layout: &BindGroupLayout,
-    ) -> wgpu::BindGroup {
+    ) -> MaterialData<'a> {
         let pbr = material.pbr_metallic_roughness();
 
         let diffuse_texture = if let Some(texture) = pbr.base_color_texture() {
             match texture.texture().source().source() {
-                gltf::image::Source::View {
-                    view,
-                    mime_type: img_type,
-                } => Texture::from_memory_to_image_with_format(
-                    device,
-                    queue,
-                    &buffer_data[view.buffer().index()],
-                    image::ImageFormat::from_mime_type(img_type).expect("TODO: Error Handling"),
-                    texture.texture().name(),
-                )
-                .unwrap(),
+                gltf::image::Source::View { view, mime_type } => {
+                    let sampler = texture.texture().sampler();
+                    let image = image::load_from_memory_with_format(
+                        &buffer_data[view.buffer().index()],
+                        image::ImageFormat::from_mime_type(mime_type)
+                            .expect("TODO: Error Handling"),
+                    )
+                    .unwrap();
+                    (image, Some(sampler))
+                }
                 gltf::image::Source::Uri { uri, mime_type } => {
                     let sampler = texture.texture().sampler();
-                    let wgpu_sampler = Self::convert_sampler(&sampler);
                     let image = if let Some(mime_type) = mime_type {
                         image::load(
                             BufReader::new(File::open(model_dir.join(uri)).unwrap()),
@@ -168,75 +137,75 @@ impl GLTFLoader {
                         image::open(model_dir.join(uri)).unwrap()
                     };
 
-                    Texture::from_image(
-                        device,
-                        queue,
-                        image,
-                        Some(&wgpu_sampler),
-                        texture.texture().name(),
-                    )
+                    (image, Some(sampler))
                 }
             }
         } else {
-            Texture::from_color(device, queue, [255, 255, 255, 255], 128, 128, None)
+            (
+                image::DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
+                    128,
+                    128,
+                    image::Rgba([255, 255, 255, 255]),
+                )),
+                None,
+            )
         };
-
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Texture Uniform Buffer"),
-            contents: bytemuck::bytes_of(&Material {
-                base_color: pbr.base_color_factor(),
-            }),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: buffer.as_entire_binding(),
-                },
-            ],
-            label: material.name(),
-        })
+        MaterialData {
+            image: diffuse_texture.0,
+            sampler: diffuse_texture.1,
+            base_color: pbr.base_color_factor(),
+        }
     }
 
-    /// Converts an gltf Texture Sampler into WGPU Filter Modes
+    /**
+     *  Creates an VulkanImage from Material Data, We want to do this Single threaded
+     *  RAM -> VRAM
+     */
+    fn load_material(instance: &VulkanInstance, data: MaterialData) -> Material {
+        let diffuse_texture = VulkanImage::from_image(
+            &instance.device,
+            data.image,
+            instance.command_pool,
+            &instance.memory_allocator,
+            instance.graphics_queue,
+            data.sampler.map(|s| Self::convert_sampler(&s)),
+        );
+
+        Material {
+            diffuse_texture,
+            base_color: data.base_color,
+        }
+    }
+
+    /// Converts an gltf Texture Sampler into Vulkan Sampler Info
     #[must_use]
-    fn convert_sampler<'a>(sampler: &'a gltf::texture::Sampler<'a>) -> wgpu::SamplerDescriptor<'a> {
-        let mag_filter = sampler
-            .mag_filter()
-            .map_or(Texture::DEFAULT_TEXTURE_FILTER, |filter| match filter {
-                gltf::texture::MagFilter::Nearest => wgpu::FilterMode::Nearest,
-                gltf::texture::MagFilter::Linear => wgpu::FilterMode::Linear,
-            });
+    fn convert_sampler(sampler: &gltf::texture::Sampler) -> vk::SamplerCreateInfo {
+        let mag_filter = sampler.mag_filter().map_or(
+            VulkanImage::DEFAULT_TEXTURE_FILTER,
+            |filter| match filter {
+                gltf::texture::MagFilter::Nearest => vk::Filter::NEAREST,
+                gltf::texture::MagFilter::Linear => vk::Filter::LINEAR,
+            },
+        );
 
         let (min_filter, mipmap_filter) = sampler.min_filter().map_or(
             (
-                Texture::DEFAULT_TEXTURE_FILTER,
-                Texture::DEFAULT_TEXTURE_FILTER,
+                VulkanImage::DEFAULT_TEXTURE_FILTER,
+                vk::SamplerMipmapMode::LINEAR,
             ),
             |filter| match filter {
                 gltf::texture::MinFilter::Nearest => {
-                    (wgpu::FilterMode::Nearest, Texture::DEFAULT_TEXTURE_FILTER)
+                    (vk::Filter::NEAREST, vk::SamplerMipmapMode::NEAREST)
                 }
                 gltf::texture::MinFilter::Linear
                 | gltf::texture::MinFilter::LinearMipmapNearest => {
-                    (wgpu::FilterMode::Linear, Texture::DEFAULT_TEXTURE_FILTER)
+                    (vk::Filter::LINEAR, vk::SamplerMipmapMode::NEAREST)
                 }
                 gltf::texture::MinFilter::NearestMipmapNearest => {
-                    (wgpu::FilterMode::Nearest, wgpu::FilterMode::Nearest)
+                    (vk::Filter::NEAREST, vk::SamplerMipmapMode::NEAREST)
                 }
                 gltf::texture::MinFilter::LinearMipmapLinear => {
-                    (wgpu::FilterMode::Linear, wgpu::FilterMode::Linear)
+                    (vk::Filter::LINEAR, vk::SamplerMipmapMode::LINEAR)
                 }
                 _ => unimplemented!(),
             },
@@ -245,33 +214,28 @@ impl GLTFLoader {
         let address_mode_u = Self::conv_wrapping_mode(sampler.wrap_s());
         let address_mode_v = Self::conv_wrapping_mode(sampler.wrap_t());
 
-        wgpu::SamplerDescriptor {
-            label: sampler.name(),
-            mag_filter,
-            min_filter,
-            mipmap_filter,
-            address_mode_u,
-            address_mode_v,
-            ..Default::default()
-        }
+        vk::SamplerCreateInfo::builder()
+            .mag_filter(mag_filter)
+            .min_filter(min_filter)
+            .mipmap_mode(mipmap_filter)
+            .address_mode_u(address_mode_u)
+            .address_mode_v(address_mode_v)
+            .build()
     }
 
     #[must_use]
-    fn conv_wrapping_mode(mode: gltf::texture::WrappingMode) -> wgpu::AddressMode {
+    const fn conv_wrapping_mode(mode: gltf::texture::WrappingMode) -> vk::SamplerAddressMode {
         match mode {
-            gltf::texture::WrappingMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
-            gltf::texture::WrappingMode::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
-            gltf::texture::WrappingMode::Repeat => wgpu::AddressMode::Repeat,
+            gltf::texture::WrappingMode::ClampToEdge => vk::SamplerAddressMode::CLAMP_TO_EDGE,
+            gltf::texture::WrappingMode::MirroredRepeat => vk::SamplerAddressMode::MIRRORED_REPEAT,
+            gltf::texture::WrappingMode::Repeat => vk::SamplerAddressMode::REPEAT,
         }
     }
 
     fn load_primitive(
-        device: &wgpu::Device,
-        bind_group: wgpu::BindGroup,
-        name: Option<&str>,
         buffer_data: &[gltf::buffer::Data],
         primitive: gltf::Primitive,
-    ) -> Mesh3D {
+    ) -> (Vec<Vertex3D>, Vec<u32>) {
         let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
 
         let mut vertices: Vec<Vertex3D> = reader
@@ -297,7 +261,6 @@ impl GLTFLoader {
         }
 
         let indices: Vec<_> = reader.read_indices().unwrap().into_u32().collect();
-
-        Mesh3D::new(device, &vertices, &indices, Some(bind_group), name)
+        (vertices, indices)
     }
 }

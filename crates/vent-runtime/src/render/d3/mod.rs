@@ -1,11 +1,14 @@
-use std::mem;
+use std::mem::size_of;
 
-use glam::Mat4;
-use vent_assets::{Mesh3D, Vertex, Vertex3D};
+use ash::vk;
+use glam::{Mat4, Vec3, Vec4};
+use vent_assets::Mesh3D;
+
 use vent_ecs::world::World;
-use wgpu::util::DeviceExt;
+use vent_rendering::{buffer::VulkanBuffer, instance::VulkanInstance, Vertex, Vertex3D};
+use winit::dpi::PhysicalSize;
 
-use self::light_renderer::LightRenderer;
+use self::light_renderer::LightUBO;
 
 use super::{
     camera::{Camera, Camera3D},
@@ -16,221 +19,65 @@ use super::{
 
 pub mod light_renderer;
 
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy)]
+pub struct MaterialUBO {
+    pub base_color: Vec4,
+}
+
+#[derive(Clone, Copy)]
 pub struct UBO3D {
-    pub view_position: [f32; 3],
-    pub _padding: u32,
-    pub projection: [[f32; 4]; 4],
-    pub view: [[f32; 4]; 4],
-    pub transformation: [[f32; 4]; 4],
+    pub view_position: Vec3,
+    pub projection: Mat4,
+    pub view: Mat4,
+    pub transformation: Mat4,
 }
 
 impl Default for UBO3D {
     fn default() -> Self {
         Self {
             view_position: Default::default(),
-            _padding: Default::default(),
             projection: Default::default(),
             view: Default::default(),
-            transformation: Mat4::IDENTITY.to_cols_array_2d(),
+            transformation: Mat4::IDENTITY,
         }
     }
 }
 
 pub struct Renderer3D {
     mesh_renderer: ModelRenderer3D,
-    light_renderer: LightRenderer,
+    // light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
-    bind_group: wgpu::BindGroup,
-    depth_view: wgpu::TextureView,
-    uniform_buf: wgpu::Buffer,
-    pipeline: wgpu::RenderPipeline,
-    pipeline_wire: Option<wgpu::RenderPipeline>,
+    // depth_view: wgpu::TextureView,
+    pipeline: vk::Pipeline,
+    // pipeline_wire: Option<wgpu::RenderPipeline>,
 }
 
 impl Renderer for Renderer3D {
-    fn init(
-        config: &wgpu::SurfaceConfiguration,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
-    ) -> Self
+    fn init(instance: &VulkanInstance, camera: &mut dyn Camera) -> Self
     where
         Self: Sized,
     {
         let camera: &Camera3D = camera.downcast_ref().unwrap();
-        // Create pipeline layout
-        let vertex_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("3D Bind Group Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(
-                            mem::size_of::<UBO3D>() as wgpu::BufferAddress
-                        ),
-                    },
-                    count: None,
-                }],
-            });
-
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: wgpu::BufferSize::new(mem::size_of::<
-                                vent_assets::model::Material,
-                            >()
-                                as wgpu::BufferAddress),
-                        },
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
-
-        let light_renderer = LightRenderer::new(device, &vertex_group_layout, config.format);
-
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("3D Pipeline Layout"),
-            bind_group_layouts: &[
-                &vertex_group_layout,
-                &texture_bind_group_layout,
-                &light_renderer.light_bind_group_layout,
-            ],
-            push_constant_ranges: &[],
-        });
-
-        // Create other resources
-        let ubo = camera.ubo();
-        let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: bytemuck::bytes_of(&ubo),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        });
-
-        // Create bind group
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &vertex_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: uniform_buf.as_entire_binding(),
-            }],
-            label: Some("3D Bind Group"),
-        });
-
-        let shader = device.create_shader_module(wgpu::include_wgsl!(concat!(
+        let vertex_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/shader.wgsl"
-        )));
-        let vertex_buffer_layout = [Vertex3D::LAYOUT];
-
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("3D Renderer Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &vertex_buffer_layout,
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(config.format.into())],
-            }),
-            primitive: wgpu::PrimitiveState {
-                cull_mode: Some(wgpu::Face::Back),
-                front_face: wgpu::FrontFace::Cw,
-                ..Default::default()
-            },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: vent_assets::Texture::DEPTH_FORMAT,
-                depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState::default(),
-            }),
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-        });
-
-        // TODO
-        let pipeline_wire = if device
-            .features()
-            .contains(wgpu::Features::POLYGON_MODE_LINE)
-        {
-            let shader = device.create_shader_module(wgpu::include_wgsl!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/res/shaders/app/3D/wireframe.wgsl"
-            )));
-
-            let pipeline_wire = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("3D Pipeline Wireframe"),
-                layout: Some(&pipeline_layout),
-                vertex: wgpu::VertexState {
-                    module: &shader,
-                    entry_point: "vs_main",
-                    buffers: &[],
-                },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader,
-                    entry_point: "fs_main",
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format: config.format,
-                        blend: Some(wgpu::BlendState {
-                            color: wgpu::BlendComponent {
-                                operation: wgpu::BlendOperation::Add,
-                                src_factor: wgpu::BlendFactor::SrcAlpha,
-                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            },
-                            alpha: wgpu::BlendComponent::REPLACE,
-                        }),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                }),
-                primitive: wgpu::PrimitiveState {
-                    cull_mode: Some(wgpu::Face::Back),
-                    front_face: wgpu::FrontFace::Cw,
-                    polygon_mode: wgpu::PolygonMode::Line,
-                    ..Default::default()
-                },
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState::default(),
-                multiview: None,
-            });
-            Some(pipeline_wire)
-        } else {
-            None
-        };
+            "/res/shaders/app/3D/shader.vert"
+        );
+        let fragment_shader = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/res/shaders/app/3D/shader.frag"
+        );
+        let pipeline = vent_rendering::pipeline::create_pipeline(
+            instance,
+            vertex_shader.to_owned(),
+            fragment_shader.to_owned(),
+            Vertex3D::BINDING_DESCRIPTION,
+            &Vertex3D::input_descriptions(),
+            instance.surface_resolution,
+        );
 
         let mut mesh_renderer = ModelRenderer3D::default();
 
-        // -------------- DEMO -------------------
+        // // -------------- DEMO -------------------
         let mut world = World::new();
 
         let model = concat!(
@@ -239,106 +86,241 @@ impl Renderer for Renderer3D {
         );
 
         pollster::block_on(async {
-            let mesh = Entity3D::new(
-                vent_assets::Model3D::load(device, queue, model, &texture_bind_group_layout).await,
-            );
+            let mut mesh = Entity3D::new(vent_assets::Model3D::load(instance, model).await);
+            for mesh in mesh.rendering_model.meshes.iter_mut() {
+                if let Some(material) = &mesh.material {
+                    let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
+                        &instance.device,
+                        instance.descriptor_pool,
+                        instance.descriptor_set_layout,
+                        instance.swapchain_images.len(),
+                    );
+
+                    let mut material_buffers = vec![];
+                    let mut light_buffers = vec![];
+
+                    for _ in 0..instance.swapchain_images.len() {
+                        let buffer = VulkanBuffer::new_init_type(
+                            &instance.device,
+                            &instance.memory_allocator,
+                            size_of::<MaterialUBO>() as vk::DeviceSize,
+                            vk::BufferUsageFlags::UNIFORM_BUFFER,
+                            &MaterialUBO {
+                                base_color: Vec4::from_array(material.base_color),
+                            },
+                        );
+                        material_buffers.push(buffer);
+                        let buffer = VulkanBuffer::new_init_type(
+                            &instance.device,
+                            &instance.memory_allocator,
+                            size_of::<LightUBO>() as vk::DeviceSize,
+                            vk::BufferUsageFlags::UNIFORM_BUFFER,
+                            &LightUBO {
+                                position: [2.0, 100.0, 2.0].into(),
+                                color: [1.0, 1.0, 1.0].into(),
+                            },
+                        );
+                        light_buffers.push(buffer)
+                    }
+
+                    for (i, &descriptor_set) in descriptor_sets.iter().enumerate() {
+                        let diffuse_texture = &material.diffuse_texture;
+
+                        let image_info = vk::DescriptorImageInfo::builder()
+                            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+                            .image_view(diffuse_texture.image_view)
+                            .sampler(diffuse_texture.sampler)
+                            .build();
+
+                        let camera_info = vk::DescriptorBufferInfo::builder()
+                            .buffer(camera.ubo_buffers[i].buffer)
+                            .offset(0)
+                            .range(size_of::<UBO3D>() as vk::DeviceSize)
+                            .build();
+
+                        let material_buffer_info = vk::DescriptorBufferInfo::builder()
+                            .buffer(material_buffers[i].buffer)
+                            .offset(0)
+                            .range(size_of::<MaterialUBO>() as vk::DeviceSize)
+                            .build();
+
+                        let light_buffer_info = vk::DescriptorBufferInfo::builder()
+                            .buffer(light_buffers[i].buffer)
+                            .offset(0)
+                            .range(size_of::<LightUBO>() as vk::DeviceSize)
+                            .build();
+
+                        let desc_sets = [
+                            vk::WriteDescriptorSet {
+                                dst_set: descriptor_set,
+                                dst_binding: 0,
+                                descriptor_count: 1,
+                                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                                p_buffer_info: &camera_info,
+                                ..Default::default()
+                            },
+                            vk::WriteDescriptorSet {
+                                dst_set: descriptor_set,
+                                dst_binding: 1, // From DescriptorSetLayoutBinding
+                                descriptor_count: 1,
+                                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                                p_image_info: &image_info,
+                                ..Default::default()
+                            },
+                            vk::WriteDescriptorSet {
+                                dst_set: descriptor_set,
+                                dst_binding: 2,
+                                descriptor_count: 1,
+                                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                                p_buffer_info: &material_buffer_info,
+                                ..Default::default()
+                            },
+                            vk::WriteDescriptorSet {
+                                dst_set: descriptor_set,
+                                dst_binding: 3,
+                                descriptor_count: 1,
+                                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                                p_buffer_info: &light_buffer_info,
+                                ..Default::default()
+                            },
+                        ];
+
+                        unsafe {
+                            instance.device.update_descriptor_sets(&desc_sets, &[]);
+                        }
+                    }
+                    mesh.set_descriptor_set(descriptor_sets);
+                }
+            }
+
             mesh_renderer.insert(world.create_entity(), mesh);
         });
 
-        // -------------------------------
-
-        let tmp_light_mesh = create_tmp_cube(device);
-
-        let depth_view = vent_assets::Texture::create_depth_view(
-            device,
-            config.width,
-            config.height,
-            Some("Depth Buffer"),
-        );
+        let tmp_light_mesh = create_tmp_cube(instance);
 
         Self {
             mesh_renderer,
-            light_renderer,
+            //    light_renderer,
             tmp_light_mesh,
-            depth_view,
-            bind_group,
-            uniform_buf,
+            // depth_view,
+            // bind_group,
+            // uniform_buf,
             pipeline,
-            pipeline_wire,
+            // pipeline_wire,
         }
     }
 
     fn resize(
         &mut self,
-        config: &wgpu::SurfaceConfiguration,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
+        _instance: &VulkanInstance,
+        _new_size: &PhysicalSize<u32>,
+        _camera: &mut dyn Camera,
     ) {
-        self.depth_view = vent_assets::Texture::create_depth_view(
-            device,
-            config.width,
-            config.height,
-            Some("Depth Buffer"),
-        );
-
-        let camera: &mut Camera3D = camera.downcast_mut().unwrap();
-
-        camera.recreate_projection(config.width as f32 / config.height as f32);
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[camera.ubo()]));
+        // TODO recreate depth image
     }
 
-    fn render(
-        &mut self,
-        encoder: &mut wgpu::CommandEncoder,
-        view: &wgpu::TextureView,
-        queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
-    ) {
+    fn render(&mut self, instance: &VulkanInstance, image_index: u32, camera: &mut dyn Camera) {
         let camera: &mut Camera3D = camera.downcast_mut().unwrap();
 
-        let mut ubo = camera.ubo();
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("3D Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
-                        }),
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.depth_view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: true,
-                    }),
-                    stencil_ops: None,
-                }),
-            });
-            self.light_renderer
-                .render(&mut rpass, &self.bind_group, &self.tmp_light_mesh);
+        camera.recreate_view();
+        camera.write(instance, image_index);
 
-            rpass.set_pipeline(&self.pipeline);
-            if let Some(ref pipe) = self.pipeline_wire {
-                rpass.set_pipeline(pipe);
-            }
-            rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.set_bind_group(2, &self.light_renderer.light_bind_group, &[]);
-            self.mesh_renderer.render(&mut rpass, &mut ubo);
+        let image_index = image_index as usize;
+
+        let command_buffer = instance.command_buffers[image_index];
+
+        let render_area = vk::Rect2D::builder()
+            .offset(vk::Offset2D::default())
+            .extent(instance.surface_resolution)
+            .build();
+
+        let color_clear_value = vk::ClearValue {
+            color: vk::ClearColorValue {
+                float32: [0.5, 0.5, 0.5, 1.0],
+            },
+        };
+
+        let depth_clear_value = vk::ClearValue {
+            depth_stencil: vk::ClearDepthStencilValue {
+                depth: 1.0,
+                stencil: 0,
+            },
+        };
+
+        let clear_values = &[color_clear_value, depth_clear_value];
+
+        unsafe {
+            instance
+                .device
+                .reset_command_buffer(
+                    command_buffer,
+                    vk::CommandBufferResetFlags::RELEASE_RESOURCES,
+                )
+                .unwrap();
+
+            let info = vk::CommandBufferBeginInfo::default();
+
+            instance
+                .device
+                .begin_command_buffer(command_buffer, &info)
+                .unwrap();
+
+            let info = vk::RenderPassBeginInfo::builder()
+                .render_pass(instance.render_pass)
+                .framebuffer(instance.frame_buffers[image_index])
+                .render_area(render_area)
+                .clear_values(clear_values);
+
+            let subpass_info =
+                vk::SubpassBeginInfo::builder().contents(vk::SubpassContents::INLINE);
+
+            instance
+                .device
+                .cmd_begin_render_pass2(command_buffer, &info, &subpass_info);
+            instance.device.cmd_bind_pipeline(
+                command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline,
+            );
+
+            instance
+                .device
+                .cmd_set_scissor(command_buffer, 0, &[render_area]);
+
+            let viewport = vk::Viewport::builder()
+                .height(instance.surface_resolution.height as f32)
+                .width(instance.surface_resolution.width as f32)
+                .max_depth(1.0);
+            instance
+                .device
+                .cmd_set_viewport(command_buffer, 0, &[*viewport]);
+
+            self.mesh_renderer.record_buffer(
+                instance,
+                command_buffer,
+                image_index,
+                instance.pipeline_layout,
+                &mut camera.ubo(),
+            );
+
+            // END
+            let subpass_end_info = vk::SubpassEndInfo::default();
+            instance
+                .device
+                .cmd_end_render_pass2(command_buffer, &subpass_end_info);
+            instance.device.end_command_buffer(command_buffer).unwrap();
         }
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[ubo]));
+    }
+
+    fn destroy(&mut self, instance: &VulkanInstance) {
+        self.mesh_renderer.destroy_all(instance);
+        unsafe {
+            instance.device.destroy_pipeline(self.pipeline, None);
+        }
     }
 }
 
-fn create_tmp_cube(device: &wgpu::Device) -> vent_assets::Mesh3D {
+fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
     let indices = [
         //Top
         2, 6, 7, 2, 3, 7, //Bottom
@@ -392,5 +374,12 @@ fn create_tmp_cube(device: &wgpu::Device) -> vent_assets::Mesh3D {
         }, //7
     ];
 
-    vent_assets::Mesh3D::new(device, &vertices, &indices, None, None)
+    vent_assets::Mesh3D::new(
+        &instance.device,
+        &instance.memory_allocator,
+        &vertices,
+        &indices,
+        None,
+        None,
+    )
 }

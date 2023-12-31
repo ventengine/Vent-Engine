@@ -1,11 +1,13 @@
 use std::path::Path;
 
-use bytemuck::{Pod, Zeroable};
+use ash::vk;
+use vent_rendering::allocator::MemoryAllocator;
+use vent_rendering::buffer::VulkanBuffer;
+use vent_rendering::instance::VulkanInstance;
+use vent_rendering::Vertex3D;
 use vent_sdk::utils::stopwatch::Stopwatch;
-use wgpu::util::DeviceExt;
-use wgpu::{BindGroupLayout, Device};
 
-use crate::{Mesh3D, Model3D, Vertex3D};
+use crate::{Material, Mesh3D, Model3D};
 
 use self::gltf::GLTFLoader;
 use self::obj::OBJLoader;
@@ -20,22 +22,12 @@ pub enum ModelError {
     LoadingError(String),
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub struct Material {
-    pub base_color: [f32; 4],
-}
-
 impl Model3D {
     #[inline]
-    pub async fn load<P: AsRef<Path>>(
-        device: &Device,
-        queue: &wgpu::Queue,
-        path: P,
-        texture_bind_group_layout: &BindGroupLayout,
-    ) -> Self {
+    pub async fn load<P: AsRef<Path>>(instance: &VulkanInstance, path: P) -> Self {
         let sw = Stopwatch::new_and_start();
-        let model = load_model_from_path(device, queue, path.as_ref(), texture_bind_group_layout)
+        log::info!("Loading new Model...");
+        let model = load_model_from_path(instance, path.as_ref())
             .await
             .expect("Failed to Load 3D Model");
         log::info!(
@@ -47,22 +39,32 @@ impl Model3D {
         model
     }
 
-    pub fn draw<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>) {
+    pub fn draw(
+        &self,
+        device: &ash::Device,
+        pipeline_layout: vk::PipelineLayout,
+        command_buffer: vk::CommandBuffer,
+        buffer_index: usize,
+    ) {
         self.meshes.iter().for_each(|mesh| {
-            rpass.push_debug_group("Bind Mesh");
-            mesh.bind(rpass, true);
-            rpass.pop_debug_group();
-            rpass.insert_debug_marker("Draw!");
-            mesh.draw(rpass);
+            // rpass.push_debug_group("Bind Mesh");
+            mesh.bind(device, command_buffer, buffer_index, pipeline_layout, true);
+            // rpass.pop_debug_group();
+            // rpass.insert_debug_marker("Draw!");
+            mesh.draw(device, command_buffer);
         })
+    }
+
+    pub fn destroy(&mut self, instance: &VulkanInstance) {
+        self.meshes
+            .iter_mut()
+            .for_each(|mesh| mesh.destroy(instance.descriptor_pool, &instance.device));
     }
 }
 
 async fn load_model_from_path(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
+    instance: &VulkanInstance,
     path: &Path,
-    texture_bind_group_layout: &BindGroupLayout,
 ) -> Result<Model3D, ModelError> {
     if !path.exists() {
         return Err(ModelError::FileNotExists);
@@ -72,51 +74,88 @@ async fn load_model_from_path(
 
     // Very Pretty, I know
     match extension {
-        "obj" => Ok(OBJLoader::load(device, queue, path, texture_bind_group_layout).await?),
-        "gltf" => Ok(GLTFLoader::load(device, queue, path, texture_bind_group_layout).await?),
+        "obj" => Ok(OBJLoader::load(instance, path).await?),
+        "gltf" => Ok(GLTFLoader::load(instance, path).await?),
         _ => Err(ModelError::UnsupportedFormat),
     }
 }
 
 impl Mesh3D {
     pub fn new(
-        device: &Device,
+        device: &ash::Device,
+        allocator: &MemoryAllocator,
         vertices: &[Vertex3D],
         indices: &[u32],
-        bind_group: Option<wgpu::BindGroup>,
-        name: Option<&str>,
+        material: Option<Material>,
+        _name: Option<&str>,
     ) -> Self {
-        let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: name,
-            contents: bytemuck::cast_slice(vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
+        let vertex_buf = VulkanBuffer::new_init(
+            device,
+            allocator,
+            std::mem::size_of_val(vertices) as vk::DeviceSize,
+            vk::BufferUsageFlags::VERTEX_BUFFER,
+            vertices,
+        );
 
-        let index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: name,
-            contents: bytemuck::cast_slice(indices),
-            usage: wgpu::BufferUsages::INDEX,
-        });
+        let index_buf = VulkanBuffer::new_init(
+            device,
+            allocator,
+            std::mem::size_of_val(indices) as vk::DeviceSize,
+            vk::BufferUsageFlags::INDEX_BUFFER,
+            indices,
+        );
 
         Self {
             vertex_buf,
             index_buf,
             index_count: indices.len() as u32,
-            bind_group,
+            material,
+            descriptor_set: None,
         }
     }
 
-    pub fn bind<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, with_group: bool) {
-        rpass.set_index_buffer(self.index_buf.slice(..), wgpu::IndexFormat::Uint32);
-        rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
-        if with_group {
-            if let Some(bg) = self.bind_group.as_ref() {
-                rpass.set_bind_group(1, bg, &[]);
+    pub fn set_descriptor_set(&mut self, descriptor_set: Vec<vk::DescriptorSet>) {
+        self.descriptor_set = Some(descriptor_set);
+    }
+
+    pub fn bind(
+        &self,
+        device: &ash::Device,
+        command_buffer: vk::CommandBuffer,
+        buffer_index: usize,
+        pipeline_layout: vk::PipelineLayout,
+        with_descriptor_set: bool,
+    ) {
+        unsafe {
+            device.cmd_bind_vertex_buffers(command_buffer, 0, &[*self.vertex_buf], &[0]);
+            device.cmd_bind_index_buffer(command_buffer, *self.index_buf, 0, vk::IndexType::UINT32);
+            if with_descriptor_set {
+                if let Some(ds) = &self.descriptor_set {
+                    device.cmd_bind_descriptor_sets(
+                        command_buffer,
+                        vk::PipelineBindPoint::GRAPHICS,
+                        pipeline_layout,
+                        0,
+                        &ds[buffer_index..=buffer_index],
+                        &[],
+                    )
+                }
             }
         }
     }
 
-    pub fn draw(&self, rpass: &mut wgpu::RenderPass<'_>) {
-        rpass.draw_indexed(0..self.index_count, 0, 0..1);
+    pub fn draw(&self, device: &ash::Device, command_buffer: vk::CommandBuffer) {
+        unsafe { device.cmd_draw_indexed(command_buffer, self.index_count, 1, 0, 0, 0) };
+    }
+
+    pub fn destroy(&mut self, descriptor_pool: vk::DescriptorPool, device: &ash::Device) {
+        self.vertex_buf.destroy(device);
+        self.index_buf.destroy(device);
+        if let Some(descriptor_set) = &mut self.descriptor_set {
+            unsafe { device.free_descriptor_sets(descriptor_pool, descriptor_set).expect("Failed to free Model descriptor sets") };
+        }
+        if let Some(material) = &mut self.material {
+            material.diffuse_texture.destroy(device);
+        }
     }
 }

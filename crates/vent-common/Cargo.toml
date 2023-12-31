@@ -6,10 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-winit = "0.28.6"
-wgpu = "0.16.2"
-pollster = "0.3.0"
-sysinfo = "0.29"
+winit = "0.29.7"
+sysinfo = "0.30"
 chrono = "0.4"
 
 image = "0.24.7"
@@ -21,15 +19,14 @@ serde_json = "1.0"
 
 # rfd = { version="0.11.4",  default-features = false, features = ["xdg-portal"]}
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = "0.1.7"
-console_log = "1"
-wgpu = { version = "0.16, 0", features = ["webgl"]}
-wasm-bindgen = "0.2.87"
-wasm-bindgen-futures = "0.4.37"
-web-sys = { version = "0.3.64", features = [
-    "Document",
-    "Window",
-    "Element",
-    "Location"
-]}
+# [target.'cfg(target_arch = "wasm32")'.dependencies]
+# console_error_panic_hook = "0.1.7"
+# console_log = "1"
+# wasm-bindgen = "0.2.87"
+# wasm-bindgen-futures = "0.4.37"
+# web-sys = { version = "0.3.64", features = [
+#     "Document",
+#     "Window",
+#     "Element",
+#     "Location"
+# ]}

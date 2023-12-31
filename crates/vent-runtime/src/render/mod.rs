@@ -1,11 +1,10 @@
 use std::time::{Duration, Instant};
 
-use vent_common::render::WGPURenderer;
-
+use vent_rendering::instance::VulkanInstance;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-use self::camera::Camera;
+use self::camera::{from_dimension, Camera};
 use self::d2::Renderer2D;
 use self::d3::Renderer3D;
 use self::gui::debug_gui::{DebugGUI, RenderData};
@@ -21,8 +20,9 @@ mod d2;
 mod d3;
 
 pub(crate) struct DefaultRuntimeRenderer {
-    wgpu_renderer: WGPURenderer,
+    instance: VulkanInstance,
     runtime_renderer: RawRuntimeRenderer,
+    pub camera: Box<dyn Camera>,
 }
 
 impl DefaultRuntimeRenderer {
@@ -30,62 +30,46 @@ impl DefaultRuntimeRenderer {
         dimension: Dimension,
         window: &winit::window::Window,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
-        camera: &mut dyn Camera,
     ) -> Self {
-        let wgpu_renderer = WGPURenderer::new(window);
-        let runtime_renderer = RawRuntimeRenderer::new(
-            dimension,
-            &wgpu_renderer.device,
-            &wgpu_renderer.queue,
-            &wgpu_renderer.config,
-            wgpu_renderer.caps.formats[0],
-            &wgpu_renderer.adapter,
-            event_loop,
-            camera,
+        let instance = VulkanInstance::new("TODO", window);
+        let window_size = window.inner_size();
+        let mut camera = from_dimension(
+            &instance,
+            (window_size.width / window_size.height) as f32,
+            &dimension,
         );
+        let runtime_renderer =
+            RawRuntimeRenderer::new(dimension, &instance, event_loop, camera.as_mut());
         Self {
-            wgpu_renderer,
+            instance,
             runtime_renderer,
+            camera,
         }
     }
 
-    pub(crate) fn progress_event(&mut self, event: &winit::event::WindowEvent<'_>) {
+    pub(crate) fn progress_event(&mut self, event: &winit::event::WindowEvent) {
         self.runtime_renderer.progress_event(event);
     }
 
-    pub(crate) fn render(
-        &mut self,
-        window: &winit::window::Window,
-        camera: &mut dyn Camera,
-    ) -> f32 {
-        let output = self.wgpu_renderer.surface.get_current_texture().unwrap(); // TODO
-
-        let view: wgpu::TextureView = output.texture.create_view(&wgpu::TextureViewDescriptor {
-            label: Some("Runtime View"),
-            ..Default::default()
-        });
-
-        let detla = self.runtime_renderer.render(
-            &view,
-            &self.wgpu_renderer.device,
-            &self.wgpu_renderer.queue,
-            window,
-            camera,
-        );
-
-        output.present();
-
-        detla
+    pub(crate) fn render(&mut self, window: &winit::window::Window) -> f32 {
+        self.runtime_renderer
+            .render(&mut self.instance, window, self.camera.as_mut())
     }
 
-    pub(crate) fn resize(&mut self, new_size: &PhysicalSize<u32>, camera: &mut dyn Camera) {
-        self.runtime_renderer.resize(
-            &self.wgpu_renderer.device,
-            &self.wgpu_renderer.queue,
-            &self.wgpu_renderer.config,
-            new_size,
-            camera,
-        );
+    pub(crate) fn resize(&mut self, new_size: &PhysicalSize<u32>) {
+        log::info!("Resizing to {:?} ", new_size);
+        self.camera
+            .recreate_projection((new_size.width / new_size.width) as f32);
+        self.runtime_renderer
+            .resize(&self.instance, new_size, self.camera.as_mut());
+    }
+}
+
+impl Drop for DefaultRuntimeRenderer {
+    fn drop(&mut self) {
+        self.camera
+            .destroy(self.instance.descriptor_pool, &self.instance.device);
+        self.runtime_renderer.destroy(&self.instance);
     }
 }
 
@@ -95,30 +79,20 @@ pub enum Dimension {
 }
 
 pub trait Renderer {
-    fn init(
-        config: &wgpu::SurfaceConfiguration,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
-    ) -> Self
+    fn init(instance: &VulkanInstance, camera: &mut dyn Camera) -> Self
     where
         Self: Sized;
 
     fn resize(
         &mut self,
-        config: &wgpu::SurfaceConfiguration,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        instance: &VulkanInstance,
+        new_size: &PhysicalSize<u32>,
         camera: &mut dyn Camera,
     );
 
-    fn render(
-        &mut self,
-        encoder: &mut wgpu::CommandEncoder,
-        view: &wgpu::TextureView,
-        queue: &wgpu::Queue,
-        camera: &mut dyn Camera,
-    );
+    fn render(&mut self, instance: &VulkanInstance, image_index: u32, camera: &mut dyn Camera);
+
+    fn destroy(&mut self, instance: &VulkanInstance);
 }
 
 pub struct RawRuntimeRenderer {
@@ -135,21 +109,21 @@ pub struct RawRuntimeRenderer {
 impl RawRuntimeRenderer {
     pub fn new(
         dimension: Dimension,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        config: &wgpu::SurfaceConfiguration,
-        surface_format: wgpu::TextureFormat,
-        adapter: &wgpu::Adapter,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
+        instance: &VulkanInstance,
+        _event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
         let multi_renderer: Box<dyn Renderer> = match dimension {
-            Dimension::D2 => Box::new(Renderer2D::init(config, device, queue, camera)),
-            Dimension::D3 => Box::new(Renderer3D::init(config, device, queue, camera)),
+            Dimension::D2 => Box::new(Renderer2D::init(instance, camera)),
+            Dimension::D3 => Box::new(Renderer3D::init(instance, camera)),
         };
-        let egui = EguiRenderer::new(event_loop, device, surface_format)
+        let egui = EguiRenderer::new()
             // TODO
-            .add_gui(Box::new(DebugGUI::new(adapter.get_info())));
+            .add_gui(Box::new(DebugGUI::new(unsafe {
+                instance
+                    .instance
+                    .get_physical_device_properties(instance.physical_device)
+            })));
 
         Self {
             multi_renderer,
@@ -163,24 +137,27 @@ impl RawRuntimeRenderer {
 
     pub fn render(
         &mut self,
-        surface_view: &wgpu::TextureView,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        window: &Window,
+        instance: &mut VulkanInstance,
+        _window: &Window,
         camera: &mut dyn Camera,
     ) -> f32 {
         let frame_start = Instant::now();
 
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Runtime Render Encoder"),
-        });
-        // let mut encoder2 = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        //     label: Some("EGUI Render Encoder"),
-        // });
+        let image = instance.next_image();
 
-        self.multi_renderer
-            .render(&mut encoder, surface_view, queue, camera);
-        queue.submit(Some(encoder.finish()));
+        match image {
+            Ok((image_index, _)) => {
+                self.multi_renderer.render(instance, image_index, camera);
+                instance.submit(image_index);
+            }
+            Err(_err) => {
+                // if err == vk::Result::ERROR_OUT_OF_DATE_KHR {
+                //     self.resize(instance, instance.surface_resolution, camera)
+                // } else if err == vk::Result::ERROR_SURFACE_LOST_KHR {
+                //     self.resize(instance, instance.surface_resolution, camera)
+                // }
+            }
+        }
 
         // self.gui_renderer.render(
         //     surface_view,
@@ -190,8 +167,6 @@ impl RawRuntimeRenderer {
         //     &mut encoder2,
         //     &self.current_data,
         // );
-
-        // queue.submit(Some(encoder2.finish()));
 
         // TODO
         #[cfg(target_arch = "wasm32")]
@@ -232,19 +207,22 @@ impl RawRuntimeRenderer {
         }
     }
 
-    pub fn progress_event(&mut self, event: &winit::event::WindowEvent<'_>) {
+    pub fn progress_event(&mut self, event: &winit::event::WindowEvent) {
         self.gui_renderer.progress_event(event);
     }
 
     pub fn resize(
         &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        config: &wgpu::SurfaceConfiguration,
-        _new_size: &PhysicalSize<u32>,
+        instance: &VulkanInstance,
+        new_size: &PhysicalSize<u32>,
         camera: &mut dyn Camera,
     ) {
         // Uses the NEW Resized config
-        self.multi_renderer.resize(config, device, queue, camera)
+        self.multi_renderer.resize(instance, new_size, camera)
+    }
+
+    pub fn destroy(&mut self, instance: &VulkanInstance) {
+        self.multi_renderer.destroy(instance);
+        // TODO Egui destroy
     }
 }

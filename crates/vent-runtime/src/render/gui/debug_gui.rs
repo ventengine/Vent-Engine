@@ -1,3 +1,5 @@
+use ash::vk;
+
 use super::GUI;
 
 pub struct RenderData {
@@ -15,12 +17,12 @@ impl Default for RenderData {
 }
 
 pub struct DebugGUI {
-    adapter: wgpu::AdapterInfo,
+    properties: vk::PhysicalDeviceProperties,
 }
 
 impl DebugGUI {
-    pub const fn new(adapter: wgpu::AdapterInfo) -> Self {
-        Self { adapter }
+    pub const fn new(properties: vk::PhysicalDeviceProperties) -> Self {
+        Self { properties }
     }
 }
 
@@ -30,12 +32,17 @@ impl GUI for DebugGUI {
             ui.label(format!("FPS: {}", render_data.fps));
             ui.label(format!("Frame Time: {}ms", render_data.frame_time));
 
-            // WGPU 0.17  ui.label(format!("API: {}", self.adapter.backend));
-            ui.label(format!("Device: {}", self.adapter.name));
-            // WGPU 0.17  ui.label(format!("Device Type: {}", self.adapter.device_type));
             ui.label(format!(
-                "Device Driver: {}, Info {}",
-                self.adapter.driver, self.adapter.driver_info
+                "Device: {}",
+                format!("{:?}", self.properties.device_name)
+            ));
+            ui.label(format!(
+                "Device Type: {}",
+                format!("{:?}", self.properties.device_type)
+            ));
+            ui.label(format!(
+                "Driver: {}, API Version: {}",
+                self.properties.driver_version, self.properties.api_version
             ));
         });
     }

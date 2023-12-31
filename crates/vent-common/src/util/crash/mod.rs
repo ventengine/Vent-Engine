@@ -2,7 +2,7 @@ use chrono::{DateTime, Local};
 use std::fs::File;
 use std::io::Write;
 use std::panic::{self, PanicInfo};
-use sysinfo::{System, SystemExt};
+use sysinfo::System;
 
 #[inline]
 pub fn init_panic_hook() {
@@ -35,10 +35,18 @@ fn log_crash(pi: &PanicInfo) -> std::io::Result<()> {
     writeln!(
         &mut f,
         "System kernel version:   {:?}",
-        sys.kernel_version()
+        sysinfo::System::kernel_version()
     )?;
-    writeln!(&mut f, "System OS version:       {:?}", sys.os_version())?;
-    writeln!(&mut f, "System host name:        {:?}", sys.host_name())?;
+    writeln!(
+        &mut f,
+        "System OS version:       {:?}",
+        sysinfo::System::os_version()
+    )?;
+    writeln!(
+        &mut f,
+        "System host name:        {:?}",
+        sysinfo::System::host_name()
+    )?;
 
     writeln!(
         &mut f,

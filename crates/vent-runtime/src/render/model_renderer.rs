@@ -1,6 +1,8 @@
+use ash::vk::{self};
 use glam::{Mat4, Quat};
 use std::collections::HashMap;
 use vent_ecs::entity::Entity;
+use vent_rendering::instance::VulkanInstance;
 
 use super::{d3::UBO3D, model::Entity3D};
 
@@ -45,10 +47,28 @@ impl ModelRenderer3D {
         self.map.iter_mut()
     }
 
-    pub fn render<'rp>(&'rp self, rpass: &mut wgpu::RenderPass<'rp>, ubo: &mut UBO3D) {
+    pub fn record_buffer(
+        &self,
+        instance: &VulkanInstance,
+        command_buffer: vk::CommandBuffer,
+        buffer_index: usize,
+        pipeline_layout: vk::PipelineLayout,
+        ubo: &mut UBO3D,
+    ) {
         for model in self.map.values() {
-            ubo.transformation = Self::calc_trans_matrix(model).to_cols_array_2d();
-            model.rendering_model.draw(rpass);
+            ubo.transformation = Self::calc_trans_matrix(model);
+            model.rendering_model.draw(
+                &instance.device,
+                pipeline_layout,
+                command_buffer,
+                buffer_index,
+            );
+        }
+    }
+
+    pub fn destroy_all(&mut self, instance: &VulkanInstance) {
+        for model in self.map.values_mut() {
+            model.rendering_model.destroy(instance)
         }
     }
 

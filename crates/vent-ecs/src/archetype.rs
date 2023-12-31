@@ -30,10 +30,7 @@ impl Archetype {
 
     /// Adds a component to the archetype.
     pub fn add_component<T: Component>(&mut self, component_id: usize, component: T) {
-        let component_data = self
-            .component_data
-            .entry(component_id)
-            .or_insert(Vec::new());
+        let component_data = self.component_data.entry(component_id).or_default();
         component_data.push(Box::new(component));
     }
 
