@@ -1,6 +1,6 @@
 use ash::extensions::khr::{Surface, Swapchain};
 use ash::prelude::VkResult;
-use ash::vk::{Extent2D, SwapchainKHR};
+use ash::vk::{Extent2D, PushConstantRange, SwapchainKHR};
 use ash::{extensions::ext::DebugUtils, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
@@ -34,7 +34,6 @@ pub struct VulkanInstance {
 
     pub swapchain_loader: Swapchain,
     pub swapchain: vk::SwapchainKHR,
-    pub pipeline_layout: vk::PipelineLayout,
 
     pub swapchain_images: Vec<vk::Image>,
     pub swapchain_image_views: Vec<vk::ImageView>,
@@ -59,7 +58,7 @@ pub struct VulkanInstance {
     frame: usize,
 
     #[cfg(debug_assertions)]
-    debug_utils: DebugUtils,
+    pub debug_utils: DebugUtils,
     #[cfg(debug_assertions)]
     debug_messenger: vk::DebugUtilsMessengerEXT,
 }
@@ -194,8 +193,6 @@ impl VulkanInstance {
         let descriptor_pool = Self::create_descriptor_pool(&device);
         let descriptor_set_layout = Self::create_descriptor_set_layout(&device);
 
-        let pipeline_layout = Self::create_pipeline_layout(&device, descriptor_set_layout);
-
         Self {
             memory_allocator,
             instance,
@@ -206,7 +203,6 @@ impl VulkanInstance {
             swapchain_loader,
             surface_resolution,
             swapchain,
-            pipeline_layout,
             swapchain_images,
             swapchain_image_views,
             graphics_queue,
@@ -640,31 +636,23 @@ impl VulkanInstance {
 
     fn create_descriptor_set_layout(device: &ash::Device) -> vk::DescriptorSetLayout {
         let desc_layout_bindings = [
-            // Vertex
-            vk::DescriptorSetLayoutBinding {
-                binding: 0,
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::VERTEX,
-                ..Default::default()
-            },
             // Fragment
             vk::DescriptorSetLayoutBinding {
-                binding: 1,
+                binding: 0,
                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 descriptor_count: 1,
                 stage_flags: vk::ShaderStageFlags::FRAGMENT,
                 ..Default::default()
             },
             vk::DescriptorSetLayoutBinding {
-                binding: 2,
+                binding: 1,
                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
                 descriptor_count: 1,
                 stage_flags: vk::ShaderStageFlags::FRAGMENT,
                 ..Default::default()
             },
             vk::DescriptorSetLayoutBinding {
-                binding: 3,
+                binding: 2,
                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
                 descriptor_count: 1,
                 stage_flags: vk::ShaderStageFlags::FRAGMENT,
@@ -679,14 +667,18 @@ impl VulkanInstance {
         unsafe { device.create_descriptor_set_layout(&info, None) }.unwrap()
     }
 
-    fn create_pipeline_layout(
-        device: &ash::Device,
-        layout: vk::DescriptorSetLayout,
-    ) -> vk::PipelineLayout {
-        let binding = [layout];
-        let create_info = vk::PipelineLayoutCreateInfo::builder().set_layouts(&binding);
+    pub fn create_pipeline_layout(&self, push_contant_size: u32) -> vk::PipelineLayout {
+        let binding = [self.descriptor_set_layout];
+        let push_constant_ranges = [PushConstantRange::builder()
+            .size(push_contant_size)
+            .stage_flags(vk::ShaderStageFlags::VERTEX)
+            .build()];
 
-        unsafe { device.create_pipeline_layout(&create_info, None) }.unwrap()
+        let create_info = vk::PipelineLayoutCreateInfo::builder()
+            .push_constant_ranges(&push_constant_ranges)
+            .set_layouts(&binding);
+
+        unsafe { self.device.create_pipeline_layout(&create_info, None) }.unwrap()
     }
 
     fn create_render_pass(
@@ -771,8 +763,6 @@ impl Drop for VulkanInstance {
         unsafe {
             self.device.device_wait_idle().unwrap();
 
-            self.device
-                .destroy_pipeline_layout(self.pipeline_layout, None);
             self.in_flight_fences
                 .iter()
                 .for_each(|f| self.device.destroy_fence(*f, None));

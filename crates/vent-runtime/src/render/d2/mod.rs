@@ -1,6 +1,5 @@
 use super::{camera::Camera, Renderer};
 
-#[derive(Clone, Copy)]
 pub struct UBO2D {}
 
 pub struct Renderer2D {}

@@ -19,20 +19,18 @@ use super::{
 
 pub mod light_renderer;
 
-#[derive(Clone, Copy)]
 pub struct MaterialUBO {
     pub base_color: Vec4,
 }
 
-#[derive(Clone, Copy)]
-pub struct UBO3D {
+pub struct Camera3DData {
     pub view_position: Vec3,
     pub projection: Mat4,
     pub view: Mat4,
     pub transformation: Mat4,
 }
 
-impl Default for UBO3D {
+impl Default for Camera3DData {
     fn default() -> Self {
         Self {
             view_position: Default::default(),
@@ -48,6 +46,7 @@ pub struct Renderer3D {
     // light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
     // depth_view: wgpu::TextureView,
+    pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
     // pipeline_wire: Option<wgpu::RenderPipeline>,
 }
@@ -57,7 +56,7 @@ impl Renderer for Renderer3D {
     where
         Self: Sized,
     {
-        let camera: &Camera3D = camera.downcast_ref().unwrap();
+        let _camera: &Camera3D = camera.downcast_ref().unwrap();
         let vertex_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/res/shaders/app/3D/shader.vert"
@@ -66,11 +65,16 @@ impl Renderer for Renderer3D {
             env!("CARGO_MANIFEST_DIR"),
             "/res/shaders/app/3D/shader.frag"
         );
+
+        let push_contant_size = size_of::<Camera3DData>() as u32;
+        let pipeline_layout = instance.create_pipeline_layout(push_contant_size);
+
         let pipeline = vent_rendering::pipeline::create_pipeline(
             instance,
             vertex_shader.to_owned(),
             fragment_shader.to_owned(),
             Vertex3D::BINDING_DESCRIPTION,
+            pipeline_layout,
             &Vertex3D::input_descriptions(),
             instance.surface_resolution,
         );
@@ -101,17 +105,18 @@ impl Renderer for Renderer3D {
 
                     for _ in 0..instance.swapchain_images.len() {
                         let buffer = VulkanBuffer::new_init_type(
-                            &instance.device,
+                            instance,
                             &instance.memory_allocator,
                             size_of::<MaterialUBO>() as vk::DeviceSize,
                             vk::BufferUsageFlags::UNIFORM_BUFFER,
                             &MaterialUBO {
                                 base_color: Vec4::from_array(material.base_color),
                             },
+                            None,
                         );
                         material_buffers.push(buffer);
                         let buffer = VulkanBuffer::new_init_type(
-                            &instance.device,
+                            instance,
                             &instance.memory_allocator,
                             size_of::<LightUBO>() as vk::DeviceSize,
                             vk::BufferUsageFlags::UNIFORM_BUFFER,
@@ -119,6 +124,7 @@ impl Renderer for Renderer3D {
                                 position: [2.0, 100.0, 2.0].into(),
                                 color: [1.0, 1.0, 1.0].into(),
                             },
+                            None,
                         );
                         light_buffers.push(buffer)
                     }
@@ -130,12 +136,6 @@ impl Renderer for Renderer3D {
                             .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
                             .image_view(diffuse_texture.image_view)
                             .sampler(diffuse_texture.sampler)
-                            .build();
-
-                        let camera_info = vk::DescriptorBufferInfo::builder()
-                            .buffer(camera.ubo_buffers[i].buffer)
-                            .offset(0)
-                            .range(size_of::<UBO3D>() as vk::DeviceSize)
                             .build();
 
                         let material_buffer_info = vk::DescriptorBufferInfo::builder()
@@ -153,15 +153,7 @@ impl Renderer for Renderer3D {
                         let desc_sets = [
                             vk::WriteDescriptorSet {
                                 dst_set: descriptor_set,
-                                dst_binding: 0,
-                                descriptor_count: 1,
-                                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                                p_buffer_info: &camera_info,
-                                ..Default::default()
-                            },
-                            vk::WriteDescriptorSet {
-                                dst_set: descriptor_set,
-                                dst_binding: 1, // From DescriptorSetLayoutBinding
+                                dst_binding: 0, // From DescriptorSetLayoutBinding
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                                 p_image_info: &image_info,
@@ -169,7 +161,7 @@ impl Renderer for Renderer3D {
                             },
                             vk::WriteDescriptorSet {
                                 dst_set: descriptor_set,
-                                dst_binding: 2,
+                                dst_binding: 1,
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
                                 p_buffer_info: &material_buffer_info,
@@ -177,7 +169,7 @@ impl Renderer for Renderer3D {
                             },
                             vk::WriteDescriptorSet {
                                 dst_set: descriptor_set,
-                                dst_binding: 3,
+                                dst_binding: 2,
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
                                 p_buffer_info: &light_buffer_info,
@@ -205,6 +197,7 @@ impl Renderer for Renderer3D {
             // depth_view,
             // bind_group,
             // uniform_buf,
+            pipeline_layout,
             pipeline,
             // pipeline_wire,
         }
@@ -223,16 +216,20 @@ impl Renderer for Renderer3D {
         let camera: &mut Camera3D = camera.downcast_mut().unwrap();
 
         camera.recreate_view();
-        camera.write(instance, image_index);
 
         let image_index = image_index as usize;
 
         let command_buffer = instance.command_buffers[image_index];
 
         let render_area = vk::Rect2D::builder()
-            .offset(vk::Offset2D::default())
+            .offset(vk::Offset2D { x: 0, y: 0 })
             .extent(instance.surface_resolution)
             .build();
+
+        let viewport = vk::Viewport::builder()
+            .width(instance.surface_resolution.width as f32)
+            .height(instance.surface_resolution.height as f32)
+            .max_depth(1.0);
 
         let color_clear_value = vk::ClearValue {
             color: vk::ClearColorValue {
@@ -286,11 +283,6 @@ impl Renderer for Renderer3D {
             instance
                 .device
                 .cmd_set_scissor(command_buffer, 0, &[render_area]);
-
-            let viewport = vk::Viewport::builder()
-                .height(instance.surface_resolution.height as f32)
-                .width(instance.surface_resolution.width as f32)
-                .max_depth(1.0);
             instance
                 .device
                 .cmd_set_viewport(command_buffer, 0, &[*viewport]);
@@ -299,9 +291,11 @@ impl Renderer for Renderer3D {
                 instance,
                 command_buffer,
                 image_index,
-                instance.pipeline_layout,
-                &mut camera.ubo(),
+                self.pipeline_layout,
+                &mut camera.ubo,
             );
+
+            camera.write(instance, self.pipeline_layout, command_buffer);
 
             // END
             let subpass_end_info = vk::SubpassEndInfo::default();
@@ -314,7 +308,12 @@ impl Renderer for Renderer3D {
 
     fn destroy(&mut self, instance: &VulkanInstance) {
         self.mesh_renderer.destroy_all(instance);
+        self.tmp_light_mesh
+            .destroy(instance.descriptor_pool, &instance.device);
         unsafe {
+            instance
+                .device
+                .destroy_pipeline_layout(self.pipeline_layout, None);
             instance.device.destroy_pipeline(self.pipeline, None);
         }
     }
@@ -375,7 +374,7 @@ fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
     ];
 
     vent_assets::Mesh3D::new(
-        &instance.device,
+        instance,
         &instance.memory_allocator,
         &vertices,
         &indices,

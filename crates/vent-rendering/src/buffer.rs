@@ -2,7 +2,7 @@ use std::mem::align_of;
 
 use ash::vk;
 
-use crate::allocator::MemoryAllocator;
+use crate::{allocator::MemoryAllocator, debug, instance::VulkanInstance};
 
 pub struct VulkanBuffer {
     pub buffer: vk::Buffer,
@@ -15,10 +15,11 @@ impl VulkanBuffer {
      * Allocates & Binds new uninitialized Memory based on Size and Usage
      */
     pub fn new(
-        device: &ash::Device,
+        instance: &VulkanInstance,
         allocator: &MemoryAllocator,
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
+        name: Option<&str>,
     ) -> Self {
         let buffer_info = vk::BufferCreateInfo::builder()
             .size(size)
@@ -26,20 +27,25 @@ impl VulkanBuffer {
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .build();
 
-        let buffer = unsafe { device.create_buffer(&buffer_info, None) }.unwrap();
+        let buffer = unsafe { instance.device.create_buffer(&buffer_info, None) }.unwrap();
 
-        let requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
+        let requirements = unsafe { instance.device.get_buffer_memory_requirements(buffer) };
 
         let buffer_memory = allocator.allocate(
-            device,
+            &instance.device,
             requirements,
             vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::HOST_VISIBLE,
         );
 
         unsafe {
-            device
+            instance
+                .device
                 .bind_buffer_memory(buffer, buffer_memory, 0)
                 .expect("Failed to bind Buffer memory");
+        }
+
+        if let Some(name) = name {
+            debug::set_object_name(instance, buffer, name)
         }
 
         Self {
@@ -72,26 +78,28 @@ impl VulkanBuffer {
      * Allocates & Binds new initialized Memory based on Size and Usage
      */
     pub fn new_init<T: Copy>(
-        device: &ash::Device,
+        instance: &VulkanInstance,
         allocator: &MemoryAllocator,
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
         data: &[T],
+        name: Option<&str>,
     ) -> Self {
-        let buffer = Self::new(device, allocator, size, usage);
-        buffer.upload_data(device, data, size);
+        let buffer = Self::new(instance, allocator, size, usage, name);
+        buffer.upload_data(&instance.device, data, size);
         buffer
     }
 
     pub fn new_init_type<T>(
-        device: &ash::Device,
+        instance: &VulkanInstance,
         allocator: &MemoryAllocator,
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
         data: *const T,
+        name: Option<&str>,
     ) -> Self {
-        let buffer = Self::new(device, allocator, size, usage);
-        buffer.upload_type(device, data, size);
+        let buffer = Self::new(instance, allocator, size, usage, name);
+        buffer.upload_type(&instance.device, data, size);
         buffer
     }
 
@@ -111,7 +119,7 @@ impl VulkanBuffer {
             let memory = device
                 .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
                 .unwrap();
-            let mut align = ash::util::Align::new(memory, align_of::<f32>() as _, size);
+            let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
             align.copy_from_slice(&[data]);
             device.unmap_memory(self.buffer_memory);
         }

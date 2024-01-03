@@ -34,8 +34,7 @@ impl DefaultRuntimeRenderer {
         let instance = VulkanInstance::new("TODO", window);
         let window_size = window.inner_size();
         let mut camera = from_dimension(
-            &instance,
-            (window_size.width / window_size.height) as f32,
+            window_size.width as f32 / window_size.height as f32,
             &dimension,
         );
         let runtime_renderer =
@@ -57,9 +56,14 @@ impl DefaultRuntimeRenderer {
     }
 
     pub(crate) fn resize(&mut self, new_size: &PhysicalSize<u32>) {
+        let old_size = self.instance.surface_resolution;
+        if old_size.width == new_size.width && old_size.height == new_size.height {
+            return;
+        }
+
         log::info!("Resizing to {:?} ", new_size);
         self.camera
-            .recreate_projection((new_size.width / new_size.width) as f32);
+            .recreate_projection(new_size.width as f32 / new_size.height as f32);
         self.runtime_renderer
             .resize(&self.instance, new_size, self.camera.as_mut());
     }
@@ -67,8 +71,6 @@ impl DefaultRuntimeRenderer {
 
 impl Drop for DefaultRuntimeRenderer {
     fn drop(&mut self) {
-        self.camera
-            .destroy(self.instance.descriptor_pool, &self.instance.device);
         self.runtime_renderer.destroy(&self.instance);
     }
 }

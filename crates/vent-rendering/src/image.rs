@@ -2,7 +2,7 @@ use ash::vk::{self, Extent2D};
 
 use crate::{
     allocator::MemoryAllocator, begin_single_time_command, buffer::VulkanBuffer,
-    end_single_time_command,
+    end_single_time_command, instance::VulkanInstance,
 };
 
 pub struct DepthImage {
@@ -32,7 +32,7 @@ impl VulkanImage {
     pub const DEFAULT_TEXTURE_FILTER: vk::Filter = vk::Filter::LINEAR;
 
     pub fn from_image(
-        device: &ash::Device,
+        instance: &VulkanInstance,
         image: image::DynamicImage,
         command_pool: vk::CommandPool,
         allocator: &MemoryAllocator,
@@ -55,23 +55,24 @@ impl VulkanImage {
         let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
 
         let mut staging_buffer = VulkanBuffer::new_init(
-            device,
+            instance,
             allocator,
             image_data_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             &image_data,
+            None,
         );
 
         let image = Self::create_image(
-            device,
+            &instance.device,
             vk::Format::R8G8B8A8_UNORM,
             image_size,
             vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
         );
-        let memory = VulkanBuffer::new_image(device, allocator, image);
+        let memory = VulkanBuffer::new_image(&instance.device, allocator, image);
 
         Self::copy_buffer_to_image(
-            device,
+            &instance.device,
             image,
             &staging_buffer,
             command_pool,
@@ -79,17 +80,19 @@ impl VulkanImage {
             image_size.width,
             image_size.height,
         );
-        staging_buffer.destroy(device);
+        staging_buffer.destroy(&instance.device);
 
         let image_view = Self::create_image_view(
             image,
-            device,
+            &instance.device,
             vk::Format::R8G8B8A8_UNORM,
             vk::ImageAspectFlags::COLOR,
         );
 
         let sampler = unsafe {
-            device.create_sampler(&sampler_info.unwrap_or(Self::default_sampler()), None)
+            instance
+                .device
+                .create_sampler(&sampler_info.unwrap_or(Self::default_sampler()), None)
         }
         .unwrap();
 
@@ -125,7 +128,7 @@ impl VulkanImage {
     }
 
     pub fn from_color(
-        device: &ash::Device,
+        instance: &VulkanInstance,
         command_pool: vk::CommandPool,
         allocator: &MemoryAllocator,
         submit_queue: vk::Queue,
@@ -134,7 +137,7 @@ impl VulkanImage {
     ) -> Self {
         let color_img = image::RgbaImage::from_pixel(size.width, size.height, image::Rgba(color));
         Self::from_image(
-            device,
+            instance,
             image::DynamicImage::ImageRgba8(color_img),
             command_pool,
             allocator,

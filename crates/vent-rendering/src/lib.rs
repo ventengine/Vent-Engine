@@ -65,6 +65,11 @@ impl<'a> Vertex<'a> for Vertex3D {
     }
 }
 
+pub unsafe fn any_as_u8_slice<T: Sized>(any: &T) -> &[u8] {
+    let ptr = (any as *const T) as *const u8;
+    std::slice::from_raw_parts(ptr, std::mem::size_of::<T>())
+}
+
 pub fn begin_single_time_command(
     device: &ash::Device,
     command_pool: vk::CommandPool,

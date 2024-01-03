@@ -37,7 +37,7 @@ impl OBJLoader {
             );
 
             meshes.push(Mesh3D::new(
-                &instance.device,
+                instance,
                 &instance.memory_allocator,
                 &mesh.0,
                 mesh.1,
@@ -56,7 +56,7 @@ impl OBJLoader {
     ) -> Material {
         let diffuse_texture = if let Some(texture) = &material.diffuse_texture {
             VulkanImage::from_image(
-                &instance.device,
+                instance,
                 image::open(model_dir.join(texture)).unwrap(),
                 instance.command_pool,
                 &instance.memory_allocator,
@@ -65,7 +65,7 @@ impl OBJLoader {
             )
         } else {
             VulkanImage::from_color(
-                &instance.device,
+                instance,
                 instance.command_pool,
                 &instance.memory_allocator,
                 instance.graphics_queue,

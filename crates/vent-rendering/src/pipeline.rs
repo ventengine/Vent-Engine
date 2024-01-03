@@ -9,6 +9,7 @@ pub fn create_pipeline(
     vertex_file: String,
     fragment_file: String,
     binding_desc: vk::VertexInputBindingDescription,
+    pipeline_layout: vk::PipelineLayout,
     attrib_desc: &[vk::VertexInputAttributeDescription],
     surface_resolution: vk::Extent2D,
 ) -> vk::Pipeline {
@@ -118,7 +119,7 @@ pub fn create_pipeline(
         .depth_stencil_state(&depth_state_info)
         .color_blend_state(&color_blend_state)
         .dynamic_state(&dynamic_state_info)
-        .layout(instance.pipeline_layout)
+        .layout(pipeline_layout)
         .render_pass(instance.render_pass)
         .build();
 

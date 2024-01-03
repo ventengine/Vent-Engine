@@ -1,14 +1,14 @@
 #version 450 core
+#define VULKAN 100
 
+layout (binding = 0) uniform sampler2D texture_diffuse;
 
-layout (binding = 1) uniform sampler2D texture_diffuse;
-
-layout (binding = 2) uniform Material {
+layout (binding = 1) uniform Material {
     vec4 base_color;
 } material;
 
 
-layout (binding = 3) uniform Light {
+layout (binding = 2) uniform Light {
     vec3 position;
     vec3 color;
 } light;
@@ -26,7 +26,7 @@ layout (location = 0) out vec4 fragColor;
 const float ambient_strength = 0.1;
 
 void main() {
-    vec4 texture = texture(texture_diffuse, tex_coord); //* material.base_color;
+    vec4 texture = texture(texture_diffuse, tex_coord);
 
     // Calculate the ambient color
     // vec3 ambient_color = light.color * ambient_strength;

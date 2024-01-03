@@ -82,27 +82,29 @@ async fn load_model_from_path(
 
 impl Mesh3D {
     pub fn new(
-        device: &ash::Device,
+        instance: &VulkanInstance,
         allocator: &MemoryAllocator,
         vertices: &[Vertex3D],
         indices: &[u32],
         material: Option<Material>,
-        _name: Option<&str>,
+        name: Option<&str>,
     ) -> Self {
         let vertex_buf = VulkanBuffer::new_init(
-            device,
+            instance,
             allocator,
             std::mem::size_of_val(vertices) as vk::DeviceSize,
             vk::BufferUsageFlags::VERTEX_BUFFER,
             vertices,
+            name,
         );
 
         let index_buf = VulkanBuffer::new_init(
-            device,
+            instance,
             allocator,
             std::mem::size_of_val(indices) as vk::DeviceSize,
             vk::BufferUsageFlags::INDEX_BUFFER,
             indices,
+            name,
         );
 
         Self {
@@ -152,7 +154,11 @@ impl Mesh3D {
         self.vertex_buf.destroy(device);
         self.index_buf.destroy(device);
         if let Some(descriptor_set) = &mut self.descriptor_set {
-            unsafe { device.free_descriptor_sets(descriptor_pool, descriptor_set).expect("Failed to free Model descriptor sets") };
+            unsafe {
+                device
+                    .free_descriptor_sets(descriptor_pool, descriptor_set)
+                    .expect("Failed to free Model descriptor sets")
+            };
         }
         if let Some(material) = &mut self.material {
             material.diffuse_texture.destroy(device);

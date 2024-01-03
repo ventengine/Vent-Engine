@@ -1,10 +1,13 @@
 use ash::extensions::ext::DebugUtils;
+use ash::vk::Handle;
 use ash::{vk, Entry, Instance};
 use std::os::raw::c_void;
 use std::{
     ffi::{CStr, CString},
     os::raw::c_char,
 };
+
+use crate::instance::VulkanInstance;
 
 #[cfg(debug_assertions)]
 pub const ENABLE_VALIDATION_LAYERS: bool = true;
@@ -66,6 +69,28 @@ pub fn check_validation_layer_support(entry: &Entry) {
     }
 }
 
+pub fn set_object_name<H: Handle>(instance: &VulkanInstance, handle: H, name: &str) {
+    if ENABLE_VALIDATION_LAYERS {
+        let object_name = CString::new(name).expect("Failed to convert &str to CString");
+
+        let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::builder()
+            .object_type(H::TYPE)
+            .object_handle(handle.as_raw())
+            .object_name(&object_name)
+            .build();
+
+        unsafe {
+            instance
+                .debug_utils
+                .set_debug_utils_object_name(
+                    instance.device.handle(),
+                    &debug_utils_object_name_info,
+                )
+                .expect("Failed to set debug object name")
+        };
+    }
+}
+
 pub fn get_validation_features() -> vk::ValidationFeaturesEXT {
     if ENABLE_VALIDATION_LAYERS {
         let features = [
@@ -75,6 +100,7 @@ pub fn get_validation_features() -> vk::ValidationFeaturesEXT {
 
         return vk::ValidationFeaturesEXT::builder()
             .enabled_validation_features(&features)
+            .disabled_validation_features(&[]) // We need to give it an empty Array, If not we get an validation error
             .build();
     } else {
         vk::ValidationFeaturesEXT::default()

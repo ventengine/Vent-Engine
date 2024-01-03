@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use vent_ecs::entity::Entity;
 use vent_rendering::instance::VulkanInstance;
 
-use super::{d3::UBO3D, model::Entity3D};
+use super::{d3::Camera3DData, model::Entity3D};
 
 #[derive(Default)]
 pub struct ModelRenderer3D {
@@ -53,7 +53,7 @@ impl ModelRenderer3D {
         command_buffer: vk::CommandBuffer,
         buffer_index: usize,
         pipeline_layout: vk::PipelineLayout,
-        ubo: &mut UBO3D,
+        ubo: &mut Camera3DData,
     ) {
         for model in self.map.values() {
             ubo.transformation = Self::calc_trans_matrix(model);

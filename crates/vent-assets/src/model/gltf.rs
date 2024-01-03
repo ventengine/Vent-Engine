@@ -25,15 +25,15 @@ struct MaterialData<'a> {
 
 impl GLTFLoader {
     pub async fn load(instance: &VulkanInstance, path: &Path) -> Result<Model3D, ModelError> {
-        let doc = gltf::Gltf::from_reader(fs::File::open(path).unwrap()).unwrap();
+        let gltf = gltf::Gltf::from_reader(fs::File::open(path).unwrap()).unwrap();
 
         let path = path.parent().unwrap_or_else(|| Path::new("./"));
 
-        let buffer_data = gltf::import_buffers(&doc, Some(path), doc.blob.clone())
+        let buffer_data = gltf::import_buffers(&gltf.document, Some(path), gltf.blob)
             .expect("Failed to Load glTF Buffers");
 
         let mut meshes = Vec::new();
-        doc.scenes().for_each(|scene| {
+        gltf.document.scenes().for_each(|scene| {
             scene.nodes().for_each(|node| {
                 Self::load_node(instance, path, node, &buffer_data, &mut meshes);
             })
@@ -69,11 +69,8 @@ impl GLTFLoader {
 
         // Spawn threads to load mesh
         thread::scope(|s| {
-            let tx = tx.clone();
             for primitive in mesh.primitives() {
                 let tx = tx.clone();
-                let model_dir = model_dir;
-                let buffer_data = buffer_data;
 
                 s.spawn(move || {
                     let material_data =
@@ -89,7 +86,7 @@ impl GLTFLoader {
             let (material_data, primitive) = rx.recv().unwrap();
             let material = Self::load_material(instance, material_data);
             let loaded_mesh = Mesh3D::new(
-                &instance.device,
+                instance,
                 &instance.memory_allocator,
                 &primitive.0,
                 &primitive.1,
@@ -163,7 +160,7 @@ impl GLTFLoader {
      */
     fn load_material(instance: &VulkanInstance, data: MaterialData) -> Material {
         let diffuse_texture = VulkanImage::from_image(
-            &instance.device,
+            instance,
             data.image,
             instance.command_pool,
             &instance.memory_allocator,
