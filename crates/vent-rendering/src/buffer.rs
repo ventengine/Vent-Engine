@@ -44,6 +44,7 @@ impl VulkanBuffer {
                 .expect("Failed to bind Buffer memory");
         }
 
+        #[cfg(debug_assertions)]
         if let Some(name) = name {
             debug::set_object_name(instance, buffer, name)
         }

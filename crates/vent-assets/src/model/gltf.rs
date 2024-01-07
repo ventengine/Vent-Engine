@@ -209,7 +209,6 @@ impl GLTFLoader {
                 gltf::texture::MinFilter::LinearMipmapLinear => {
                     (vk::Filter::LINEAR, vk::SamplerMipmapMode::LINEAR)
                 }
-                _ => unimplemented!(),
             },
         );
 

@@ -76,7 +76,7 @@ impl Renderer for Renderer3D {
             instance,
             vertex_shader.to_owned(),
             fragment_shader.to_owned(),
-            Vertex3D::BINDING_DESCRIPTION,
+            Vertex3D::binding_description(),
             pipeline_layout,
             &Vertex3D::input_descriptions(),
             instance.surface_resolution,
@@ -212,8 +212,6 @@ impl Renderer for Renderer3D {
         new_size: &PhysicalSize<u32>,
         _camera: &mut dyn Camera,
     ) {
-        instance.recreate_swap_chain(new_size);
-        // TODO recreate depth image
     }
 
     fn render(&mut self, instance: &VulkanInstance, image_index: u32, camera: &mut dyn Camera) {

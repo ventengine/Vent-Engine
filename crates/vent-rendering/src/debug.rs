@@ -68,9 +68,9 @@ pub fn check_validation_layer_support(entry: &Entry) {
         }
     }
 }
-
+#[cfg(debug_assertions)]
 pub fn set_object_name<H: Handle>(instance: &VulkanInstance, handle: H, name: &str) {
-    if ENABLE_VALIDATION_LAYERS {
+    if cfg!(debug_assertions) {
         let object_name = CString::new(name).expect("Failed to convert &str to CString");
 
         let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::builder()

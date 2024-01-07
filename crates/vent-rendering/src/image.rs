@@ -45,12 +45,12 @@ impl VulkanImage {
         };
         let image_data = match &image {
             image::DynamicImage::ImageLuma8(_) | image::DynamicImage::ImageRgb8(_) => {
-                image.to_rgba8().into_raw()
+                image.into_rgba8().into_raw()
             }
             image::DynamicImage::ImageLumaA8(_) | image::DynamicImage::ImageRgba8(_) => {
                 image.into_bytes()
             }
-            _ => image.to_rgb8().into_raw(),
+            _ => image.into_rgb8().into_raw(),
         };
         let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
 
@@ -157,20 +157,19 @@ impl VulkanImage {
     ) {
         let command_buffer = begin_single_time_command(device, command_pool);
 
-        let image_barrier = vk::ImageMemoryBarrier2 {
-            dst_access_mask: vk::AccessFlags2::TRANSFER_WRITE,
-            new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            src_stage_mask: vk::PipelineStageFlags2::BOTTOM_OF_PIPE,
-            dst_stage_mask: vk::PipelineStageFlags2::TRANSFER,
-            image,
-            subresource_range: vk::ImageSubresourceRange {
+        let image_barrier = vk::ImageMemoryBarrier2::builder()
+            .dst_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
+            .new_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
+            .src_stage_mask(vk::PipelineStageFlags2::BOTTOM_OF_PIPE)
+            .dst_stage_mask(vk::PipelineStageFlags2::TRANSFER)
+            .image(image)
+            .subresource_range(vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::COLOR,
                 level_count: 1,
                 layer_count: 1,
                 ..Default::default()
-            },
-            ..Default::default()
-        };
+            })
+            .build();
 
         let dep_info = vk::DependencyInfo::builder()
             .image_memory_barriers(&[image_barrier])
@@ -208,23 +207,21 @@ impl VulkanImage {
 
         unsafe { device.cmd_copy_buffer_to_image2(command_buffer, &copy_image_info) };
 
-        let image_barrier = vk::ImageMemoryBarrier2 {
-            src_access_mask: vk::AccessFlags2::TRANSFER_WRITE,
-            dst_access_mask: vk::AccessFlags2::SHADER_READ,
-            src_stage_mask: vk::PipelineStageFlags2::TRANSFER,
-            dst_stage_mask: vk::PipelineStageFlags2::FRAGMENT_SHADER,
-            old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            image,
-            subresource_range: vk::ImageSubresourceRange {
+        let image_barrier = vk::ImageMemoryBarrier2::builder()
+            .src_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
+            .dst_access_mask(vk::AccessFlags2::SHADER_READ)
+            .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
+            .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+            .src_stage_mask(vk::PipelineStageFlags2::TRANSFER)
+            .dst_stage_mask(vk::PipelineStageFlags2::FRAGMENT_SHADER)
+            .image(image)
+            .subresource_range(vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::COLOR,
                 level_count: 1,
                 layer_count: 1,
                 ..Default::default()
-            },
-
-            ..Default::default()
-        };
+            })
+            .build();
 
         let dep_info = vk::DependencyInfo::builder()
             .image_memory_barriers(&[image_barrier])

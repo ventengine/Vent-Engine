@@ -20,7 +20,7 @@ pub fn create_pipeline(
         .code(&vertex_code)
         .build();
     let fragment_code =
-        read_spv(&mut File::open(fragment_file + ".spv").expect("Failed to open Vertex File"))
+        read_spv(&mut File::open(fragment_file + ".spv").expect("Failed to open Fragment File"))
             .unwrap();
     let fragment_module_info = vk::ShaderModuleCreateInfo::builder()
         .code(&fragment_code)
