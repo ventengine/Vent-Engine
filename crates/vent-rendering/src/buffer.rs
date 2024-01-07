@@ -2,7 +2,7 @@ use std::mem::align_of;
 
 use ash::vk;
 
-use crate::{allocator::MemoryAllocator, debug, instance::VulkanInstance};
+use crate::{allocator::MemoryAllocator, any_as_u8_slice, debug, instance::VulkanInstance};
 
 pub struct VulkanBuffer {
     pub buffer: vk::Buffer,
@@ -90,19 +90,6 @@ impl VulkanBuffer {
         buffer
     }
 
-    pub fn new_init_type<T>(
-        instance: &VulkanInstance,
-        allocator: &MemoryAllocator,
-        size: vk::DeviceSize,
-        usage: vk::BufferUsageFlags,
-        data: *const T,
-        name: Option<&str>,
-    ) -> Self {
-        let buffer = Self::new(instance, allocator, size, usage, name);
-        buffer.upload_type(&instance.device, data, size);
-        buffer
-    }
-
     pub fn upload_data<T: Copy>(&self, device: &ash::Device, data: &[T], size: vk::DeviceSize) {
         unsafe {
             let memory = device
@@ -110,17 +97,6 @@ impl VulkanBuffer {
                 .unwrap();
             let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
             align.copy_from_slice(data);
-            device.unmap_memory(self.buffer_memory);
-        }
-    }
-
-    pub fn upload_type<T>(&self, device: &ash::Device, data: *const T, size: vk::DeviceSize) {
-        unsafe {
-            let memory = device
-                .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
-                .unwrap();
-            let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
-            align.copy_from_slice(&[data]);
             device.unmap_memory(self.buffer_memory);
         }
     }

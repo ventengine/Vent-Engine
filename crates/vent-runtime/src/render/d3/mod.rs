@@ -5,7 +5,9 @@ use glam::{Mat4, Vec3, Vec4};
 use vent_assets::Mesh3D;
 
 use vent_ecs::world::World;
-use vent_rendering::{buffer::VulkanBuffer, instance::VulkanInstance, Vertex, Vertex3D};
+use vent_rendering::{
+    any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex, Vertex3D,
+};
 use winit::dpi::PhysicalSize;
 
 use self::light_renderer::LightUBO;
@@ -50,7 +52,6 @@ pub struct Renderer3D {
     // depth_view: wgpu::TextureView,
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
-    // pipeline_wire: Option<wgpu::RenderPipeline>,
 }
 
 impl Renderer for Renderer3D {
@@ -106,26 +107,26 @@ impl Renderer for Renderer3D {
                     let mut light_buffers = vec![];
 
                     for _ in 0..instance.swapchain_images.len() {
-                        let buffer = VulkanBuffer::new_init_type(
+                        let buffer = VulkanBuffer::new_init(
                             instance,
                             &instance.memory_allocator,
                             size_of::<MaterialUBO>() as vk::DeviceSize,
                             vk::BufferUsageFlags::UNIFORM_BUFFER,
-                            &MaterialUBO {
+                            any_as_u8_slice(&MaterialUBO {
                                 base_color: Vec4::from_array(material.base_color),
-                            },
+                            }),
                             None,
                         );
                         material_buffers.push(buffer);
-                        let buffer = VulkanBuffer::new_init_type(
+                        let buffer = VulkanBuffer::new_init(
                             instance,
                             &instance.memory_allocator,
                             size_of::<LightUBO>() as vk::DeviceSize,
                             vk::BufferUsageFlags::UNIFORM_BUFFER,
-                            &LightUBO {
+                            any_as_u8_slice(&LightUBO {
                                 position: [2.0, 100.0, 2.0].into(),
                                 color: [1.0, 1.0, 1.0].into(),
-                            },
+                            }),
                             None,
                         );
                         light_buffers.push(buffer)
