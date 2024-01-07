@@ -37,7 +37,6 @@ impl CameraController3D {
             match event.logical_key.as_ref() {
                 // Arrow keys works but WASD not :C
                 Key::Character("W") | Key::Named(NamedKey::ArrowUp) => {
-                    print!("pressed W");
                     camera.position.x += sin_pitch * self.speed * delta_time;
                     camera.position.z += cos_pitch * self.speed * delta_time;
                     return true;

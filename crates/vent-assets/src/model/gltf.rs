@@ -194,12 +194,17 @@ impl GLTFLoader {
                 gltf::texture::MinFilter::Nearest => {
                     (vk::Filter::NEAREST, vk::SamplerMipmapMode::NEAREST)
                 }
-                gltf::texture::MinFilter::Linear
-                | gltf::texture::MinFilter::LinearMipmapNearest => {
+                gltf::texture::MinFilter::Linear => {
                     (vk::Filter::LINEAR, vk::SamplerMipmapMode::NEAREST)
                 }
                 gltf::texture::MinFilter::NearestMipmapNearest => {
                     (vk::Filter::NEAREST, vk::SamplerMipmapMode::NEAREST)
+                }
+                gltf::texture::MinFilter::LinearMipmapNearest => {
+                    (vk::Filter::LINEAR, vk::SamplerMipmapMode::NEAREST)
+                }
+                gltf::texture::MinFilter::NearestMipmapLinear => {
+                    (vk::Filter::LINEAR, vk::SamplerMipmapMode::LINEAR)
                 }
                 gltf::texture::MinFilter::LinearMipmapLinear => {
                     (vk::Filter::LINEAR, vk::SamplerMipmapMode::LINEAR)

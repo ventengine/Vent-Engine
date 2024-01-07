@@ -2,7 +2,7 @@
 
 # ⚜️ Vent-Engine ⚜️
 
-**A game engine written in Rust using WGPU with the goal to be very fast & user-friendly**
+**A game engine written in Rust using an Vulkan renderer with the goal to be very fast & user-friendly**
 
 ![CI](https://github.com/Snowiiii/Vent-Engine/actions/workflows/rust.yml/badge.svg)
 ![Apache_2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)
