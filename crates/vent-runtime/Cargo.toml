@@ -13,7 +13,7 @@ vent-ecs = { path = "../vent-ecs"}
 
 ash = { version= "0.37.3", default-features = false, features = ["linked", "debug"] }
 
-winit = "0.29.7"
+winit = "0.29.9"
 pollster = "0.3.0"
 log = "0.4"
 

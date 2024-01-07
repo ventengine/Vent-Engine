@@ -26,7 +26,7 @@ layout (location = 0) out vec4 fragColor;
 const float ambient_strength = 0.1;
 
 void main() {
-    vec4 texture = texture(texture_diffuse, tex_coord);
+    vec4 texture = texture(texture_diffuse, tex_coord) ;
 
     // Calculate the ambient color
     // vec3 ambient_color = light.color * ambient_strength;

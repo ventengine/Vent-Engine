@@ -3,6 +3,7 @@ use vent_assets::Mesh3D;
 
 use crate::render::model_renderer::ModelRenderer3D;
 
+#[repr(C)]
 pub struct LightUBO {
     pub position: Vec3,
     pub color: Vec3,

@@ -1,7 +1,6 @@
 use std::mem::size_of;
 
 use ash::vk;
-use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec3, Vec4};
 use vent_assets::Mesh3D;
 
@@ -20,6 +19,7 @@ use super::{
 
 pub mod light_renderer;
 
+#[repr(C)]
 pub struct MaterialUBO {
     pub base_color: Vec4,
 }

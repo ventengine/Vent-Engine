@@ -79,7 +79,7 @@ impl Camera for Camera3D {
 
     fn recreate_projection(&mut self, aspect_ratio: f32) {
         self.ubo.projection =
-            glam::Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
+            glam::Mat4::perspective_lh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
     }
 }
 
@@ -87,7 +87,7 @@ impl Camera3D {
     pub fn update_set() {}
 
     pub fn recreate_view(&mut self) {
-        let view = glam::Mat4::look_at_rh(
+        let view = glam::Mat4::look_at_lh(
             self.position,
             self.position + self.direction(),
             glam::Vec3::Y,

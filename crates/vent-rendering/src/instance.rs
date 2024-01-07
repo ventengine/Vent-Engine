@@ -254,7 +254,6 @@ impl VulkanInstance {
 
     pub fn recreate_swap_chain(&mut self, new_size: &PhysicalSize<u32>) {
         unsafe {
-
             self.device.device_wait_idle().unwrap();
 
             let (swapchain, surface_resolution) = Self::create_swapchain(
@@ -266,12 +265,11 @@ impl VulkanInstance {
                 *new_size,
                 Some(self.swapchain),
             );
-             // We reuse the old Swapchain and then deleting it
+            // We reuse the old Swapchain and then deleting it
             self.clean_swapchain();
 
             self.swapchain = swapchain;
             self.surface_resolution = surface_resolution;
-
 
             (self.swapchain_image_views, self.swapchain_images) = Self::create_image_views(
                 &self.device,
@@ -279,9 +277,14 @@ impl VulkanInstance {
                 self.swapchain,
                 self.surface_format,
             );
-            
+
             self.depth_image.destroy(&self.device);
-            self.depth_image = VulkanImage::new_depth(&self.device, &self.memory_allocator, self.depth_format, surface_resolution);
+            self.depth_image = VulkanImage::new_depth(
+                &self.device,
+                &self.memory_allocator,
+                self.depth_format,
+                surface_resolution,
+            );
 
             self.frame_buffers = Self::create_frame_buffers(
                 &self.swapchain_image_views,
@@ -321,7 +324,8 @@ impl VulkanInstance {
 
         unsafe {
             self.device
-                .queue_submit2(self.graphics_queue, &[submit_info], in_flight_fence).unwrap();
+                .queue_submit2(self.graphics_queue, &[submit_info], in_flight_fence)
+                .unwrap();
         }
 
         let swapchains = &[self.swapchain];
@@ -335,18 +339,18 @@ impl VulkanInstance {
         self.frame = (self.frame + 1) % MAX_FRAMES_IN_FLIGHT as usize;
 
         unsafe {
-            let result = self.swapchain_loader
+            let result = self
+                .swapchain_loader
                 .queue_present(self.present_queue, &present_info);
-            return result == Err(vk::Result::ERROR_OUT_OF_DATE_KHR) || result == Err(vk::Result::SUBOPTIMAL_KHR);
-
+            result == Err(vk::Result::ERROR_OUT_OF_DATE_KHR)
+                || result == Err(vk::Result::SUBOPTIMAL_KHR)
         }
     }
 
-
     unsafe fn clean_swapchain(&mut self) {
         self.frame_buffers
-        .drain(..)
-        .for_each(|f| self.device.destroy_framebuffer(f, None));
+            .drain(..)
+            .for_each(|f| self.device.destroy_framebuffer(f, None));
 
         self.swapchain_image_views
             .drain(..)
