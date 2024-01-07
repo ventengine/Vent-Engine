@@ -1,6 +1,7 @@
 use std::mem::size_of;
 
 use ash::vk;
+use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec3, Vec4};
 use vent_assets::Mesh3D;
 
@@ -23,6 +24,7 @@ pub struct MaterialUBO {
     pub base_color: Vec4,
 }
 
+#[repr(C)] // This fixed everthing... #[repr(C)]
 pub struct Camera3DData {
     pub view_position: Vec3,
     pub projection: Mat4,
@@ -205,10 +207,11 @@ impl Renderer for Renderer3D {
 
     fn resize(
         &mut self,
-        _instance: &VulkanInstance,
-        _new_size: &PhysicalSize<u32>,
+        instance: &mut VulkanInstance,
+        new_size: &PhysicalSize<u32>,
         _camera: &mut dyn Camera,
     ) {
+        instance.recreate_swap_chain(new_size);
         // TODO recreate depth image
     }
 

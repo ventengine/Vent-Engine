@@ -57,8 +57,8 @@ impl Model3D {
 
     pub fn destroy(&mut self, instance: &VulkanInstance) {
         self.meshes
-            .iter_mut()
-            .for_each(|mesh| mesh.destroy(instance.descriptor_pool, &instance.device));
+            .drain(..)
+            .for_each(|mut mesh| mesh.destroy(instance.descriptor_pool, &instance.device));
     }
 }
 

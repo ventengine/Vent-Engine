@@ -127,8 +127,8 @@ impl VulkanBuffer {
 
     pub fn destroy(&mut self, device: &ash::Device) {
         unsafe {
-            device.free_memory(self.buffer_memory, None);
             device.destroy_buffer(self.buffer, None);
+            device.free_memory(self.buffer_memory, None); // Free Memory after buffer destruction!
         }
     }
 }

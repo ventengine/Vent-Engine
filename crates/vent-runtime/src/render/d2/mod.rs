@@ -14,7 +14,7 @@ impl Renderer for Renderer2D {
 
     fn resize(
         &mut self,
-        _instance: &vent_rendering::instance::VulkanInstance,
+        _instance: &mut vent_rendering::instance::VulkanInstance,
         _new_size: &winit::dpi::PhysicalSize<u32>,
         _camera: &mut dyn Camera,
     ) {

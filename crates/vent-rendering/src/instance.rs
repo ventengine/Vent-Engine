@@ -3,6 +3,7 @@ use ash::prelude::VkResult;
 use ash::vk::{Extent2D, PushConstantRange, SwapchainKHR};
 use ash::{extensions::ext::DebugUtils, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
+use winit::dpi::PhysicalSize;
 
 use std::{default::Default, ffi::CStr};
 
@@ -30,6 +31,7 @@ pub struct VulkanInstance {
 
     pub surface_loader: Surface,
     pub surface: vk::SurfaceKHR,
+    pub surface_format: vk::SurfaceFormatKHR,
     pub surface_resolution: vk::Extent2D,
 
     pub swapchain_loader: Swapchain,
@@ -38,6 +40,7 @@ pub struct VulkanInstance {
     pub swapchain_images: Vec<vk::Image>,
     pub swapchain_image_views: Vec<vk::ImageView>,
     pub frame_buffers: Vec<vk::Framebuffer>,
+    pub depth_format: vk::Format,
     pub depth_image: DepthImage,
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
@@ -157,6 +160,7 @@ impl VulkanInstance {
             pdevice,
             surface,
             window.inner_size(),
+            None,
         );
 
         let (swapchain_image_views, swapchain_images) =
@@ -201,6 +205,7 @@ impl VulkanInstance {
             surface,
             surface_loader,
             swapchain_loader,
+            surface_format,
             surface_resolution,
             swapchain,
             swapchain_images,
@@ -214,6 +219,7 @@ impl VulkanInstance {
             descriptor_set_layout,
             #[cfg(debug_assertions)]
             debug_messenger,
+            depth_format,
             depth_image,
             frame_buffers,
             command_pool,
@@ -246,7 +252,51 @@ impl VulkanInstance {
         }
     }
 
-    pub fn submit(&mut self, image_index: u32) {
+    pub fn recreate_swap_chain(&mut self, new_size: &PhysicalSize<u32>) {
+        unsafe {
+
+            self.device.device_wait_idle().unwrap();
+
+            let (swapchain, surface_resolution) = Self::create_swapchain(
+                &self.swapchain_loader,
+                self.surface_format,
+                &self.surface_loader,
+                self.physical_device,
+                self.surface,
+                *new_size,
+                Some(self.swapchain),
+            );
+             // We reuse the old Swapchain and then deleting it
+            self.clean_swapchain();
+
+            self.swapchain = swapchain;
+            self.surface_resolution = surface_resolution;
+
+
+            (self.swapchain_image_views, self.swapchain_images) = Self::create_image_views(
+                &self.device,
+                &self.swapchain_loader,
+                self.swapchain,
+                self.surface_format,
+            );
+            
+            self.depth_image.destroy(&self.device);
+            self.depth_image = VulkanImage::new_depth(&self.device, &self.memory_allocator, self.depth_format, surface_resolution);
+
+            self.frame_buffers = Self::create_frame_buffers(
+                &self.swapchain_image_views,
+                self.render_pass,
+                &self.device,
+                self.depth_image.image_view,
+                self.surface_resolution,
+            );
+        }
+    }
+
+    /**
+     * Returns if should resize
+     */
+    pub fn submit(&mut self, image_index: u32) -> bool {
         let in_flight_fence = self.in_flight_fences[self.frame];
 
         let wait_semaphores = vk::SemaphoreSubmitInfo::builder()
@@ -271,8 +321,7 @@ impl VulkanInstance {
 
         unsafe {
             self.device
-                .queue_submit2(self.graphics_queue, &[submit_info], in_flight_fence)
-                .unwrap();
+                .queue_submit2(self.graphics_queue, &[submit_info], in_flight_fence).unwrap();
         }
 
         let swapchains = &[self.swapchain];
@@ -283,12 +332,28 @@ impl VulkanInstance {
             .image_indices(image_indices)
             .build();
 
-        unsafe {
-            self.swapchain_loader
-                .queue_present(self.present_queue, &present_info)
-        }
-        .unwrap();
         self.frame = (self.frame + 1) % MAX_FRAMES_IN_FLIGHT as usize;
+
+        unsafe {
+            let result = self.swapchain_loader
+                .queue_present(self.present_queue, &present_info);
+            return result == Err(vk::Result::ERROR_OUT_OF_DATE_KHR) || result == Err(vk::Result::SUBOPTIMAL_KHR);
+
+        }
+    }
+
+
+    unsafe fn clean_swapchain(&mut self) {
+        self.frame_buffers
+        .drain(..)
+        .for_each(|f| self.device.destroy_framebuffer(f, None));
+
+        self.swapchain_image_views
+            .drain(..)
+            .for_each(|v| self.device.destroy_image_view(v, None));
+
+        self.swapchain_loader
+            .destroy_swapchain(self.swapchain, None);
     }
 
     fn get_depth_format(instance: &ash::Instance, pdevice: vk::PhysicalDevice) -> vk::Format {
@@ -443,6 +508,7 @@ impl VulkanInstance {
         pdevice: vk::PhysicalDevice,
         surface: vk::SurfaceKHR,
         size: winit::dpi::PhysicalSize<u32>,
+        old_swapchain: Option<vk::SwapchainKHR>,
     ) -> (vk::SwapchainKHR, Extent2D) {
         let surface_capabilities =
             unsafe { surface_loader.get_physical_device_surface_capabilities(pdevice, surface) }
@@ -496,6 +562,7 @@ impl VulkanInstance {
             .present_mode(present_mode)
             .clipped(true)
             .image_array_layers(1)
+            .old_swapchain(old_swapchain.unwrap_or_default())
             .build();
 
         (
@@ -763,25 +830,20 @@ impl Drop for VulkanInstance {
         unsafe {
             self.device.device_wait_idle().unwrap();
 
+            self.clean_swapchain();
+
             self.in_flight_fences
-                .iter()
-                .for_each(|f| self.device.destroy_fence(*f, None));
+                .drain(..)
+                .for_each(|f| self.device.destroy_fence(f, None));
             self.render_finished_semaphores
-                .iter()
-                .for_each(|s| self.device.destroy_semaphore(*s, None));
+                .drain(..)
+                .for_each(|s| self.device.destroy_semaphore(s, None));
             self.image_available_semaphores
-                .iter()
-                .for_each(|s| self.device.destroy_semaphore(*s, None));
+                .drain(..)
+                .for_each(|s| self.device.destroy_semaphore(s, None));
 
             self.device.destroy_render_pass(self.render_pass, None);
 
-            self.swapchain_image_views
-                .iter()
-                .for_each(|v| self.device.destroy_image_view(*v, None));
-
-            self.frame_buffers
-                .iter()
-                .for_each(|f| self.device.destroy_framebuffer(*f, None));
             self.depth_image.destroy(&self.device);
 
             self.device
@@ -797,12 +859,11 @@ impl Drop for VulkanInstance {
             self.device.destroy_device(None);
 
             self.surface_loader.destroy_surface(self.surface, None);
-            self.swapchain_loader
-                .destroy_swapchain(self.swapchain, None);
+
             #[cfg(debug_assertions)]
             self.debug_utils
                 .destroy_debug_utils_messenger(self.debug_messenger, None);
-            self.instance.destroy_instance(None)
+            self.instance.destroy_instance(None);
         }
     }
 }

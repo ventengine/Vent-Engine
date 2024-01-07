@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use ash::vk;
 use vent_rendering::instance::VulkanInstance;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
@@ -65,7 +66,7 @@ impl DefaultRuntimeRenderer {
         self.camera
             .recreate_projection(new_size.width as f32 / new_size.height as f32);
         self.runtime_renderer
-            .resize(&self.instance, new_size, self.camera.as_mut());
+            .resize(&mut self.instance, new_size, self.camera.as_mut());
     }
 }
 
@@ -87,7 +88,7 @@ pub trait Renderer {
 
     fn resize(
         &mut self,
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         new_size: &PhysicalSize<u32>,
         camera: &mut dyn Camera,
     );
@@ -140,7 +141,7 @@ impl RawRuntimeRenderer {
     pub fn render(
         &mut self,
         instance: &mut VulkanInstance,
-        _window: &Window,
+        window: &Window,
         camera: &mut dyn Camera,
     ) -> f32 {
         let frame_start = Instant::now();
@@ -150,14 +151,15 @@ impl RawRuntimeRenderer {
         match image {
             Ok((image_index, _)) => {
                 self.multi_renderer.render(instance, image_index, camera);
-                instance.submit(image_index);
+                let resize = instance.submit(image_index);
+                if resize {
+                    instance.recreate_swap_chain(&window.inner_size());
+                }
             }
-            Err(_err) => {
-                // if err == vk::Result::ERROR_OUT_OF_DATE_KHR {
-                //     self.resize(instance, instance.surface_resolution, camera)
-                // } else if err == vk::Result::ERROR_SURFACE_LOST_KHR {
-                //     self.resize(instance, instance.surface_resolution, camera)
-                // }
+            Err(err) => {
+                if err == vk::Result::ERROR_OUT_OF_DATE_KHR {
+                    instance.recreate_swap_chain(&window.inner_size());
+                }
             }
         }
 
@@ -215,7 +217,7 @@ impl RawRuntimeRenderer {
 
     pub fn resize(
         &mut self,
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         new_size: &PhysicalSize<u32>,
         camera: &mut dyn Camera,
     ) {
