@@ -50,7 +50,7 @@ impl VentApplication {
             &vent_window.event_loop,
         );
 
-        let mut controller = CameraController3D::new(3000.0, 10.0);
+        let mut controller = CameraController3D::new(1000.0, 10.0);
         let mut delta_time = 0.0;
 
         vent_window

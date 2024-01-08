@@ -57,7 +57,7 @@ impl ModelRenderer3D {
     ) {
         for model in self.map.values() {
             ubo.transformation = Self::calc_trans_matrix(model);
-            model.rendering_model.draw(
+            model.model.draw(
                 &instance.device,
                 pipeline_layout,
                 command_buffer,
@@ -68,12 +68,16 @@ impl ModelRenderer3D {
 
     pub fn destroy_all(&mut self, instance: &VulkanInstance) {
         for model in self.map.values_mut() {
-            model.rendering_model.destroy(instance)
+            model.model.destroy(instance)
         }
     }
 
     fn calc_trans_matrix(mesh: &Entity3D) -> glam::Mat4 {
-        let rotation_quat = Quat::from_scaled_axis(mesh.rotation.xyz());
-        Mat4::from_scale_rotation_translation(mesh.scale, rotation_quat, mesh.position)
+        let rotation_quat = Quat::from_scaled_axis(Quat::from_array(mesh.model.rotation).xyz());
+        Mat4::from_scale_rotation_translation(
+            mesh.model.scale.into(),
+            rotation_quat,
+            mesh.model.position.into(),
+        )
     }
 }

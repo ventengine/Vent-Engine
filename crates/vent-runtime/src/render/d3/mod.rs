@@ -94,7 +94,7 @@ impl Renderer for Renderer3D {
 
         pollster::block_on(async {
             let mut mesh = Entity3D::new(vent_assets::Model3D::load(instance, model).await);
-            for mesh in mesh.rendering_model.meshes.iter_mut() {
+            for mesh in mesh.model.meshes.iter_mut() {
                 if let Some(material) = &mesh.material {
                     let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
                         &instance.device,

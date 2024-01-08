@@ -26,7 +26,7 @@ impl OBJLoader {
             }
         };
 
-        let mut meshes = vec![];
+        let mut meshes = Vec::new();
         for model in models {
             let mesh = Self::load_mesh(&model.mesh);
 
@@ -41,12 +41,17 @@ impl OBJLoader {
                 &instance.memory_allocator,
                 &mesh.0,
                 mesh.1,
-                Some(matieral), // TODO
+                Some(matieral),
                 Some(&model.name),
             ));
         }
 
-        Ok(Model3D { meshes })
+        Ok(Model3D {
+            meshes,
+            position: [0.0, 0.0, 0.0],
+            rotation: [0.0, 0.0, 0.0, 1.0],
+            scale: [1.0, 1.0, 1.0],
+        })
     }
 
     fn load_material(

@@ -33,13 +33,22 @@ impl GLTFLoader {
             .expect("Failed to Load glTF Buffers");
 
         let mut meshes = Vec::new();
+        let mut matrix = None;
         gltf.document.scenes().for_each(|scene| {
             scene.nodes().for_each(|node| {
+                matrix = Some(node.transform().decomposed());
                 Self::load_node(instance, path, node, &buffer_data, &mut meshes);
             })
         });
 
-        Ok(Model3D { meshes })
+        let matrix = matrix.unwrap();
+
+        Ok(Model3D {
+            meshes,
+            position: matrix.0,
+            rotation: matrix.1,
+            scale: matrix.2,
+        })
     }
 
     fn load_node(

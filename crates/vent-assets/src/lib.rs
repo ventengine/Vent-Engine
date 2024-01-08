@@ -7,10 +7,14 @@ pub mod shader;
 
 pub trait Asset {}
 
-/// A Full Model that can be Loaded from a 3D Model File
+/// A Full Model/Scene that can be Loaded from a 3D Model File
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
 pub struct Model3D {
     pub meshes: Vec<Mesh3D>,
+
+    pub position: [f32; 3], // Default: 0.0, 0.0, 0.0
+    pub rotation: [f32; 4], // Default: 0.0, 0.0, 0.0, 1.0
+    pub scale: [f32; 3],    // Default: 1.0, 1.0, 1.0
 }
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
 
