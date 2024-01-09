@@ -52,6 +52,9 @@ pub struct Renderer3D {
     // depth_view: wgpu::TextureView,
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
+
+    material_ubos: Vec<VulkanBuffer>,
+    light_ubos: Vec<VulkanBuffer>,
 }
 
 impl Renderer for Renderer3D {
@@ -92,6 +95,9 @@ impl Renderer for Renderer3D {
             "/res/models/test/Sponza-GLTF/Sponza.gltf"
         );
 
+        let mut material_ubos = vec![];
+        let mut light_ubos = vec![];
+
         pollster::block_on(async {
             let mut mesh = Entity3D::new(vent_assets::Model3D::load(instance, model).await);
             for mesh in mesh.model.meshes.iter_mut() {
@@ -103,10 +109,9 @@ impl Renderer for Renderer3D {
                         instance.swapchain_images.len(),
                     );
 
-                    let mut material_buffers = vec![];
-                    let mut light_buffers = vec![];
+                    for (i, &descriptor_set) in descriptor_sets.iter().enumerate() {
+                        let diffuse_texture = &material.diffuse_texture;
 
-                    for _ in 0..instance.swapchain_images.len() {
                         let buffer = VulkanBuffer::new_init(
                             instance,
                             &instance.memory_allocator,
@@ -117,7 +122,7 @@ impl Renderer for Renderer3D {
                             }),
                             None,
                         );
-                        material_buffers.push(buffer);
+                        material_ubos.push(buffer);
                         let buffer = VulkanBuffer::new_init(
                             instance,
                             &instance.memory_allocator,
@@ -129,11 +134,7 @@ impl Renderer for Renderer3D {
                             }),
                             None,
                         );
-                        light_buffers.push(buffer)
-                    }
-
-                    for (i, &descriptor_set) in descriptor_sets.iter().enumerate() {
-                        let diffuse_texture = &material.diffuse_texture;
+                        light_ubos.push(buffer);
 
                         let image_info = vk::DescriptorImageInfo::builder()
                             .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
@@ -142,13 +143,13 @@ impl Renderer for Renderer3D {
                             .build();
 
                         let material_buffer_info = vk::DescriptorBufferInfo::builder()
-                            .buffer(material_buffers[i].buffer)
+                            .buffer(material_ubos[i].buffer)
                             .offset(0)
                             .range(size_of::<MaterialUBO>() as vk::DeviceSize)
                             .build();
 
                         let light_buffer_info = vk::DescriptorBufferInfo::builder()
-                            .buffer(light_buffers[i].buffer)
+                            .buffer(light_ubos[i].buffer)
                             .offset(0)
                             .range(size_of::<LightUBO>() as vk::DeviceSize)
                             .build();
@@ -202,6 +203,8 @@ impl Renderer for Renderer3D {
             // uniform_buf,
             pipeline_layout,
             pipeline,
+            material_ubos,
+            light_ubos,
             // pipeline_wire,
         }
     }
@@ -309,7 +312,15 @@ impl Renderer for Renderer3D {
     }
 
     fn destroy(&mut self, instance: &VulkanInstance) {
+        unsafe { instance.device.device_wait_idle().unwrap() };
         self.mesh_renderer.destroy_all(instance);
+        self.material_ubos
+            .drain(..)
+            .for_each(|mut ubo| ubo.destroy(&instance.device));
+        self.light_ubos
+            .drain(..)
+            .for_each(|mut ubo| ubo.destroy(&instance.device));
+
         self.tmp_light_mesh
             .destroy(instance.descriptor_pool, &instance.device);
         unsafe {

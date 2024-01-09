@@ -150,16 +150,17 @@ impl Mesh3D {
         unsafe { device.cmd_draw_indexed(command_buffer, self.index_count, 1, 0, 0, 0) };
     }
 
-    pub fn destroy(&mut self, descriptor_pool: vk::DescriptorPool, device: &ash::Device) {
+    pub fn destroy(&mut self, _descriptor_pool: vk::DescriptorPool, device: &ash::Device) {
         self.vertex_buf.destroy(device);
         self.index_buf.destroy(device);
-        if let Some(descriptor_set) = &mut self.descriptor_set {
-            unsafe {
-                device
-                    .free_descriptor_sets(descriptor_pool, descriptor_set)
-                    .expect("Failed to free Model descriptor sets")
-            };
-        }
+        // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
+        // if let Some(descriptor_set) = &mut self.descriptor_set {
+        //     unsafe {
+        //         device
+        //             .free_descriptor_sets(descriptor_pool, descriptor_set)
+        //             .expect("Failed to free Model descriptor sets")
+        //     };
+        // }
         if let Some(material) = &mut self.material {
             material.diffuse_texture.destroy(device);
         }

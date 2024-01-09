@@ -396,7 +396,7 @@ impl VulkanInstance {
     }
 
     fn create_frame_buffers(
-        swapchain_image_views: &Vec<vk::ImageView>,
+        swapchain_image_views: &[vk::ImageView],
         render_pass: vk::RenderPass,
         device: &ash::Device,
         depth_image_view: vk::ImageView,
@@ -599,7 +599,7 @@ impl VulkanInstance {
 
     fn create_sync_objects(
         device: &ash::Device,
-        swapchain_images: &Vec<vk::Image>,
+        swapchain_images: &[vk::Image],
     ) -> (
         Vec<vk::Semaphore>,
         Vec<vk::Semaphore>,

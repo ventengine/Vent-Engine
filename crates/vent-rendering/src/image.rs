@@ -120,7 +120,7 @@ impl VulkanImage {
             image,
             image_view,
             sampler,
-            memory: memory,
+            memory,
         }
     }
 
