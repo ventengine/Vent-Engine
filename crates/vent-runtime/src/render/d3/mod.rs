@@ -79,7 +79,7 @@ impl Renderer for Renderer3D {
             instance,
             vertex_shader.to_owned(),
             fragment_shader.to_owned(),
-            Vertex3D::binding_description(),
+            &[Vertex3D::binding_description()],
             pipeline_layout,
             &Vertex3D::input_descriptions(),
             instance.surface_resolution,
@@ -211,7 +211,7 @@ impl Renderer for Renderer3D {
 
     fn resize(
         &mut self,
-        _instance: &mut VulkanInstance,
+        instance: &mut VulkanInstance,
         _new_size: &PhysicalSize<u32>,
         _camera: &mut dyn Camera,
     ) {

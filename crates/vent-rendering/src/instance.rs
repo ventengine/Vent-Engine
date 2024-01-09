@@ -254,6 +254,7 @@ impl VulkanInstance {
 
     pub fn recreate_swap_chain(&mut self, new_size: &PhysicalSize<u32>) {
         unsafe {
+            dbg!("aaa");
             self.device.device_wait_idle().unwrap();
 
             let (swapchain, surface_resolution) = Self::create_swapchain(
@@ -299,7 +300,7 @@ impl VulkanInstance {
     /**
      * Returns if should resize
      */
-    pub fn submit(&mut self, image_index: u32) -> bool {
+    pub fn submit(&mut self, image_index: u32) -> VkResult<bool> {
         let in_flight_fence = self.in_flight_fences[self.frame];
 
         let wait_semaphores = vk::SemaphoreSubmitInfo::builder()
@@ -339,11 +340,8 @@ impl VulkanInstance {
         self.frame = (self.frame + 1) % MAX_FRAMES_IN_FLIGHT as usize;
 
         unsafe {
-            let result = self
-                .swapchain_loader
-                .queue_present(self.present_queue, &present_info);
-            result == Err(vk::Result::ERROR_OUT_OF_DATE_KHR)
-                || result == Err(vk::Result::SUBOPTIMAL_KHR)
+            self.swapchain_loader
+                .queue_present(self.present_queue, &present_info)
         }
     }
 
@@ -523,6 +521,8 @@ impl VulkanInstance {
         {
             desired_image_count = surface_capabilities.max_image_count;
         }
+
+        dbg!(surface_capabilities.current_extent);
         let surface_resolution = match surface_capabilities.current_extent.width {
             std::u32::MAX => vk::Extent2D {
                 width: size.width.clamp(

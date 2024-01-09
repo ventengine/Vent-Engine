@@ -8,7 +8,7 @@ pub fn create_pipeline(
     instance: &VulkanInstance,
     vertex_file: String,
     fragment_file: String,
-    binding_desc: vk::VertexInputBindingDescription,
+    binding_desc: &[vk::VertexInputBindingDescription],
     pipeline_layout: vk::PipelineLayout,
     attrib_desc: &[vk::VertexInputAttributeDescription],
     surface_resolution: vk::Extent2D,
@@ -57,7 +57,7 @@ pub fn create_pipeline(
 
     let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::builder()
         .vertex_attribute_descriptions(attrib_desc)
-        .vertex_binding_descriptions(&[binding_desc])
+        .vertex_binding_descriptions(binding_desc)
         .build();
     let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
         topology: vk::PrimitiveTopology::TRIANGLE_LIST,

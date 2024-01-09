@@ -151,16 +151,18 @@ impl RawRuntimeRenderer {
         match image {
             Ok((image_index, _)) => {
                 self.multi_renderer.render(instance, image_index, camera);
-                let resize = instance.submit(image_index);
-                if resize {
-                    instance.recreate_swap_chain(&window.inner_size());
+                let result = instance.submit(image_index);
+                match result {
+                    Err(vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR) => {
+                        instance.recreate_swap_chain(&window.inner_size());
+                    }
+                    _ => {}
                 }
             }
-            Err(err) => {
-                if err == vk::Result::ERROR_OUT_OF_DATE_KHR {
-                    instance.recreate_swap_chain(&window.inner_size());
-                }
+            Err(vk::Result::ERROR_OUT_OF_DATE_KHR) => {
+                instance.recreate_swap_chain(&window.inner_size());
             }
+            Err(_) => {}
         }
 
         // self.gui_renderer.render(
@@ -222,6 +224,7 @@ impl RawRuntimeRenderer {
         camera: &mut dyn Camera,
     ) {
         // Uses the NEW Resized config
+        instance.recreate_swap_chain(new_size);
         self.multi_renderer.resize(instance, new_size, camera)
     }
 
