@@ -24,8 +24,7 @@ impl VulkanBuffer {
         let buffer_info = vk::BufferCreateInfo::builder()
             .size(size)
             .usage(usage)
-            .sharing_mode(vk::SharingMode::EXCLUSIVE)
-            .build();
+            .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
         let buffer = unsafe { instance.device.create_buffer(&buffer_info, None) }.unwrap();
 

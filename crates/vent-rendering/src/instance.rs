@@ -81,7 +81,6 @@ impl VulkanInstance {
                 .engine_name(CStr::from_bytes_with_nul_unchecked(b"Vent-Engine\0"))
                 .engine_version(engine_version)
                 .api_version(vk::API_VERSION_1_3)
-                .build()
         };
 
         let display_handle = window.display_handle().expect("No Display Handle");
@@ -118,8 +117,7 @@ impl VulkanInstance {
             .enabled_extension_names(&extension_names)
             .enabled_layer_names(&layer_names_ptrs)
             .flags(create_flags)
-            .push_next(&mut validation_features)
-            .build();
+            .push_next(&mut validation_features);
 
         let instance = unsafe {
             entry
@@ -305,37 +303,35 @@ impl VulkanInstance {
 
         let wait_semaphores = vk::SemaphoreSubmitInfo::builder()
             .semaphore(self.image_available_semaphores[self.frame])
-            .stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
-            .build();
+            .stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT);
 
         let command_buffers = vk::CommandBufferSubmitInfo::builder()
-            .command_buffer(self.command_buffers[image_index as usize])
-            .build();
-
+            .command_buffer(self.command_buffers[image_index as usize]);
         let signal_semaphores = vk::SemaphoreSubmitInfo::builder()
             .semaphore(self.render_finished_semaphores[self.frame])
-            .stage_mask(vk::PipelineStageFlags2::ALL_GRAPHICS)
-            .build();
+            .stage_mask(vk::PipelineStageFlags2::ALL_GRAPHICS);
 
+        let signal_infos = [*signal_semaphores];
+        let command_infos = [*command_buffers];
+        let wait_infos = [*wait_semaphores];
         let submit_info = vk::SubmitInfo2::builder()
-            .wait_semaphore_infos(&[wait_semaphores])
-            .command_buffer_infos(&[command_buffers])
-            .signal_semaphore_infos(&[signal_semaphores])
-            .build();
+            .wait_semaphore_infos(&wait_infos)
+            .command_buffer_infos(&command_infos)
+            .signal_semaphore_infos(&signal_infos);
 
         unsafe {
             self.device
-                .queue_submit2(self.graphics_queue, &[submit_info], in_flight_fence)
+                .queue_submit2(self.graphics_queue, &[*submit_info], in_flight_fence)
                 .unwrap();
         }
 
         let swapchains = &[self.swapchain];
         let image_indices = &[image_index];
+        let binding = [self.render_finished_semaphores[self.frame]];
         let present_info = vk::PresentInfoKHR::builder()
-            .wait_semaphores(&[self.render_finished_semaphores[self.frame]])
+            .wait_semaphores(&binding)
             .swapchains(swapchains)
-            .image_indices(image_indices)
-            .build();
+            .image_indices(image_indices);
 
         self.frame = (self.frame + 1) % MAX_FRAMES_IN_FLIGHT as usize;
 
@@ -409,8 +405,7 @@ impl VulkanInstance {
                     .attachments(&framebuffer_attachments)
                     .width(surface_resolution.width)
                     .height(surface_resolution.height)
-                    .layers(1)
-                    .build();
+                    .layers(1);
 
                 unsafe {
                     device
@@ -490,15 +485,13 @@ impl VulkanInstance {
 
         let queue_info = vk::DeviceQueueCreateInfo::builder()
             .queue_family_index(queue_family_index)
-            .queue_priorities(&priorities)
-            .build();
+            .queue_priorities(&priorities);
 
         let device_create_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(std::slice::from_ref(&queue_info))
             .enabled_extension_names(&device_extension_names_raw)
             .enabled_features(&features)
-            .push_next(&mut features_1_3)
-            .build();
+            .push_next(&mut features_1_3);
 
         unsafe { instance.create_device(pdevice, &device_create_info, None) }.unwrap()
     }
@@ -566,8 +559,7 @@ impl VulkanInstance {
             .present_mode(present_mode)
             .clipped(true)
             .image_array_layers(1)
-            .old_swapchain(old_swapchain.unwrap_or_default())
-            .build();
+            .old_swapchain(old_swapchain.unwrap_or_default());
 
         (
             unsafe { swapchain_loader.create_swapchain(&swapchain_create_info, None) }.unwrap(),
@@ -578,8 +570,7 @@ impl VulkanInstance {
     fn create_command_pool(device: &ash::Device, queue_family_index: u32) -> vk::CommandPool {
         let create_info = vk::CommandPoolCreateInfo::builder()
             .queue_family_index(queue_family_index)
-            .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
-            .build();
+            .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
         unsafe { device.create_command_pool(&create_info, None) }.unwrap()
     }
 
@@ -591,8 +582,7 @@ impl VulkanInstance {
         let allocate_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(command_pool)
             .level(vk::CommandBufferLevel::PRIMARY)
-            .command_buffer_count(count)
-            .build();
+            .command_buffer_count(count);
 
         unsafe { device.allocate_command_buffers(&allocate_info) }.unwrap()
     }
@@ -612,8 +602,7 @@ impl VulkanInstance {
         let create_info = vk::SemaphoreCreateInfo::default();
 
         let fence_info = vk::FenceCreateInfo::builder()
-            .flags(vk::FenceCreateFlags::SIGNALED)
-            .build();
+            .flags(vk::FenceCreateFlags::SIGNALED);
 
         for _ in 0..MAX_FRAMES_IN_FLIGHT {
             image_available_semaphores
@@ -661,8 +650,7 @@ impl VulkanInstance {
                             base_array_layer: 0,
                             layer_count: 1,
                         })
-                        .image(image)
-                        .build();
+                        .image(image);
                     unsafe { device.create_image_view(&create_view_info, None) }.unwrap()
                 })
                 .collect::<Vec<vk::ImageView>>(),
@@ -684,8 +672,7 @@ impl VulkanInstance {
 
         let create_info = vk::DescriptorPoolCreateInfo::builder()
             .pool_sizes(&pool_sizes)
-            .max_sets(10000)
-            .build();
+            .max_sets(10000);
 
         unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
     }
@@ -699,8 +686,7 @@ impl VulkanInstance {
         let layouts = (0..size).map(|_| descriptor_set_layout).collect::<Vec<_>>();
         let info = vk::DescriptorSetAllocateInfo::builder()
             .descriptor_pool(descriptor_pool)
-            .set_layouts(&layouts)
-            .build();
+            .set_layouts(&layouts);
 
         unsafe { device.allocate_descriptor_sets(&info) }.unwrap()
     }
@@ -732,8 +718,7 @@ impl VulkanInstance {
         ];
 
         let info = vk::DescriptorSetLayoutCreateInfo::builder()
-            .bindings(&desc_layout_bindings)
-            .build();
+            .bindings(&desc_layout_bindings);
 
         unsafe { device.create_descriptor_set_layout(&info, None) }.unwrap()
     }
@@ -742,8 +727,7 @@ impl VulkanInstance {
         let binding = [self.descriptor_set_layout];
         let push_constant_ranges = [PushConstantRange::builder()
             .size(push_contant_size)
-            .stage_flags(vk::ShaderStageFlags::VERTEX)
-            .build()];
+            .stage_flags(vk::ShaderStageFlags::VERTEX).build()];
 
         let create_info = vk::PipelineLayoutCreateInfo::builder()
             .push_constant_ranges(&push_constant_ranges)
@@ -822,8 +806,7 @@ impl VulkanInstance {
         let create_info = vk::RenderPassCreateInfo2::builder()
             .attachments(&renderpass_attachments)
             .subpasses(std::slice::from_ref(&subpass))
-            .dependencies(&dependencies)
-            .build();
+            .dependencies(&dependencies);
 
         unsafe { device.create_render_pass2(&create_info, None) }.unwrap()
     }

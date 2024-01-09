@@ -139,20 +139,17 @@ impl Renderer for Renderer3D {
                         let image_info = vk::DescriptorImageInfo::builder()
                             .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
                             .image_view(diffuse_texture.image_view)
-                            .sampler(diffuse_texture.sampler)
-                            .build();
+                            .sampler(diffuse_texture.sampler);
 
                         let material_buffer_info = vk::DescriptorBufferInfo::builder()
                             .buffer(material_ubos[i].buffer)
                             .offset(0)
-                            .range(size_of::<MaterialUBO>() as vk::DeviceSize)
-                            .build();
+                            .range(size_of::<MaterialUBO>() as vk::DeviceSize);
 
                         let light_buffer_info = vk::DescriptorBufferInfo::builder()
                             .buffer(light_ubos[i].buffer)
                             .offset(0)
-                            .range(size_of::<LightUBO>() as vk::DeviceSize)
-                            .build();
+                            .range(size_of::<LightUBO>() as vk::DeviceSize);
 
                         let desc_sets = [
                             vk::WriteDescriptorSet {
@@ -160,7 +157,7 @@ impl Renderer for Renderer3D {
                                 dst_binding: 0, // From DescriptorSetLayoutBinding
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                                p_image_info: &image_info,
+                                p_image_info: &*image_info,
                                 ..Default::default()
                             },
                             vk::WriteDescriptorSet {
@@ -168,7 +165,7 @@ impl Renderer for Renderer3D {
                                 dst_binding: 1,
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                                p_buffer_info: &material_buffer_info,
+                                p_buffer_info: &*material_buffer_info,
                                 ..Default::default()
                             },
                             vk::WriteDescriptorSet {
@@ -176,7 +173,7 @@ impl Renderer for Renderer3D {
                                 dst_binding: 2,
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                                p_buffer_info: &light_buffer_info,
+                                p_buffer_info: &*light_buffer_info,
                                 ..Default::default()
                             },
                         ];
@@ -228,8 +225,7 @@ impl Renderer for Renderer3D {
 
         let render_area = vk::Rect2D::builder()
             .offset(vk::Offset2D { x: 0, y: 0 })
-            .extent(instance.surface_resolution)
-            .build();
+            .extent(instance.surface_resolution);
 
         let viewport = vk::Viewport::builder()
             .width(instance.surface_resolution.width as f32)
@@ -270,7 +266,7 @@ impl Renderer for Renderer3D {
             let info = vk::RenderPassBeginInfo::builder()
                 .render_pass(instance.render_pass)
                 .framebuffer(instance.frame_buffers[image_index])
-                .render_area(render_area)
+                .render_area(*render_area)
                 .clear_values(clear_values);
 
             let subpass_info =
@@ -287,7 +283,7 @@ impl Renderer for Renderer3D {
 
             instance
                 .device
-                .cmd_set_scissor(command_buffer, 0, &[render_area]);
+                .cmd_set_scissor(command_buffer, 0, &[*render_area]);
             instance
                 .device
                 .cmd_set_viewport(command_buffer, 0, &[*viewport]);

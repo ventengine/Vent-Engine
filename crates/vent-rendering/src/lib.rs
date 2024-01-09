@@ -78,8 +78,7 @@ pub fn begin_single_time_command(
     let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
         .command_buffer_count(1)
         .command_pool(command_pool)
-        .level(vk::CommandBufferLevel::PRIMARY)
-        .build();
+        .level(vk::CommandBufferLevel::PRIMARY);
 
     let command_buffer = unsafe {
         device
@@ -88,8 +87,7 @@ pub fn begin_single_time_command(
     }[0];
 
     let command_buffer_begin_info = vk::CommandBufferBeginInfo::builder()
-        .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT)
-        .build();
+        .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
     unsafe {
         device
@@ -113,12 +111,11 @@ pub fn end_single_time_command(
     }
 
     let buffers_to_submit = vk::CommandBufferSubmitInfo::builder()
-        .command_buffer(command_buffer)
-        .build();
+        .command_buffer(command_buffer);
 
+    let binding = [*buffers_to_submit];
     let submit_info = vk::SubmitInfo2::builder()
-        .command_buffer_infos(&[buffers_to_submit])
-        .build();
+        .command_buffer_infos(&binding);
 
     unsafe {
         let fence = device
@@ -126,7 +123,7 @@ pub fn end_single_time_command(
             .unwrap();
 
         device
-            .queue_submit2(submit_queue, &[submit_info], fence)
+            .queue_submit2(submit_queue, &[*submit_info], fence)
             .expect("Failed to Queue Submit!");
         device
             .wait_for_fences(&[fence], true, 100000000000)

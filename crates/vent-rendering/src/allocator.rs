@@ -22,8 +22,7 @@ impl MemoryAllocator {
             .memory_type_index(
                 self.find_memorytype_index(memory_req, flags)
                     .expect("Failed to find Memory Index"),
-            )
-            .build();
+            );
 
         unsafe { device.allocate_memory(&memory_info, None) }.unwrap()
     }

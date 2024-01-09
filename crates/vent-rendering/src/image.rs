@@ -192,13 +192,12 @@ impl VulkanImage {
                 level_count: mip_level,
                 layer_count: 1,
                 ..Default::default()
-            })
-            .build();
+            });
 
+        let binding = [*image_barrier];
         let dep_info = vk::DependencyInfo::builder()
-            .image_memory_barriers(&[image_barrier])
-            .dependency_flags(vk::DependencyFlags::BY_REGION)
-            .build();
+            .image_memory_barriers(&binding)
+            .dependency_flags(vk::DependencyFlags::BY_REGION);
 
         unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
@@ -206,53 +205,28 @@ impl VulkanImage {
             .aspect_mask(vk::ImageAspectFlags::COLOR)
             .mip_level(0)
             .base_array_layer(0)
-            .layer_count(1)
-            .build();
+            .layer_count(1);
 
         let region = vk::BufferImageCopy2::builder()
             .buffer_offset(0)
             .buffer_row_length(0)
             .buffer_image_height(0)
-            .image_subresource(subresource)
+            .image_subresource(*subresource)
             .image_offset(vk::Offset3D { x: 0, y: 0, z: 0 })
             .image_extent(vk::Extent3D {
                 width,
                 height,
                 depth: 1,
-            })
-            .build();
+            });
 
+        let binding = [*region];
         let copy_image_info = vk::CopyBufferToImageInfo2::builder()
             .src_buffer(staging_buffer.buffer)
             .dst_image(image)
             .dst_image_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
-            .regions(&[region])
-            .build();
+            .regions(&binding);
 
         unsafe { device.cmd_copy_buffer_to_image2(command_buffer, &copy_image_info) };
-
-        // let image_barrier = vk::ImageMemoryBarrier2::builder()
-        //     .src_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
-        //     .dst_access_mask(vk::AccessFlags2::SHADER_READ)
-        //     .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
-        //     .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-        //     .src_stage_mask(vk::PipelineStageFlags2::TRANSFER)
-        //     .dst_stage_mask(vk::PipelineStageFlags2::FRAGMENT_SHADER)
-        //     .image(image)
-        //     .subresource_range(vk::ImageSubresourceRange {
-        //         aspect_mask: vk::ImageAspectFlags::COLOR,
-        //         level_count: 1,
-        //         layer_count: 1,
-        //         ..Default::default()
-        //     })
-        //     .build();
-
-        // let dep_info = vk::DependencyInfo::builder()
-        //     .image_memory_barriers(&[image_barrier])
-        //     .dependency_flags(vk::DependencyFlags::BY_REGION)
-        //     .build();
-
-        // unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
         end_single_time_command(device, command_pool, submit_queue, command_buffer);
     }
@@ -416,17 +390,15 @@ impl VulkanImage {
         mask: vk::ImageAspectFlags,
     ) -> vk::ImageView {
         let image_view_info = vk::ImageViewCreateInfo::builder()
-            .subresource_range(
-                vk::ImageSubresourceRange::builder()
+            .subresource_range(vk::ImageSubresourceRange::builder()
                     .aspect_mask(mask)
                     .level_count(mip_level)
                     .layer_count(1)
-                    .build(),
+                    .build()
             )
             .image(image)
             .format(format)
-            .view_type(vk::ImageViewType::TYPE_2D)
-            .build();
+            .view_type(vk::ImageViewType::TYPE_2D);
 
         unsafe { device.create_image_view(&image_view_info, None) }.unwrap()
     }
@@ -447,8 +419,7 @@ impl VulkanImage {
             .samples(vk::SampleCountFlags::TYPE_1)
             .tiling(vk::ImageTiling::OPTIMAL)
             .usage(usage)
-            .sharing_mode(vk::SharingMode::EXCLUSIVE)
-            .build();
+            .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
         unsafe { device.create_image(&create_info, None) }.unwrap()
     }

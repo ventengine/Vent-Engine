@@ -17,14 +17,12 @@ pub fn create_pipeline(
         read_spv(&mut File::open(vertex_file + ".spv").expect("Failed to open Vertex File"))
             .unwrap();
     let vertex_module_info = vk::ShaderModuleCreateInfo::builder()
-        .code(&vertex_code)
-        .build();
+        .code(&vertex_code);
     let fragment_code =
         read_spv(&mut File::open(fragment_file + ".spv").expect("Failed to open Fragment File"))
             .unwrap();
     let fragment_module_info = vk::ShaderModuleCreateInfo::builder()
-        .code(&fragment_code)
-        .build();
+        .code(&fragment_code);
 
     let vertex_module = unsafe {
         instance
@@ -57,8 +55,7 @@ pub fn create_pipeline(
 
     let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::builder()
         .vertex_attribute_descriptions(attrib_desc)
-        .vertex_binding_descriptions(binding_desc)
-        .build();
+        .vertex_binding_descriptions(binding_desc);
     let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
         topology: vk::PrimitiveTopology::TRIANGLE_LIST,
         ..Default::default()
@@ -74,8 +71,7 @@ pub fn create_pipeline(
     let scissors = [surface_resolution.into()];
     let viewport_state_info = vk::PipelineViewportStateCreateInfo::builder()
         .scissors(&scissors)
-        .viewports(&viewports)
-        .build();
+        .viewports(&viewports);
 
     let rasterization_info = vk::PipelineRasterizationStateCreateInfo {
         front_face: vk::FrontFace::COUNTER_CLOCKWISE,
@@ -93,21 +89,18 @@ pub fn create_pipeline(
         .depth_test_enable(true)
         .depth_write_enable(true)
         .depth_compare_op(vk::CompareOp::LESS)
-        .max_depth_bounds(1.0)
-        .build();
+        .max_depth_bounds(1.0);
     let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
         color_write_mask: vk::ColorComponentFlags::RGBA,
         ..Default::default()
     }];
     let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
         .logic_op(vk::LogicOp::COPY)
-        .attachments(&color_blend_attachment_states)
-        .build();
+        .attachments(&color_blend_attachment_states);
 
     let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]; // TODO
     let dynamic_state_info = vk::PipelineDynamicStateCreateInfo::builder()
-        .dynamic_states(&dynamic_state)
-        .build();
+        .dynamic_states(&dynamic_state);
 
     let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
         .stages(&shader_stage_create_info)
@@ -120,13 +113,12 @@ pub fn create_pipeline(
         .color_blend_state(&color_blend_state)
         .dynamic_state(&dynamic_state_info)
         .layout(pipeline_layout)
-        .render_pass(instance.render_pass)
-        .build();
+        .render_pass(instance.render_pass);
 
     let graphics_pipelines = unsafe {
         instance.device.create_graphics_pipelines(
             vk::PipelineCache::null(),
-            &[graphic_pipeline_info],
+            &[*graphic_pipeline_info],
             None,
         )
     }

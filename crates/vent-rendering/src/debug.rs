@@ -76,8 +76,7 @@ pub fn set_object_name<H: Handle>(instance: &VulkanInstance, handle: H, name: &s
         let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::builder()
             .object_type(H::TYPE)
             .object_handle(handle.as_raw())
-            .object_name(&object_name)
-            .build();
+            .object_name(&object_name);
 
         unsafe {
             instance
