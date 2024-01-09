@@ -25,7 +25,7 @@ pub struct VulkanImage {
     pub image: vk::Image,
     pub image_view: vk::ImageView,
     pub sampler: vk::Sampler,
-    pub memory: Option<vk::DeviceMemory>,
+    pub memory: vk::DeviceMemory,
 }
 
 impl VulkanImage {
@@ -63,11 +63,19 @@ impl VulkanImage {
             None,
         );
 
+        let mip_level = (image_size.width.max(image_size.height) as f32)
+            .log2()
+            .floor() as u32
+            + 1;
+
         let image = Self::create_image(
             &instance.device,
             vk::Format::R8G8B8A8_UNORM,
             image_size,
-            vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
+            mip_level,
+            vk::ImageUsageFlags::TRANSFER_DST
+                | vk::ImageUsageFlags::TRANSFER_SRC
+                | vk::ImageUsageFlags::SAMPLED,
         );
         let memory = VulkanBuffer::new_image(&instance.device, allocator, image);
 
@@ -79,13 +87,25 @@ impl VulkanImage {
             submit_queue,
             image_size.width,
             image_size.height,
+            mip_level,
         );
         staging_buffer.destroy(&instance.device);
+
+        Self::generate_mipmaps(
+            &instance.device,
+            image,
+            command_pool,
+            submit_queue,
+            image_size.width,
+            image_size.height,
+            mip_level,
+        );
 
         let image_view = Self::create_image_view(
             image,
             &instance.device,
             vk::Format::R8G8B8A8_UNORM,
+            mip_level,
             vk::ImageAspectFlags::COLOR,
         );
 
@@ -100,7 +120,7 @@ impl VulkanImage {
             image,
             image_view,
             sampler,
-            memory: Some(memory),
+            memory: memory,
         }
     }
 
@@ -114,11 +134,12 @@ impl VulkanImage {
             device,
             format,
             size,
+            1,
             vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
         );
         let memory = VulkanBuffer::new_image(device, allocator, image);
         let image_view =
-            Self::create_image_view(image, device, format, vk::ImageAspectFlags::DEPTH);
+            Self::create_image_view(image, device, format, 1, vk::ImageAspectFlags::DEPTH);
 
         DepthImage {
             image,
@@ -154,18 +175,21 @@ impl VulkanImage {
         submit_queue: vk::Queue,
         width: u32,
         height: u32,
+        mip_level: u32,
     ) {
         let command_buffer = begin_single_time_command(device, command_pool);
 
         let image_barrier = vk::ImageMemoryBarrier2::builder()
             .dst_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
             .new_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
-            .src_stage_mask(vk::PipelineStageFlags2::BOTTOM_OF_PIPE)
-            .dst_stage_mask(vk::PipelineStageFlags2::TRANSFER)
             .image(image)
+            .src_stage_mask(vk::PipelineStageFlags2::TOP_OF_PIPE)
+            .dst_stage_mask(vk::PipelineStageFlags2::TRANSFER)
+            .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+            .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
             .subresource_range(vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::COLOR,
-                level_count: 1,
+                level_count: mip_level,
                 layer_count: 1,
                 ..Default::default()
             })
@@ -207,28 +231,164 @@ impl VulkanImage {
 
         unsafe { device.cmd_copy_buffer_to_image2(command_buffer, &copy_image_info) };
 
-        let image_barrier = vk::ImageMemoryBarrier2::builder()
-            .src_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
-            .dst_access_mask(vk::AccessFlags2::SHADER_READ)
-            .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
-            .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-            .src_stage_mask(vk::PipelineStageFlags2::TRANSFER)
-            .dst_stage_mask(vk::PipelineStageFlags2::FRAGMENT_SHADER)
+        // let image_barrier = vk::ImageMemoryBarrier2::builder()
+        //     .src_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
+        //     .dst_access_mask(vk::AccessFlags2::SHADER_READ)
+        //     .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
+        //     .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+        //     .src_stage_mask(vk::PipelineStageFlags2::TRANSFER)
+        //     .dst_stage_mask(vk::PipelineStageFlags2::FRAGMENT_SHADER)
+        //     .image(image)
+        //     .subresource_range(vk::ImageSubresourceRange {
+        //         aspect_mask: vk::ImageAspectFlags::COLOR,
+        //         level_count: 1,
+        //         layer_count: 1,
+        //         ..Default::default()
+        //     })
+        //     .build();
+
+        // let dep_info = vk::DependencyInfo::builder()
+        //     .image_memory_barriers(&[image_barrier])
+        //     .dependency_flags(vk::DependencyFlags::BY_REGION)
+        //     .build();
+
+        // unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
+
+        end_single_time_command(device, command_pool, submit_queue, command_buffer);
+    }
+
+    pub fn generate_mipmaps(
+        device: &ash::Device,
+        image: vk::Image,
+        command_pool: vk::CommandPool,
+        submit_queue: vk::Queue,
+        width: u32,
+        height: u32,
+        mip_level: u32,
+    ) {
+        let command_buffer = begin_single_time_command(device, command_pool);
+
+        let subresource = vk::ImageSubresourceRange::builder()
+            .aspect_mask(vk::ImageAspectFlags::COLOR)
+            .base_array_layer(0)
+            .layer_count(1)
+            .level_count(1);
+
+        let mut barrier = vk::ImageMemoryBarrier::builder()
             .image(image)
-            .subresource_range(vk::ImageSubresourceRange {
-                aspect_mask: vk::ImageAspectFlags::COLOR,
-                level_count: 1,
-                layer_count: 1,
-                ..Default::default()
-            })
-            .build();
+            .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+            .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+            .subresource_range(*subresource);
 
-        let dep_info = vk::DependencyInfo::builder()
-            .image_memory_barriers(&[image_barrier])
-            .dependency_flags(vk::DependencyFlags::BY_REGION)
-            .build();
+        let mut mip_width = width as i32;
+        let mut mip_height = height as i32;
 
-        unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
+        for i in 1..mip_level {
+            barrier.subresource_range.base_mip_level = i - 1;
+            barrier.old_layout = vk::ImageLayout::TRANSFER_DST_OPTIMAL;
+            barrier.new_layout = vk::ImageLayout::TRANSFER_SRC_OPTIMAL;
+            barrier.src_access_mask = vk::AccessFlags::TRANSFER_WRITE;
+            barrier.dst_access_mask = vk::AccessFlags::TRANSFER_READ;
+
+            unsafe {
+                device.cmd_pipeline_barrier(
+                    command_buffer,
+                    vk::PipelineStageFlags::TRANSFER,
+                    vk::PipelineStageFlags::TRANSFER,
+                    vk::DependencyFlags::empty(),
+                    &[] as &[vk::MemoryBarrier],
+                    &[] as &[vk::BufferMemoryBarrier],
+                    &[*barrier],
+                )
+            };
+
+            let src_subresource = vk::ImageSubresourceLayers::builder()
+                .aspect_mask(vk::ImageAspectFlags::COLOR)
+                .mip_level(i - 1)
+                .base_array_layer(0)
+                .layer_count(1);
+
+            let dst_subresource = vk::ImageSubresourceLayers::builder()
+                .aspect_mask(vk::ImageAspectFlags::COLOR)
+                .mip_level(i)
+                .base_array_layer(0)
+                .layer_count(1);
+
+            let blit = vk::ImageBlit::builder()
+                .src_offsets([
+                    vk::Offset3D { x: 0, y: 0, z: 0 },
+                    vk::Offset3D {
+                        x: mip_width,
+                        y: mip_height,
+                        z: 1,
+                    },
+                ])
+                .src_subresource(*src_subresource)
+                .dst_offsets([
+                    vk::Offset3D { x: 0, y: 0, z: 0 },
+                    vk::Offset3D {
+                        x: (if mip_width > 1 { mip_width / 2 } else { 1 }),
+                        y: (if mip_height > 1 { mip_height / 2 } else { 1 }),
+                        z: 1,
+                    },
+                ])
+                .dst_subresource(*dst_subresource);
+
+            unsafe {
+                device.cmd_blit_image(
+                    command_buffer,
+                    image,
+                    vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+                    image,
+                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    &[*blit],
+                    vk::Filter::LINEAR,
+                )
+            };
+
+            barrier.old_layout = vk::ImageLayout::TRANSFER_SRC_OPTIMAL;
+            barrier.new_layout = vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+            barrier.src_access_mask = vk::AccessFlags::TRANSFER_READ;
+            barrier.dst_access_mask = vk::AccessFlags::SHADER_READ;
+
+            unsafe {
+                device.cmd_pipeline_barrier(
+                    command_buffer,
+                    vk::PipelineStageFlags::TRANSFER,
+                    vk::PipelineStageFlags::FRAGMENT_SHADER,
+                    vk::DependencyFlags::empty(),
+                    &[] as &[vk::MemoryBarrier],
+                    &[] as &[vk::BufferMemoryBarrier],
+                    &[*barrier],
+                )
+            };
+
+            if mip_width > 1 {
+                mip_width /= 2;
+            }
+
+            if mip_height > 1 {
+                mip_height /= 2;
+            }
+        }
+
+        barrier.subresource_range.base_mip_level = mip_level - 1;
+        barrier.old_layout = vk::ImageLayout::TRANSFER_DST_OPTIMAL;
+        barrier.new_layout = vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+        barrier.src_access_mask = vk::AccessFlags::TRANSFER_WRITE;
+        barrier.dst_access_mask = vk::AccessFlags::SHADER_READ;
+
+        unsafe {
+            device.cmd_pipeline_barrier(
+                command_buffer,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::PipelineStageFlags::FRAGMENT_SHADER,
+                vk::DependencyFlags::empty(),
+                &[] as &[vk::MemoryBarrier],
+                &[] as &[vk::BufferMemoryBarrier],
+                &[*barrier],
+            )
+        };
 
         end_single_time_command(device, command_pool, submit_queue, command_buffer);
     }
@@ -252,13 +412,14 @@ impl VulkanImage {
         image: vk::Image,
         device: &ash::Device,
         format: vk::Format,
+        mip_level: u32,
         mask: vk::ImageAspectFlags,
     ) -> vk::ImageView {
         let image_view_info = vk::ImageViewCreateInfo::builder()
             .subresource_range(
                 vk::ImageSubresourceRange::builder()
                     .aspect_mask(mask)
-                    .level_count(1)
+                    .level_count(mip_level)
                     .layer_count(1)
                     .build(),
             )
@@ -274,13 +435,14 @@ impl VulkanImage {
         device: &ash::Device,
         format: vk::Format,
         size: Extent2D,
+        mip_level: u32,
         usage: vk::ImageUsageFlags,
     ) -> vk::Image {
         let create_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
             .format(format)
             .extent(size.into())
-            .mip_levels(1)
+            .mip_levels(mip_level)
             .array_layers(1)
             .samples(vk::SampleCountFlags::TYPE_1)
             .tiling(vk::ImageTiling::OPTIMAL)
@@ -296,9 +458,7 @@ impl VulkanImage {
             device.destroy_image_view(self.image_view, None);
             device.destroy_image(self.image, None);
             device.destroy_sampler(self.sampler, None);
-            if let Some(memory) = self.memory {
-                device.free_memory(memory, None);
-            }
+            device.free_memory(self.memory, None);
         }
     }
 }

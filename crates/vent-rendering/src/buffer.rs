@@ -2,7 +2,7 @@ use std::mem::align_of;
 
 use ash::vk;
 
-use crate::{allocator::MemoryAllocator, any_as_u8_slice, debug, instance::VulkanInstance};
+use crate::{allocator::MemoryAllocator, debug, instance::VulkanInstance};
 
 pub struct VulkanBuffer {
     pub buffer: vk::Buffer,

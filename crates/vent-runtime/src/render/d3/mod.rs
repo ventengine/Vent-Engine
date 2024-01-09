@@ -208,8 +208,8 @@ impl Renderer for Renderer3D {
 
     fn resize(
         &mut self,
-        instance: &mut VulkanInstance,
-        new_size: &PhysicalSize<u32>,
+        _instance: &mut VulkanInstance,
+        _new_size: &PhysicalSize<u32>,
         _camera: &mut dyn Camera,
     ) {
     }
@@ -235,7 +235,7 @@ impl Renderer for Renderer3D {
 
         let color_clear_value = vk::ClearValue {
             color: vk::ClearColorValue {
-                float32: [0.5, 0.5, 0.5, 1.0],
+                float32: [0.2, 0.9, 1.0, 1.0],
             },
         };
 
