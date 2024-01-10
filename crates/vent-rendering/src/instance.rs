@@ -252,7 +252,6 @@ impl VulkanInstance {
 
     pub fn recreate_swap_chain(&mut self, new_size: &PhysicalSize<u32>) {
         unsafe {
-            dbg!("aaa");
             self.device.device_wait_idle().unwrap();
 
             let (swapchain, surface_resolution) = Self::create_swapchain(
@@ -515,7 +514,6 @@ impl VulkanInstance {
             desired_image_count = surface_capabilities.max_image_count;
         }
 
-        dbg!(surface_capabilities.current_extent);
         let surface_resolution = match surface_capabilities.current_extent.width {
             std::u32::MAX => vk::Extent2D {
                 width: size.width.clamp(
