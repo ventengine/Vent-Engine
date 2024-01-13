@@ -1,7 +1,8 @@
+use ash::vk;
 use glam::Vec3;
 use vent_assets::Mesh3D;
-
-use crate::render::model_renderer::ModelRenderer3D;
+use vent_rendering::Vertex;
+use vent_rendering::{instance::VulkanInstance, Vertex3D};
 
 #[repr(C)]
 pub struct LightUBO {
@@ -9,98 +10,35 @@ pub struct LightUBO {
     pub color: Vec3,
 }
 
-#[allow(dead_code)]
 pub struct LightRenderer {
-    light_uniform: LightUBO,
+    pipeline_layout: vk::PipelineLayout,
+    pipeline: vk::Pipeline,
     // light_buffer: wgpu::Buffer,
     // pub light_bind_group_layout: wgpu::BindGroupLayout,
     // pub light_bind_group: wgpu::BindGroup,
     // light_render_pipeline: wgpu::RenderPipeline,
 }
 
-#[allow(dead_code)]
 impl LightRenderer {
-    pub fn new(_device: &ash::Device, _model_renderer: &ModelRenderer3D) -> Self {
-        let light_uniform = LightUBO {
-            position: [2.0, 100.0, 2.0].into(),
-            color: [1.0, 1.0, 1.0].into(),
-        };
+    pub fn new(instance: &VulkanInstance) -> Self {
+        let vertex_shader = concat!(env!("CARGO_MANIFEST_DIR"), "/res/shaders/app/3D/light.vert");
+        let fragment_shader = concat!(env!("CARGO_MANIFEST_DIR"), "/res/shaders/app/3D/light.frag");
 
-        // let light_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        //     label: Some("Light VB"),
-        //     contents: bytemuck::cast_slice(&[light_uniform]),
-        //     usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        // });
+        let pipeline_layout = instance.create_pipeline_layout(&[]);
 
-        // let light_bind_group_layout =
-        //     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        //         entries: &[wgpu::BindGroupLayoutEntry {
-        //             binding: 0,
-        //             visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-        //             ty: wgpu::BindingType::Buffer {
-        //                 ty: wgpu::BufferBindingType::Uniform,
-        //                 has_dynamic_offset: false,
-        //                 min_binding_size: wgpu::BufferSize::new(
-        //                     mem::size_of::<LightUBO>() as wgpu::BufferAddress
-        //                 ),
-        //             },
-        //             count: None,
-        //         }],
-        //         label: None,
-        //     });
-
-        // let light_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        //     layout: &light_bind_group_layout,
-        //     entries: &[wgpu::BindGroupEntry {
-        //         binding: 0,
-        //         resource: light_buffer.as_entire_binding(),
-        //     }],
-        //     label: None,
-        // });
-
-        // let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        //     label: Some("Light Pipeline Layout"),
-        //     bind_group_layouts: &[camera_bind_group_layout, &light_bind_group_layout],
-        //     push_constant_ranges: &[],
-        // });
-        // let shader = device.create_shader_module(wgpu::include_wgsl!(concat!(
-        //     env!("CARGO_MANIFEST_DIR"),
-        //     "/res/shaders/app/3D/light.wgsl"
-        // )));
-        // let vertex_buffers = [Vertex3D::LAYOUT];
-
-        // let light_render_pipeline =
-        //     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        //         label: Some("Light Renderer Pipeline"),
-        //         layout: Some(&pipeline_layout),
-        //         vertex: wgpu::VertexState {
-        //             module: &shader,
-        //             entry_point: "vs_main",
-        //             buffers: &vertex_buffers,
-        //         },
-        //         fragment: Some(wgpu::FragmentState {
-        //             module: &shader,
-        //             entry_point: "fs_main",
-        //             targets: &[Some(format.into())],
-        //         }),
-        //         primitive: wgpu::PrimitiveState {
-        //             cull_mode: Some(wgpu::Face::Back),
-        //             front_face: wgpu::FrontFace::Cw,
-        //             ..Default::default()
-        //         },
-        //         depth_stencil: Some(wgpu::DepthStencilState {
-        //             format: vent_assets::Texture::DEPTH_FORMAT,
-        //             depth_write_enabled: true,
-        //             depth_compare: wgpu::CompareFunction::Less,
-        //             stencil: wgpu::StencilState::default(),
-        //             bias: wgpu::DepthBiasState::default(),
-        //         }),
-        //         multisample: wgpu::MultisampleState::default(),
-        //         multiview: None,
-        //     });
+        let pipeline = vent_rendering::pipeline::create_pipeline(
+            instance,
+            vertex_shader.to_owned(),
+            fragment_shader.to_owned(),
+            &[Vertex3D::binding_description()],
+            pipeline_layout,
+            &Vertex3D::input_descriptions(),
+            instance.surface_resolution,
+        );
 
         Self {
-            light_uniform,
+            pipeline_layout,
+            pipeline,
             // light_buffer,
             // light_bind_group_layout,
             // light_bind_group,
@@ -110,13 +48,34 @@ impl LightRenderer {
 
     pub fn render(
         &self,
+        instance: &VulkanInstance,
+        command_buffer: vk::CommandBuffer,
+        buffer_index: usize,
         // camera_bind_group: &'rp wgpu::BindGroup,
-        _mesh: &Mesh3D,
+        mesh: &Mesh3D,
     ) {
-        // rpass.set_pipeline(&self.light_render_pipeline);
-        // rpass.set_bind_group(0, camera_bind_group, &[]);
-        // rpass.set_bind_group(1, &self.light_bind_group, &[]);
-        // mesh.bind(rpass, false);
-        // mesh.draw(rpass);
+        unsafe {
+            instance.device.cmd_bind_pipeline(
+                command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline,
+            )
+        };
+
+        mesh.bind(
+            &instance.device,
+            command_buffer,
+            buffer_index,
+            self.pipeline_layout,
+            false,
+        );
+        mesh.draw(&instance.device, command_buffer);
+    }
+
+    pub fn destroy(&mut self, device: &ash::Device) {
+        unsafe {
+            device.destroy_pipeline(self.pipeline, None);
+            device.destroy_pipeline_layout(self.pipeline_layout, None);
+        }
     }
 }

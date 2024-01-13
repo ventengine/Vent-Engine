@@ -14,7 +14,6 @@ mod surface;
 #[macro_export]
 macro_rules! offset_of {
     ($base:path, $field:ident) => {{
-        #[allow(unused_unsafe)]
         unsafe {
             let b: $base = mem::zeroed();
             std::ptr::addr_of!(b.$field) as isize - std::ptr::addr_of!(b) as isize
@@ -86,8 +85,8 @@ pub fn begin_single_time_command(
             .expect("Failed to allocate Command Buffers!")
     }[0];
 
-    let command_buffer_begin_info = vk::CommandBufferBeginInfo::builder()
-        .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+    let command_buffer_begin_info =
+        vk::CommandBufferBeginInfo::builder().flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
     unsafe {
         device
@@ -110,12 +109,10 @@ pub fn end_single_time_command(
             .expect("Failed to record Command Buffer at Ending!");
     }
 
-    let buffers_to_submit = vk::CommandBufferSubmitInfo::builder()
-        .command_buffer(command_buffer);
+    let buffers_to_submit = vk::CommandBufferSubmitInfo::builder().command_buffer(command_buffer);
 
     let binding = [*buffers_to_submit];
-    let submit_info = vk::SubmitInfo2::builder()
-        .command_buffer_infos(&binding);
+    let submit_info = vk::SubmitInfo2::builder().command_buffer_infos(&binding);
 
     unsafe {
         let fence = device

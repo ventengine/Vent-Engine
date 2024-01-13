@@ -7,7 +7,7 @@ use std::{
 };
 
 use ash::vk;
-use gltf::texture::Sampler;
+use gltf::{texture::Sampler, json::mesh::{TRIANGLES, POINTS}, mesh::Mode};
 use image::DynamicImage;
 use vent_rendering::{image::VulkanImage, instance::VulkanInstance, Vertex3D};
 
@@ -240,6 +240,19 @@ impl GLTFLoader {
             gltf::texture::WrappingMode::ClampToEdge => vk::SamplerAddressMode::CLAMP_TO_EDGE,
             gltf::texture::WrappingMode::MirroredRepeat => vk::SamplerAddressMode::MIRRORED_REPEAT,
             gltf::texture::WrappingMode::Repeat => vk::SamplerAddressMode::REPEAT,
+        }
+    }
+
+    #[must_use]
+    const fn conv_primitive_mode(mode: Mode) -> vk::PrimitiveTopology {
+        match mode {
+            Mode::Points => vk::PrimitiveTopology::POINT_LIST,
+            Mode::Lines => vk::PrimitiveTopology::LINE_LIST,
+            Mode::LineLoop => vk::PrimitiveTopology::LINE_LIST,
+            Mode::LineStrip => vk::PrimitiveTopology::LINE_STRIP,
+            Mode::Triangles => vk::PrimitiveTopology::TRIANGLE_LIST,
+            Mode::TriangleStrip => vk::PrimitiveTopology::TRIANGLE_STRIP,
+            Mode::TriangleFan => vk::PrimitiveTopology::TRIANGLE_FAN
         }
     }
 

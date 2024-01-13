@@ -10,7 +10,7 @@ use vent_rendering::{
 };
 use winit::dpi::PhysicalSize;
 
-use self::light_renderer::LightUBO;
+use self::light_renderer::{LightRenderer, LightUBO};
 
 use super::{
     camera::{Camera, Camera3D},
@@ -47,9 +47,8 @@ impl Default for Camera3DData {
 
 pub struct Renderer3D {
     mesh_renderer: ModelRenderer3D,
-    // light_renderer: LightRenderer,
+    light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
-    // depth_view: wgpu::TextureView,
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
 
@@ -72,8 +71,10 @@ impl Renderer for Renderer3D {
             "/res/shaders/app/3D/shader.frag"
         );
 
-        let push_contant_size = size_of::<Camera3DData>() as u32;
-        let pipeline_layout = instance.create_pipeline_layout(push_contant_size);
+        let push_constant_range = vk::PushConstantRange::builder()
+            .size(size_of::<Camera3DData>() as u32)
+            .stage_flags(vk::ShaderStageFlags::VERTEX);
+        let pipeline_layout = instance.create_pipeline_layout(&[*push_constant_range]);
 
         let pipeline = vent_rendering::pipeline::create_pipeline(
             instance,
@@ -190,10 +191,11 @@ impl Renderer for Renderer3D {
         });
 
         let tmp_light_mesh = create_tmp_cube(instance);
+        let light_renderer = LightRenderer::new(instance);
 
         Self {
             mesh_renderer,
-            //    light_renderer,
+            light_renderer,
             tmp_light_mesh,
             // depth_view,
             // bind_group,
@@ -208,7 +210,7 @@ impl Renderer for Renderer3D {
 
     fn resize(
         &mut self,
-        instance: &mut VulkanInstance,
+        _instance: &mut VulkanInstance,
         _new_size: &PhysicalSize<u32>,
         _camera: &mut dyn Camera,
     ) {
@@ -269,24 +271,26 @@ impl Renderer for Renderer3D {
                 .render_area(*render_area)
                 .clear_values(clear_values);
 
-            let subpass_info =
-                vk::SubpassBeginInfo::builder().contents(vk::SubpassContents::INLINE);
-
-            instance
-                .device
-                .cmd_begin_render_pass2(command_buffer, &info, &subpass_info);
-            instance.device.cmd_bind_pipeline(
-                command_buffer,
-                vk::PipelineBindPoint::GRAPHICS,
-                self.pipeline,
-            );
-
             instance
                 .device
                 .cmd_set_scissor(command_buffer, 0, &[*render_area]);
             instance
                 .device
                 .cmd_set_viewport(command_buffer, 0, &[*viewport]);
+
+            let subpass_info =
+                vk::SubpassBeginInfo::builder().contents(vk::SubpassContents::INLINE);
+
+            instance
+                .device
+                .cmd_begin_render_pass2(command_buffer, &info, &subpass_info);
+        //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
+
+            instance.device.cmd_bind_pipeline(
+                command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline,
+            );
 
             self.mesh_renderer.record_buffer(
                 instance,
@@ -310,6 +314,7 @@ impl Renderer for Renderer3D {
     fn destroy(&mut self, instance: &VulkanInstance) {
         unsafe { instance.device.device_wait_idle().unwrap() };
         self.mesh_renderer.destroy_all(instance);
+        self.light_renderer.destroy(&instance.device);
         self.material_ubos
             .drain(..)
             .for_each(|mut ubo| ubo.destroy(&instance.device));

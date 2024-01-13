@@ -16,13 +16,11 @@ pub fn create_pipeline(
     let vertex_code =
         read_spv(&mut File::open(vertex_file + ".spv").expect("Failed to open Vertex File"))
             .unwrap();
-    let vertex_module_info = vk::ShaderModuleCreateInfo::builder()
-        .code(&vertex_code);
+    let vertex_module_info = vk::ShaderModuleCreateInfo::builder().code(&vertex_code);
     let fragment_code =
         read_spv(&mut File::open(fragment_file + ".spv").expect("Failed to open Fragment File"))
             .unwrap();
-    let fragment_module_info = vk::ShaderModuleCreateInfo::builder()
-        .code(&fragment_code);
+    let fragment_module_info = vk::ShaderModuleCreateInfo::builder().code(&fragment_code);
 
     let vertex_module = unsafe {
         instance
@@ -99,8 +97,8 @@ pub fn create_pipeline(
         .attachments(&color_blend_attachment_states);
 
     let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]; // TODO
-    let dynamic_state_info = vk::PipelineDynamicStateCreateInfo::builder()
-        .dynamic_states(&dynamic_state);
+    let dynamic_state_info =
+        vk::PipelineDynamicStateCreateInfo::builder().dynamic_states(&dynamic_state);
 
     let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
         .stages(&shader_stage_create_info)

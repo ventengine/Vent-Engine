@@ -107,7 +107,7 @@ impl VulkanInstance {
             vk::InstanceCreateFlags::default()
         };
 
-        let (_layer_names, layer_names_ptrs) = get_layer_names_and_pointers();
+        let layer_names_ptrs = get_layer_names_and_pointers();
         check_validation_layer_support(&entry);
 
         let mut validation_features = get_validation_features();
@@ -115,7 +115,7 @@ impl VulkanInstance {
         let create_info = vk::InstanceCreateInfo::builder()
             .application_info(&app_info)
             .enabled_extension_names(&extension_names)
-            .enabled_layer_names(&layer_names_ptrs)
+            .enabled_layer_names(&layer_names_ptrs.1)
             .flags(create_flags)
             .push_next(&mut validation_features);
 
@@ -468,18 +468,14 @@ impl VulkanInstance {
             KhrPortabilitySubsetFn::name().as_ptr(),
         ];
 
-        let mut features_1_3 = vk::PhysicalDeviceVulkan13Features {
-            synchronization2: 1,
-            maintenance4: 1,
-            ..Default::default()
-        };
+        let mut features_1_3 = vk::PhysicalDeviceVulkan13Features::builder()
+            .synchronization2(true)
+            .maintenance4(true);
 
-        let features = vk::PhysicalDeviceFeatures {
-            shader_clip_distance: 1,
-            sampler_anisotropy: 1,
+        let features = vk::PhysicalDeviceFeatures::builder()
+            .shader_clip_distance(true)
+            .sampler_anisotropy(true);
 
-            ..Default::default()
-        };
         let priorities = [1.0];
 
         let queue_info = vk::DeviceQueueCreateInfo::builder()
@@ -599,8 +595,7 @@ impl VulkanInstance {
 
         let create_info = vk::SemaphoreCreateInfo::default();
 
-        let fence_info = vk::FenceCreateInfo::builder()
-            .flags(vk::FenceCreateFlags::SIGNALED);
+        let fence_info = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
 
         for _ in 0..MAX_FRAMES_IN_FLIGHT {
             image_available_semaphores
@@ -715,20 +710,19 @@ impl VulkanInstance {
             },
         ];
 
-        let info = vk::DescriptorSetLayoutCreateInfo::builder()
-            .bindings(&desc_layout_bindings);
+        let info = vk::DescriptorSetLayoutCreateInfo::builder().bindings(&desc_layout_bindings);
 
         unsafe { device.create_descriptor_set_layout(&info, None) }.unwrap()
     }
 
-    pub fn create_pipeline_layout(&self, push_contant_size: u32) -> vk::PipelineLayout {
+    pub fn create_pipeline_layout(
+        &self,
+        push_constant_ranges: &[PushConstantRange],
+    ) -> vk::PipelineLayout {
         let binding = [self.descriptor_set_layout];
-        let push_constant_ranges = [PushConstantRange::builder()
-            .size(push_contant_size)
-            .stage_flags(vk::ShaderStageFlags::VERTEX).build()];
 
         let create_info = vk::PipelineLayoutCreateInfo::builder()
-            .push_constant_ranges(&push_constant_ranges)
+            .push_constant_ranges(push_constant_ranges)
             .set_layouts(&binding);
 
         unsafe { self.device.create_pipeline_layout(&create_info, None) }.unwrap()
@@ -768,11 +762,10 @@ impl VulkanInstance {
             layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
             ..Default::default()
         }];
-        let depth_attachment_ref = vk::AttachmentReference2 {
-            attachment: 1,
-            layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            ..Default::default()
-        };
+        let depth_attachment_ref = vk::AttachmentReference2::builder()
+            .attachment(1)
+            .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
         let dependencies = [
             vk::SubpassDependency2 {
                 src_subpass: vk::SUBPASS_EXTERNAL,

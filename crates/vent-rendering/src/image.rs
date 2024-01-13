@@ -212,7 +212,7 @@ impl VulkanImage {
             .buffer_row_length(0)
             .buffer_image_height(0)
             .image_subresource(*subresource)
-            .image_offset(vk::Offset3D { x: 0, y: 0, z: 0 })
+            .image_offset(vk::Offset3D::default())
             .image_extent(vk::Extent3D {
                 width,
                 height,
@@ -270,8 +270,8 @@ impl VulkanImage {
                     vk::PipelineStageFlags::TRANSFER,
                     vk::PipelineStageFlags::TRANSFER,
                     vk::DependencyFlags::empty(),
-                    &[] as &[vk::MemoryBarrier],
-                    &[] as &[vk::BufferMemoryBarrier],
+                    &[],
+                    &[],
                     &[*barrier],
                 )
             };
@@ -290,7 +290,7 @@ impl VulkanImage {
 
             let blit = vk::ImageBlit::builder()
                 .src_offsets([
-                    vk::Offset3D { x: 0, y: 0, z: 0 },
+                    vk::Offset3D::default(),
                     vk::Offset3D {
                         x: mip_width,
                         y: mip_height,
@@ -299,7 +299,7 @@ impl VulkanImage {
                 ])
                 .src_subresource(*src_subresource)
                 .dst_offsets([
-                    vk::Offset3D { x: 0, y: 0, z: 0 },
+                    vk::Offset3D::default(),
                     vk::Offset3D {
                         x: (if mip_width > 1 { mip_width / 2 } else { 1 }),
                         y: (if mip_height > 1 { mip_height / 2 } else { 1 }),
@@ -331,8 +331,8 @@ impl VulkanImage {
                     vk::PipelineStageFlags::TRANSFER,
                     vk::PipelineStageFlags::FRAGMENT_SHADER,
                     vk::DependencyFlags::empty(),
-                    &[] as &[vk::MemoryBarrier],
-                    &[] as &[vk::BufferMemoryBarrier],
+                    &[],
+                    &[],
                     &[*barrier],
                 )
             };
@@ -358,8 +358,8 @@ impl VulkanImage {
                 vk::PipelineStageFlags::TRANSFER,
                 vk::PipelineStageFlags::FRAGMENT_SHADER,
                 vk::DependencyFlags::empty(),
-                &[] as &[vk::MemoryBarrier],
-                &[] as &[vk::BufferMemoryBarrier],
+                &[],
+                &[],
                 &[*barrier],
             )
         };
@@ -390,11 +390,12 @@ impl VulkanImage {
         mask: vk::ImageAspectFlags,
     ) -> vk::ImageView {
         let image_view_info = vk::ImageViewCreateInfo::builder()
-            .subresource_range(vk::ImageSubresourceRange::builder()
+            .subresource_range(
+                vk::ImageSubresourceRange::builder()
                     .aspect_mask(mask)
                     .level_count(mip_level)
                     .layer_count(1)
-                    .build()
+                    .build(),
             )
             .image(image)
             .format(format)
