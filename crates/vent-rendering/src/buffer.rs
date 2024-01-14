@@ -28,20 +28,11 @@ impl VulkanBuffer {
 
         let buffer = unsafe { instance.device.create_buffer(&buffer_info, None) }.unwrap();
 
-        let requirements = unsafe { instance.device.get_buffer_memory_requirements(buffer) };
-
-        let buffer_memory = allocator.allocate(
+        let buffer_memory = allocator.allocate_buffer(
             &instance.device,
-            requirements,
-            vk::MemoryPropertyFlags::HOST_COHERENT | vk::MemoryPropertyFlags::HOST_VISIBLE,
+            buffer,
+            vk::MemoryPropertyFlags::HOST_VISIBLE |vk::MemoryPropertyFlags::DEVICE_LOCAL,
         );
-
-        unsafe {
-            instance
-                .device
-                .bind_buffer_memory(buffer, buffer_memory, 0)
-                .expect("Failed to bind Buffer memory");
-        }
 
         #[cfg(debug_assertions)]
         if let Some(name) = name {
@@ -62,15 +53,7 @@ impl VulkanBuffer {
         allocator: &MemoryAllocator,
         image: vk::Image,
     ) -> vk::DeviceMemory {
-        let requirements = unsafe { device.get_image_memory_requirements(image) };
-
-        let memory =
-            allocator.allocate(device, requirements, vk::MemoryPropertyFlags::DEVICE_LOCAL);
-        unsafe {
-            device
-                .bind_image_memory(image, memory, 0)
-                .expect("Unable to bind Image memory")
-        };
+        let memory = allocator.allocate_image(device, image, vk::MemoryPropertyFlags::DEVICE_LOCAL);
         memory
     }
 

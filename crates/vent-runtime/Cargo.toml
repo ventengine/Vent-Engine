@@ -21,11 +21,11 @@ glam = "0.25"
 downcast-rs = "1.2.0"
 
 # egui
-egui = "0.24.1"
-egui-winit = "0.24.1"
+egui = "0.25"
+egui-winit = "0.25"
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
-simple_logger = "4.3.0"
+simple_logger = "4.3"
 
 
 [build-dependencies]

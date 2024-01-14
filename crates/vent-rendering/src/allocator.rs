@@ -11,12 +11,15 @@ impl MemoryAllocator {
         Self { memory_props }
     }
 
-    pub fn allocate(
+    /// Allocates memory for an Buffer and binds it
+    pub fn allocate_buffer(
         &self,
         device: &ash::Device,
-        memory_req: vk::MemoryRequirements,
+        buffer: vk::Buffer,
         flags: vk::MemoryPropertyFlags,
     ) -> vk::DeviceMemory {
+        let memory_req = unsafe { device.get_buffer_memory_requirements(buffer) };
+
         let memory_info = vk::MemoryAllocateInfo::builder()
             .allocation_size(memory_req.size)
             .memory_type_index(
@@ -24,7 +27,38 @@ impl MemoryAllocator {
                     .expect("Failed to find Memory Index"),
             );
 
-        unsafe { device.allocate_memory(&memory_info, None) }.unwrap()
+        let memory = unsafe { device.allocate_memory(&memory_info, None) }.unwrap();
+        unsafe {
+            device
+                .bind_buffer_memory(buffer, memory, 0)
+                .expect("Failed to bind Buffer memory");
+        }
+        memory
+    }
+
+    /// Allocates memory for an Image and binds it
+    pub fn allocate_image(
+        &self,
+        device: &ash::Device,
+        image: vk::Image,
+        flags: vk::MemoryPropertyFlags,
+    ) -> vk::DeviceMemory {
+        let memory_req = unsafe { device.get_image_memory_requirements(image) };
+
+        let memory_info = vk::MemoryAllocateInfo::builder()
+            .allocation_size(memory_req.size)
+            .memory_type_index(
+                self.find_memorytype_index(memory_req, flags)
+                    .expect("Failed to find Memory Index"),
+            );
+
+        let memory = unsafe { device.allocate_memory(&memory_info, None) }.unwrap();
+        unsafe {
+            device
+                .bind_image_memory(image, memory, 0)
+                .expect("Failed to bind Buffer memory");
+        }
+        memory
     }
 
     fn find_memorytype_index(

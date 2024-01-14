@@ -91,7 +91,7 @@ impl VulkanInstance {
             .to_vec();
         if ENABLE_VALIDATION_LAYERS {
             extension_names.push(vk::ExtValidationFeaturesFn::name().as_ptr());
-            extension_names.push(DebugUtils::name().as_ptr());
+            extension_names.push(vk::ExtDebugUtilsFn::name().as_ptr());
         }
 
         #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -107,8 +107,8 @@ impl VulkanInstance {
             vk::InstanceCreateFlags::default()
         };
 
-        let layer_names_ptrs = get_layer_names_and_pointers();
         check_validation_layer_support(&entry);
+        let layer_names_ptrs = get_layer_names_and_pointers();
 
         let mut validation_features = get_validation_features();
 

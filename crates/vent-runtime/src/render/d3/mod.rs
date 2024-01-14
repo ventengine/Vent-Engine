@@ -47,7 +47,7 @@ impl Default for Camera3DData {
 
 pub struct Renderer3D {
     mesh_renderer: ModelRenderer3D,
-    light_renderer: LightRenderer,
+    // light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
@@ -110,10 +110,10 @@ impl Renderer for Renderer3D {
                         instance.swapchain_images.len(),
                     );
 
-                    for (i, &descriptor_set) in descriptor_sets.iter().enumerate() {
+                    for &descriptor_set in descriptor_sets.iter() {
                         let diffuse_texture = &material.diffuse_texture;
 
-                        let buffer = VulkanBuffer::new_init(
+                        let matieral_buffer = VulkanBuffer::new_init(
                             instance,
                             &instance.memory_allocator,
                             size_of::<MaterialUBO>() as vk::DeviceSize,
@@ -123,8 +123,7 @@ impl Renderer for Renderer3D {
                             }),
                             None,
                         );
-                        material_ubos.push(buffer);
-                        let buffer = VulkanBuffer::new_init(
+                        let light_buffer = VulkanBuffer::new_init(
                             instance,
                             &instance.memory_allocator,
                             size_of::<LightUBO>() as vk::DeviceSize,
@@ -135,7 +134,6 @@ impl Renderer for Renderer3D {
                             }),
                             None,
                         );
-                        light_ubos.push(buffer);
 
                         let image_info = vk::DescriptorImageInfo::builder()
                             .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
@@ -143,12 +141,12 @@ impl Renderer for Renderer3D {
                             .sampler(diffuse_texture.sampler);
 
                         let material_buffer_info = vk::DescriptorBufferInfo::builder()
-                            .buffer(material_ubos[i].buffer)
+                            .buffer(*matieral_buffer)
                             .offset(0)
                             .range(size_of::<MaterialUBO>() as vk::DeviceSize);
 
                         let light_buffer_info = vk::DescriptorBufferInfo::builder()
-                            .buffer(light_ubos[i].buffer)
+                            .buffer(*light_buffer)
                             .offset(0)
                             .range(size_of::<LightUBO>() as vk::DeviceSize);
 
@@ -182,6 +180,9 @@ impl Renderer for Renderer3D {
                         unsafe {
                             instance.device.update_descriptor_sets(&desc_sets, &[]);
                         }
+
+                        material_ubos.push(matieral_buffer);
+                        light_ubos.push(light_buffer);
                     }
                     mesh.set_descriptor_set(descriptor_sets);
                 }
@@ -195,7 +196,7 @@ impl Renderer for Renderer3D {
 
         Self {
             mesh_renderer,
-            light_renderer,
+          //  light_renderer,
             tmp_light_mesh,
             // depth_view,
             // bind_group,
@@ -226,7 +227,7 @@ impl Renderer for Renderer3D {
         let command_buffer = instance.command_buffers[image_index];
 
         let render_area = vk::Rect2D::builder()
-            .offset(vk::Offset2D { x: 0, y: 0 })
+            .offset(vk::Offset2D::default())
             .extent(instance.surface_resolution);
 
         let viewport = vk::Viewport::builder()
@@ -284,7 +285,7 @@ impl Renderer for Renderer3D {
             instance
                 .device
                 .cmd_begin_render_pass2(command_buffer, &info, &subpass_info);
-        //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
+            //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
 
             instance.device.cmd_bind_pipeline(
                 command_buffer,
@@ -314,7 +315,7 @@ impl Renderer for Renderer3D {
     fn destroy(&mut self, instance: &VulkanInstance) {
         unsafe { instance.device.device_wait_idle().unwrap() };
         self.mesh_renderer.destroy_all(instance);
-        self.light_renderer.destroy(&instance.device);
+    //    self.light_renderer.destroy(&instance.device);
         self.material_ubos
             .drain(..)
             .for_each(|mut ubo| ubo.destroy(&instance.device));

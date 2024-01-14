@@ -7,7 +7,11 @@ use std::{
 };
 
 use ash::vk;
-use gltf::{texture::Sampler, json::mesh::{TRIANGLES, POINTS}, mesh::Mode};
+use gltf::{
+    json::mesh::{POINTS, TRIANGLES},
+    mesh::Mode,
+    texture::Sampler,
+};
 use image::DynamicImage;
 use vent_rendering::{image::VulkanImage, instance::VulkanInstance, Vertex3D};
 
@@ -252,7 +256,7 @@ impl GLTFLoader {
             Mode::LineStrip => vk::PrimitiveTopology::LINE_STRIP,
             Mode::Triangles => vk::PrimitiveTopology::TRIANGLE_LIST,
             Mode::TriangleStrip => vk::PrimitiveTopology::TRIANGLE_STRIP,
-            Mode::TriangleFan => vk::PrimitiveTopology::TRIANGLE_FAN
+            Mode::TriangleFan => vk::PrimitiveTopology::TRIANGLE_FAN,
         }
     }
 

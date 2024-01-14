@@ -14,8 +14,8 @@ vent-rendering = { path = "../vent-rendering"}
 ash = { version= "0.37.3", default-features = false, features = ["linked", "debug"] }
 
 # egui
-egui = "0.24.1"
-egui_dock = "0.9.1"
+egui = "0.25"
+egui_dock = "0.10"
 
 winit = "0.29.9"
 pollster = "0.3.0"
@@ -25,4 +25,4 @@ log = "0.4"
 # rfd = { version="0.12.1",  default-features = false, features = ["xdg-portal"]}
 
 [target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
-simple_logger = "4.3.0"
+simple_logger = "4.3"
