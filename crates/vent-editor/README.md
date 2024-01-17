@@ -14,4 +14,5 @@ If you're interested in contributing to Vent-Editor, please fork the repository 
 contributions of all kinds, including bug fixes, new features, and documentation improvements.
 
 ## License
+
 Vent-Editor is licensed under the [Apache 2.0 License](../../LICENSE)

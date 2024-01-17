@@ -34,7 +34,7 @@ We have no time constraints, so we can focus on implementing as many polished fe
 We welcome contributions in any way, shape, or form. Here's how you can get started:
 
 - Fork the repository and clone it to your local machine.
-- Run ```cargo run --release --bin vent-editor``` to start the editor.
+- Run `cargo run --release --bin vent-editor` to start the editor.
 - Make your changes and submit a pull request.
 
 We also have [GitHub Issues](https://github.com/Snowiiii/Vent-Engine/issues) where you can report bugs, request
@@ -45,14 +45,14 @@ features, or discuss ideas.
 Vent-Engine Supports all common platforms.
 
 | Platform | Runtime | Editor |
-|----------|---------|--------|
-| Windows  | ✅️      | ✅️     |
-| MacOS    | ✅️      | ✅️     |
-| Linux    | ✅️      | ✅️     |
-| Redox    | **❓**   | **❓**  |
-| Android  | **❓**   | ❌      |
-| IOS      | **❓**   | ❌      |
-| WASM     | ✅️      | ✅️     |
+| -------- | ------- | ------ |
+| Windows  | **❓**  | **❓** |
+| MacOS    | **❓**  | **❓** |
+| Linux    | ✅️     | ✅️    |
+| Redox    | **❓**  | **❓** |
+| Android  | **❓**  | ❌     |
+| IOS      | **❓**  | ❌     |
+| WASM     | **❓**  | ❌     |
 
 - ✅: Works as intended
 - ❌ Will not be Supported
