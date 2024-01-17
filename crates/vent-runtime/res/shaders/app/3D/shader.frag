@@ -1,5 +1,4 @@
 #version 450 core
-#define VULKAN 100
 
 layout (binding = 0) uniform sampler2D texture_diffuse;
 

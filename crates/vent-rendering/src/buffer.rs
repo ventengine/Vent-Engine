@@ -1,4 +1,7 @@
-use std::mem::align_of;
+use std::{
+    mem::{align_of},
+    os::raw::c_void,
+};
 
 use ash::vk;
 
@@ -19,6 +22,7 @@ impl VulkanBuffer {
         allocator: &MemoryAllocator,
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
+        flags: vk::MemoryPropertyFlags,
         name: Option<&str>,
     ) -> Self {
         let buffer_info = vk::BufferCreateInfo::builder()
@@ -28,11 +32,7 @@ impl VulkanBuffer {
 
         let buffer = unsafe { instance.device.create_buffer(&buffer_info, None) }.unwrap();
 
-        let buffer_memory = allocator.allocate_buffer(
-            &instance.device,
-            buffer,
-            vk::MemoryPropertyFlags::HOST_VISIBLE |vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        );
+        let buffer_memory = allocator.allocate_buffer(&instance.device, buffer, flags);
 
         #[cfg(debug_assertions)]
         if let Some(name) = name {
@@ -53,8 +53,8 @@ impl VulkanBuffer {
         allocator: &MemoryAllocator,
         image: vk::Image,
     ) -> vk::DeviceMemory {
-        let memory = allocator.allocate_image(device, image, vk::MemoryPropertyFlags::DEVICE_LOCAL);
-        memory
+        
+        allocator.allocate_image(device, image, vk::MemoryPropertyFlags::DEVICE_LOCAL)
     }
 
     /**
@@ -66,22 +66,34 @@ impl VulkanBuffer {
         size: vk::DeviceSize,
         usage: vk::BufferUsageFlags,
         data: &[T],
+        flags: vk::MemoryPropertyFlags,
         name: Option<&str>,
     ) -> Self {
-        let buffer = Self::new(instance, allocator, size, usage, name);
-        buffer.upload_data(&instance.device, data, size);
+        let buffer = Self::new(instance, allocator, size, usage, flags, name);
+        let memory = buffer.map(&instance.device, size);
+        buffer.upload_data(memory, data, size);
+        buffer.unmap(&instance.device);
         buffer
     }
 
-    pub fn upload_data<T: Copy>(&self, device: &ash::Device, data: &[T], size: vk::DeviceSize) {
+    pub fn upload_data<T: Copy>(&self, memory: *mut c_void, data: &[T], size: vk::DeviceSize) {
         unsafe {
-            let memory = device
-                .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
-                .unwrap();
             let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
             align.copy_from_slice(data);
-            device.unmap_memory(self.buffer_memory);
         }
+    }
+
+    pub fn map(&self, device: &ash::Device, size: vk::DeviceSize) -> *mut c_void {
+        unsafe {
+            
+            device
+                .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
+                .unwrap()
+        }
+    }
+
+    pub fn unmap(&self, device: &ash::Device) {
+        unsafe { device.unmap_memory(self.buffer_memory) };
     }
 
     pub fn destroy(&mut self, device: &ash::Device) {

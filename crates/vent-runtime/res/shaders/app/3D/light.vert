@@ -1,10 +1,8 @@
 #version 460 core
 
 layout(binding = 0) uniform Camera {
-    vec3 view_position;
     mat4 projection;
     mat4 view;
-    mat4 transformation;
 } camera;
 
 layout(binding = 1) uniform Light {

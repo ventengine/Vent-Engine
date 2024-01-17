@@ -60,6 +60,7 @@ impl VulkanImage {
             image_data_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             &image_data,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
             None,
         );
 
@@ -68,9 +69,11 @@ impl VulkanImage {
             .floor() as u32
             + 1;
 
+        let format = vk::Format::R8G8B8A8_UNORM;
+
         let image = Self::create_image(
             &instance.device,
-            vk::Format::R8G8B8A8_UNORM,
+            format,
             image_size,
             mip_level,
             vk::ImageUsageFlags::TRANSFER_DST
@@ -104,7 +107,7 @@ impl VulkanImage {
         let image_view = Self::create_image_view(
             image,
             &instance.device,
-            vk::Format::R8G8B8A8_UNORM,
+            format,
             mip_level,
             vk::ImageAspectFlags::COLOR,
         );

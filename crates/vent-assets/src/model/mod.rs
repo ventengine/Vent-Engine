@@ -4,7 +4,7 @@ use ash::vk;
 use vent_rendering::allocator::MemoryAllocator;
 use vent_rendering::buffer::VulkanBuffer;
 use vent_rendering::instance::VulkanInstance;
-use vent_rendering::Vertex3D;
+use vent_rendering::{begin_single_time_command, end_single_time_command, Vertex3D};
 use vent_sdk::utils::stopwatch::Stopwatch;
 
 use crate::{Material, Mesh3D, Model3D};
@@ -89,23 +89,79 @@ impl Mesh3D {
         material: Option<Material>,
         name: Option<&str>,
     ) -> Self {
-        let vertex_buf = VulkanBuffer::new_init(
+        let vertex_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+        let index_size = std::mem::size_of_val(indices) as vk::DeviceSize;
+
+        let vertex_buf = VulkanBuffer::new(
             instance,
             allocator,
-            std::mem::size_of_val(vertices) as vk::DeviceSize,
-            vk::BufferUsageFlags::VERTEX_BUFFER,
-            vertices,
+            vertex_size,
+            vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
             name,
         );
 
-        let index_buf = VulkanBuffer::new_init(
+        let index_buf = VulkanBuffer::new(
             instance,
             allocator,
-            std::mem::size_of_val(indices) as vk::DeviceSize,
-            vk::BufferUsageFlags::INDEX_BUFFER,
-            indices,
+            index_size,
+            vk::BufferUsageFlags::INDEX_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
             name,
         );
+
+        let mut staging_buf = VulkanBuffer::new(
+            instance,
+            allocator,
+            vertex_size + index_size,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            name,
+        );
+
+        let memory = staging_buf.map(&instance.device, vertex_size + index_size);
+
+        // copy vertex buffer
+        staging_buf.upload_data(memory, vertices, vertex_size);
+        // copy index buffer
+        staging_buf.upload_data(
+            memory.wrapping_add(vertex_size as usize),
+            indices,
+            index_size,
+        );
+
+        let command_buffer = begin_single_time_command(&instance.device, instance.command_pool);
+
+        unsafe {
+            let buffer_info = vk::BufferCopy::builder().size(vertex_size);
+
+            instance.device.cmd_copy_buffer(
+                command_buffer,
+                *staging_buf,
+                *vertex_buf,
+                &[*buffer_info],
+            );
+            let buffer_info = vk::BufferCopy::builder()
+                .size(index_size)
+                .src_offset(vertex_size);
+
+            instance.device.cmd_copy_buffer(
+                command_buffer,
+                *staging_buf,
+                *index_buf,
+                &[*buffer_info],
+            );
+        };
+        staging_buf.unmap(&instance.device);
+
+        end_single_time_command(
+            &instance.device,
+            instance.command_pool,
+            instance.graphics_queue,
+            command_buffer,
+        );
+
+        staging_buf.destroy(&instance.device);
 
         Self {
             vertex_buf,

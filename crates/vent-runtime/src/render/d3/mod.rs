@@ -47,7 +47,7 @@ impl Default for Camera3DData {
 
 pub struct Renderer3D {
     mesh_renderer: ModelRenderer3D,
-    // light_renderer: LightRenderer,
+    light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
@@ -121,6 +121,8 @@ impl Renderer for Renderer3D {
                             any_as_u8_slice(&MaterialUBO {
                                 base_color: Vec4::from_array(material.base_color),
                             }),
+                            vk::MemoryPropertyFlags::HOST_VISIBLE
+                                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
                             None,
                         );
                         let light_buffer = VulkanBuffer::new_init(
@@ -132,6 +134,8 @@ impl Renderer for Renderer3D {
                                 position: [2.0, 100.0, 2.0].into(),
                                 color: [1.0, 1.0, 1.0].into(),
                             }),
+                            vk::MemoryPropertyFlags::HOST_VISIBLE
+                                | vk::MemoryPropertyFlags::DEVICE_LOCAL,
                             None,
                         );
 
@@ -196,7 +200,7 @@ impl Renderer for Renderer3D {
 
         Self {
             mesh_renderer,
-          //  light_renderer,
+            light_renderer,
             tmp_light_mesh,
             // depth_view,
             // bind_group,
@@ -315,7 +319,7 @@ impl Renderer for Renderer3D {
     fn destroy(&mut self, instance: &VulkanInstance) {
         unsafe { instance.device.device_wait_idle().unwrap() };
         self.mesh_renderer.destroy_all(instance);
-    //    self.light_renderer.destroy(&instance.device);
+        self.light_renderer.destroy(&instance.device);
         self.material_ubos
             .drain(..)
             .for_each(|mut ubo| ubo.destroy(&instance.device));

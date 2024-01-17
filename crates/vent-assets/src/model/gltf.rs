@@ -8,7 +8,6 @@ use std::{
 
 use ash::vk;
 use gltf::{
-    json::mesh::{POINTS, TRIANGLES},
     mesh::Mode,
     texture::Sampler,
 };
