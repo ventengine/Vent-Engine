@@ -118,8 +118,8 @@ impl Camera3D {
     #[inline]
     #[must_use]
     fn direction(&self) -> Vec3 {
-        let (sin_pitch, cos_pitch) = self.rotation.y.sin_cos();
         let (sin_yaw, cos_yaw) = self.rotation.x.sin_cos();
+        let (sin_pitch, cos_pitch) = self.rotation.y.sin_cos();
 
         glam::vec3(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize()
     }

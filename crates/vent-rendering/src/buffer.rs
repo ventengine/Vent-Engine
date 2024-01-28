@@ -1,7 +1,4 @@
-use std::{
-    mem::{align_of},
-    os::raw::c_void,
-};
+use std::{mem::align_of, os::raw::c_void};
 
 use ash::vk;
 
@@ -53,7 +50,6 @@ impl VulkanBuffer {
         allocator: &MemoryAllocator,
         image: vk::Image,
     ) -> vk::DeviceMemory {
-        
         allocator.allocate_image(device, image, vk::MemoryPropertyFlags::DEVICE_LOCAL)
     }
 
@@ -85,7 +81,6 @@ impl VulkanBuffer {
 
     pub fn map(&self, device: &ash::Device, size: vk::DeviceSize) -> *mut c_void {
         unsafe {
-            
             device
                 .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
                 .unwrap()

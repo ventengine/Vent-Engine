@@ -5,7 +5,6 @@ use fs_extra::dir::CopyOptions;
 
 use std::{
     env::var,
-    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
     process::{Command, Output},
@@ -48,11 +47,12 @@ fn compile_shaders(dir: &Path) {
 fn compile_shader(file: &DirEntry) {
     if file.file_type().unwrap().is_file() {
         let path = file.path();
-        if path.extension() == Some(OsStr::new("spv"))
-            || path.extension() == Some(OsStr::new("wgsl"))
-        {
-            return;
+        if let Some(ext) = path.extension() {
+            if ext == "spv" || ext == "wgsl" {
+                return;
+            }
         }
+
         let name = path.file_name().unwrap().to_str().unwrap();
         let output_name = format!("{}.spv", &name);
         println!("Found file {:?}.\nCompiling...", path.as_os_str());
@@ -71,7 +71,7 @@ fn compile_shader(file: &DirEntry) {
 }
 
 fn get_shader_source_dir_path() -> PathBuf {
-    let path = get_root_path().join("res").join("shaders");
+    let path = get_root_path().join("res/shaders");
     println!("Shader source directory: {:?}", path.as_os_str());
     path
 }

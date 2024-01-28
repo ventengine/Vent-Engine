@@ -10,7 +10,7 @@ ash = { version= "0.37.3", default-features = false, features = ["linked", "debu
 
 image = "0.24.7"
 
-winit = "0.29.9"
+winit = "0.29"
 raw-window-handle = "0.6"
 log = "0.4"
 
