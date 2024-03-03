@@ -20,6 +20,9 @@
 ### 🏗 Current Status
 
 -- Vent-Engine is in development --
+![image](https://github.com/Snowiiii/Vent-Engine/assets/71594357/036619cd-a589-4506-aedb-9f861f518c53)
+**(03.03.2024)**
+
 
 We're using [GitHub Projects](https://github.com/Snowiiii/Vent-Engine/projects?query=is%3Aopen) for managing our tasks
 
