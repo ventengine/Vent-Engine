@@ -1,4 +1,5 @@
 use ash::vk;
+use gltf::material::AlphaMode;
 use vent_rendering::{buffer::VulkanBuffer, image::VulkanImage};
 
 pub mod model;
@@ -10,12 +11,19 @@ pub trait Asset {}
 /// A Full Model/Scene that can be Loaded from a 3D Model File
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
 pub struct Model3D {
-    pub meshes: Vec<Mesh3D>,
+    pub pipelines: Vec<ModelPipeline>,
 
     pub position: [f32; 3], // Default: 0.0, 0.0, 0.0
     pub rotation: [f32; 4], // Default: 0.0, 0.0, 0.0, 1.0
     pub scale: [f32; 3],    // Default: 1.0, 1.0, 1.0
 }
+
+/// Often we must create new Pipelines for Meshes
+pub struct ModelPipeline {
+    pub pipeline: vk::Pipeline,
+    pub mesh: Mesh3D, // In future we should put many meshes into an Vec and not create an pipeline for every pipeline of course
+}
+
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
 
 /// By using this simple mesh, you can easily define custom shapes or provide default objects for your application. It is particularly handy when you want to avoid loading external model files and instead directly embed the 3D data within your code.
@@ -35,4 +43,6 @@ pub struct Mesh3D {
 pub struct Material {
     pub diffuse_texture: VulkanImage,
     pub base_color: [f32; 4],
+    pub alpha_mode: AlphaMode,
+    pub alpha_cut: f32,
 }

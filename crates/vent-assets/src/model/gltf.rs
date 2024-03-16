@@ -1,17 +1,22 @@
 use std::{
+    ffi::CStr,
     fs::{self, File},
     io::BufReader,
     path::Path,
-    sync::{self},
-    thread,
+    sync, thread,
 };
 
-use ash::vk;
-use gltf::{mesh::Mode, texture::Sampler};
+use ash::{
+    util::read_spv,
+    vk::{self},
+};
+use gltf::{material::AlphaMode, mesh::Mode, texture::Sampler};
 use image::DynamicImage;
-use vent_rendering::{image::VulkanImage, instance::VulkanInstance, Vertex3D};
+use vent_rendering::{
+    image::VulkanImage, instance::VulkanInstance, MaterialPipelineInfo, Vertex, Vertex3D,
+};
 
-use crate::{Material, Model3D};
+use crate::{Material, Model3D, ModelPipeline};
 
 use super::{Mesh3D, ModelError};
 
@@ -21,10 +26,20 @@ struct MaterialData<'a> {
     image: DynamicImage,
     sampler: Option<Sampler<'a>>,
     base_color: [f32; 4],
+    // Pipeline
+    alpha_mode: AlphaMode,
+    alpha_cut: Option<f32>,
+    double_sided: bool,
 }
 
 impl GLTFLoader {
-    pub async fn load(instance: &VulkanInstance, path: &Path) -> Result<Model3D, ModelError> {
+    pub async fn load(
+        instance: &VulkanInstance,
+        vertex_shader: &str,
+        fragment_shader: &str,
+        pipeline_layout: vk::PipelineLayout,
+        path: &Path,
+    ) -> Result<Model3D, ModelError> {
         let gltf = gltf::Gltf::from_reader(fs::File::open(path).unwrap()).unwrap();
 
         let path = path.parent().unwrap_or_else(|| Path::new("./"));
@@ -32,19 +47,28 @@ impl GLTFLoader {
         let buffer_data = gltf::import_buffers(&gltf.document, Some(path), gltf.blob)
             .expect("Failed to Load glTF Buffers");
 
-        let mut meshes = Vec::new();
+        let mut pipelines = Vec::new();
         let mut matrix = None;
         gltf.document.scenes().for_each(|scene| {
             scene.nodes().for_each(|node| {
                 matrix = Some(node.transform().decomposed());
-                Self::load_node(instance, path, node, &buffer_data, &mut meshes);
+                Self::load_node(
+                    instance,
+                    vertex_shader,
+                    fragment_shader,
+                    pipeline_layout,
+                    path,
+                    node,
+                    &buffer_data,
+                    &mut pipelines,
+                );
             })
         });
 
-        let matrix = matrix.unwrap();
+        let matrix = matrix.unwrap_or_default();
 
         Ok(Model3D {
-            meshes,
+            pipelines,
             position: matrix.0,
             rotation: matrix.1,
             scale: matrix.2,
@@ -53,25 +77,50 @@ impl GLTFLoader {
 
     fn load_node(
         instance: &VulkanInstance,
+        vertex_shader: &str,
+        fragment_shader: &str,
+        pipeline_layout: vk::PipelineLayout,
         model_dir: &Path,
         node: gltf::Node<'_>,
         buffer_data: &[gltf::buffer::Data],
-        meshes: &mut Vec<Mesh3D>,
+        pipelines: &mut Vec<ModelPipeline>,
     ) {
         if let Some(mesh) = node.mesh() {
-            Self::load_mesh_multithreaded(instance, model_dir, mesh, buffer_data, meshes);
+            Self::load_mesh_multithreaded(
+                instance,
+                vertex_shader,
+                fragment_shader,
+                pipeline_layout,
+                model_dir,
+                mesh,
+                buffer_data,
+                pipelines,
+            );
         }
 
-        node.children()
-            .for_each(|child| Self::load_node(instance, model_dir, child, buffer_data, meshes))
+        node.children().for_each(|child| {
+            Self::load_node(
+                instance,
+                vertex_shader,
+                fragment_shader,
+                pipeline_layout,
+                model_dir,
+                child,
+                buffer_data,
+                pipelines,
+            )
+        })
     }
 
     fn load_mesh_multithreaded(
         instance: &VulkanInstance,
+        vertex_shader: &str,
+        fragment_shader: &str,
+        pipeline_layout: vk::PipelineLayout,
         model_dir: &Path,
         mesh: gltf::Mesh,
         buffer_data: &[gltf::buffer::Data],
-        meshes: &mut Vec<Mesh3D>,
+        pipelines: &mut Vec<ModelPipeline>,
     ) {
         let primitive_len = mesh.primitives().size_hint().0;
         let (tx, rx) = sync::mpsc::sync_channel(primitive_len); // Create bounded channels
@@ -80,29 +129,165 @@ impl GLTFLoader {
         thread::scope(|s| {
             for primitive in mesh.primitives() {
                 let tx = tx.clone();
+                let mode = primitive.mode();
 
                 s.spawn(move || {
                     let material_data =
                         Self::parse_material_data(model_dir, primitive.material(), buffer_data);
 
-                    let primitive = Self::load_primitive(buffer_data, primitive);
+                    let final_primitive = Self::load_primitive(buffer_data, primitive);
+                    let pipeline_info = MaterialPipelineInfo {
+                        mode: Self::conv_primitive_mode(mode),
+                        alpha_cut: material_data.alpha_cut,
+                        double_sided: material_data.double_sided,
+                    };
 
-                    tx.send((material_data, primitive)).unwrap();
+                    tx.send((material_data, final_primitive, pipeline_info))
+                        .unwrap();
                 });
             }
         });
+        //  This is very ugly i know, I originally had the idea to put this into vent_rendering::pipeline but then i had no good idea how to cache the vertex and fragment shader modules outside the for loop
+        let vertex_code = read_spv(
+            &mut File::open(vertex_shader.to_string() + ".spv")
+                .expect("Failed to open Vertex File"),
+        )
+        .unwrap();
+        let vertex_module_info = vk::ShaderModuleCreateInfo::builder().code(&vertex_code);
+        let fragment_code = read_spv(
+            &mut File::open(fragment_shader.to_string() + ".spv")
+                .expect("Failed to open Fragment File"),
+        )
+        .unwrap();
+        let fragment_module_info = vk::ShaderModuleCreateInfo::builder().code(&fragment_code);
+
+        let vertex_module = unsafe {
+            instance
+                .device
+                .create_shader_module(&vertex_module_info, None)
+        }
+        .unwrap();
+        let fragment_module = unsafe {
+            instance
+                .device
+                .create_shader_module(&fragment_module_info, None)
+        }
+        .unwrap();
+
+        let shader_entry_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"main\0") };
+        let shader_stage_create_info = [
+            vk::PipelineShaderStageCreateInfo {
+                module: vertex_module,
+                p_name: shader_entry_name.as_ptr(),
+                stage: vk::ShaderStageFlags::VERTEX,
+                ..Default::default()
+            },
+            vk::PipelineShaderStageCreateInfo {
+                module: fragment_module,
+                p_name: shader_entry_name.as_ptr(),
+                stage: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
+        ];
+        let surface_resolution = instance.surface_resolution;
+
+        let binding = [Vertex3D::binding_description()];
+        let attrib = Vertex3D::input_descriptions();
+        let vertex_input_state_info: vk::PipelineVertexInputStateCreateInfoBuilder<'_> =
+            vk::PipelineVertexInputStateCreateInfo::builder()
+                .vertex_attribute_descriptions(&attrib)
+                .vertex_binding_descriptions(&binding);
+
+        let viewports = [vk::Viewport {
+            x: 0.0,
+            y: 0.0,
+            width: surface_resolution.width as f32,
+            height: surface_resolution.height as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
+        }];
+        let scissors = [surface_resolution.into()];
+        let viewport_state_info = vk::PipelineViewportStateCreateInfo::builder()
+            .scissors(&scissors)
+            .viewports(&viewports);
         for _ in 0..primitive_len {
-            let (material_data, primitive) = rx.recv().unwrap();
+            let (material_data, final_primitive, pipeline_info) = rx.recv().unwrap();
             let material = Self::load_material(instance, material_data);
             let loaded_mesh = Mesh3D::new(
                 instance,
                 &instance.memory_allocator,
-                &primitive.0,
-                &primitive.1,
+                &final_primitive.0,
+                &final_primitive.1,
                 Some(material),
                 mesh.name(),
             );
-            meshes.push(loaded_mesh);
+            let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
+                topology: pipeline_info.mode,
+                ..Default::default()
+            };
+            let rasterization_info = vk::PipelineRasterizationStateCreateInfo {
+                front_face: vk::FrontFace::COUNTER_CLOCKWISE,
+                line_width: 1.0,
+                polygon_mode: vk::PolygonMode::FILL,
+                cull_mode: if pipeline_info.double_sided {
+                    vk::CullModeFlags::NONE
+                } else {
+                    vk::CullModeFlags::BACK
+                },
+                ..Default::default()
+            };
+            let multisample_state_info = vk::PipelineMultisampleStateCreateInfo {
+                rasterization_samples: vk::SampleCountFlags::TYPE_1,
+                ..Default::default()
+            };
+
+            let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::builder()
+                .depth_test_enable(true)
+                .depth_write_enable(true)
+                .depth_compare_op(vk::CompareOp::LESS)
+                .max_depth_bounds(1.0);
+            let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
+                color_write_mask: vk::ColorComponentFlags::RGBA,
+                ..Default::default()
+            }];
+            let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
+                .logic_op(vk::LogicOp::COPY)
+                .attachments(&color_blend_attachment_states);
+
+            let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]; // TODO
+            let dynamic_state_info =
+                vk::PipelineDynamicStateCreateInfo::builder().dynamic_states(&dynamic_state);
+
+            let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
+                .stages(&shader_stage_create_info)
+                .vertex_input_state(&vertex_input_state_info)
+                .input_assembly_state(&vertex_input_assembly_state_info)
+                .viewport_state(&viewport_state_info)
+                .rasterization_state(&rasterization_info)
+                .multisample_state(&multisample_state_info)
+                .depth_stencil_state(&depth_state_info)
+                .color_blend_state(&color_blend_state)
+                .dynamic_state(&dynamic_state_info)
+                .layout(pipeline_layout)
+                .render_pass(instance.render_pass);
+
+            let graphics_pipelines = unsafe {
+                instance.device.create_graphics_pipelines(
+                    vk::PipelineCache::null(),
+                    &[*graphic_pipeline_info],
+                    None,
+                )
+            }
+            .expect("Unable to create graphics pipeline");
+
+            pipelines.push(ModelPipeline {
+                pipeline: graphics_pipelines[0],
+                mesh: loaded_mesh,
+            });
+        }
+        unsafe {
+            instance.device.destroy_shader_module(vertex_module, None);
+            instance.device.destroy_shader_module(fragment_module, None);
         }
     }
 
@@ -158,6 +343,9 @@ impl GLTFLoader {
         };
         MaterialData {
             image: diffuse_texture.0,
+            double_sided: material.double_sided(),
+            alpha_mode: material.alpha_mode(),
+            alpha_cut: material.alpha_cutoff(),
             sampler: diffuse_texture.1,
             base_color: pbr.base_color_factor(),
         }
@@ -179,6 +367,8 @@ impl GLTFLoader {
 
         Material {
             diffuse_texture,
+            alpha_mode: data.alpha_mode,
+            alpha_cut: data.alpha_cut.unwrap_or(0.5),
             base_color: data.base_color,
         }
     }
@@ -244,7 +434,6 @@ impl GLTFLoader {
     }
 
     #[must_use]
-    #[allow(dead_code)]
     const fn conv_primitive_mode(mode: Mode) -> vk::PrimitiveTopology {
         match mode {
             Mode::Points => vk::PrimitiveTopology::POINT_LIST,

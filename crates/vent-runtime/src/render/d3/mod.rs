@@ -6,7 +6,7 @@ use vent_assets::Mesh3D;
 
 use vent_ecs::world::World;
 use vent_rendering::{
-    any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex, Vertex3D,
+    any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex3D,
 };
 use winit::dpi::PhysicalSize;
 
@@ -24,6 +24,8 @@ pub mod light_renderer;
 #[repr(C)]
 pub struct MaterialUBO {
     pub base_color: Vec4,
+    pub alpha_mode: u32,
+    pub alpha_cutoff: f32,
 }
 
 #[repr(C)] // This fixed everthing... #[repr(C)]
@@ -50,7 +52,6 @@ pub struct Renderer3D {
     light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
     pipeline_layout: vk::PipelineLayout,
-    pipeline: vk::Pipeline,
 
     material_ubos: Vec<VulkanBuffer>,
     light_ubos: Vec<VulkanBuffer>,
@@ -62,29 +63,11 @@ impl Renderer for Renderer3D {
         Self: Sized,
     {
         let _camera: &Camera3D = camera.downcast_ref().unwrap();
-        let vertex_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/shader.vert"
-        );
-        let fragment_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/shader.frag"
-        );
 
         let push_constant_range = vk::PushConstantRange::builder()
             .size(size_of::<Camera3DData>() as u32)
             .stage_flags(vk::ShaderStageFlags::VERTEX);
         let pipeline_layout = instance.create_pipeline_layout(&[*push_constant_range]);
-
-        let pipeline = vent_rendering::pipeline::create_pipeline(
-            instance,
-            vertex_shader.to_owned(),
-            fragment_shader.to_owned(),
-            &[Vertex3D::binding_description()],
-            pipeline_layout,
-            &Vertex3D::input_descriptions(),
-            instance.surface_resolution,
-        );
 
         let mut mesh_renderer = ModelRenderer3D::default();
 
@@ -99,9 +82,28 @@ impl Renderer for Renderer3D {
         let mut material_ubos = vec![];
         let mut light_ubos = vec![];
 
+        let vertex_shader = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/res/shaders/app/3D/shader.vert"
+        );
+        let fragment_shader = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/res/shaders/app/3D/shader.frag"
+        );
+
         pollster::block_on(async {
-            let mut mesh = Entity3D::new(vent_assets::Model3D::load(instance, model).await);
-            for mesh in mesh.model.meshes.iter_mut() {
+            let mut mesh = Entity3D::new(
+                vent_assets::Model3D::load(
+                    instance,
+                    vertex_shader,
+                    fragment_shader,
+                    pipeline_layout,
+                    model,
+                )
+                .await,
+            );
+            for pipeline in mesh.model.pipelines.iter_mut() {
+                let mesh = &pipeline.mesh;
                 if let Some(material) = &mesh.material {
                     let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
                         &instance.device,
@@ -120,6 +122,8 @@ impl Renderer for Renderer3D {
                             vk::BufferUsageFlags::UNIFORM_BUFFER,
                             any_as_u8_slice(&MaterialUBO {
                                 base_color: Vec4::from_array(material.base_color),
+                                alpha_mode: material.alpha_mode as u32,
+                                alpha_cutoff: material.alpha_cut,
                             }),
                             vk::MemoryPropertyFlags::HOST_VISIBLE
                                 | vk::MemoryPropertyFlags::DEVICE_LOCAL,
@@ -188,7 +192,7 @@ impl Renderer for Renderer3D {
                         material_ubos.push(matieral_buffer);
                         light_ubos.push(light_buffer);
                     }
-                    mesh.set_descriptor_set(descriptor_sets);
+                    pipeline.mesh.set_descriptor_set(descriptor_sets);
                 }
             }
 
@@ -206,7 +210,6 @@ impl Renderer for Renderer3D {
             // bind_group,
             // uniform_buf,
             pipeline_layout,
-            pipeline,
             material_ubos,
             light_ubos,
             // pipeline_wire,
@@ -291,12 +294,6 @@ impl Renderer for Renderer3D {
                 .cmd_begin_render_pass2(command_buffer, &info, &subpass_info);
             //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
 
-            instance.device.cmd_bind_pipeline(
-                command_buffer,
-                vk::PipelineBindPoint::GRAPHICS,
-                self.pipeline,
-            );
-
             self.mesh_renderer.record_buffer(
                 instance,
                 command_buffer,
@@ -333,7 +330,6 @@ impl Renderer for Renderer3D {
             instance
                 .device
                 .destroy_pipeline_layout(self.pipeline_layout, None);
-            instance.device.destroy_pipeline(self.pipeline, None);
         }
     }
 }

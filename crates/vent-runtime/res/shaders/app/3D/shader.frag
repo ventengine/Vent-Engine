@@ -1,9 +1,11 @@
-#version 450 core
+#version 460 core
 
 layout (binding = 0) uniform sampler2D texture_diffuse;
 
 layout (binding = 1) uniform Material {
     vec4 base_color;
+    int alpha_mode;
+    float alpha_cutoff;
 } material;
 
 
@@ -24,8 +26,18 @@ layout (location = 0) out vec4 fragColor;
 // We don't need (or want) much ambient light, so 0.1 is fine
 const float ambient_strength = 0.1;
 
+
+
 void main() {
     vec4 texture = texture(texture_diffuse, tex_coord) * material.base_color;
+
+    if (material.alpha_mode == 2) { // ALPHA MASK
+		if (texture.a < material.alpha_cutoff) {
+			discard;
+		}
+	} else if (material.alpha_mode == 3) { // BLEND
+        // todo
+    }
 
     // Calculate the ambient color
     // vec3 ambient_color = light.color * ambient_strength;

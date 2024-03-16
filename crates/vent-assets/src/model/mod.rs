@@ -24,20 +24,42 @@ pub enum ModelError {
 
 impl Model3D {
     #[inline]
-    pub async fn load<P: AsRef<Path>>(instance: &VulkanInstance, path: P) -> Self {
+    pub async fn load<P: AsRef<Path>>(
+        instance: &VulkanInstance,
+        vertex_shader: &str,
+        fragment_shader: &str,
+        pipeline_layout: vk::PipelineLayout,
+        path: P,
+    ) -> Self {
         let sw = Stopwatch::new_and_start();
         log::info!("Loading new Model...");
-        let model = load_model_from_path(instance, path.as_ref())
-            .await
-            .expect("Failed to Load 3D Model");
+        let model = load_model_from_path(
+            instance,
+            vertex_shader,
+            fragment_shader,
+            pipeline_layout,
+            path.as_ref(),
+        )
+        .await
+        .expect("Failed to Load 3D Model");
         log::info!(
             "Model {} took {}ms to Load, {} Meshes",
             path.as_ref().to_str().unwrap(),
             sw.elapsed_ms(),
-            model.meshes.len(),
+            model.pipelines.len(), // TODO
         );
         model
     }
+
+    /// So your ideal render loop would be
+    /// For each pipeline
+
+    /// For each pipeline
+    ///  Set pipeline
+    ///   For each material that uses pipeline
+    ///      Set material bind group
+    ///       For each primitive that uses material with pipeline
+    ///        Draw primitive
 
     pub fn draw(
         &self,
@@ -46,7 +68,15 @@ impl Model3D {
         command_buffer: vk::CommandBuffer,
         buffer_index: usize,
     ) {
-        self.meshes.iter().for_each(|mesh| {
+        self.pipelines.iter().for_each(|pipeline| {
+            unsafe {
+                device.cmd_bind_pipeline(
+                    command_buffer,
+                    vk::PipelineBindPoint::GRAPHICS,
+                    pipeline.pipeline,
+                )
+            }
+            let mesh = &pipeline.mesh;
             // rpass.push_debug_group("Bind Mesh");
             mesh.bind(device, command_buffer, buffer_index, pipeline_layout, true);
             // rpass.pop_debug_group();
@@ -56,14 +86,20 @@ impl Model3D {
     }
 
     pub fn destroy(&mut self, instance: &VulkanInstance) {
-        self.meshes
-            .drain(..)
-            .for_each(|mut mesh| mesh.destroy(instance.descriptor_pool, &instance.device));
+        self.pipelines.drain(..).for_each(|mut pipline| {
+            unsafe { instance.device.destroy_pipeline(pipline.pipeline, None) };
+            pipline
+                .mesh
+                .destroy(instance.descriptor_pool, &instance.device)
+        });
     }
 }
 
 async fn load_model_from_path(
     instance: &VulkanInstance,
+    vertex_shader: &str,
+    fragment_shader: &str,
+    pipline_layout: vk::PipelineLayout,
     path: &Path,
 ) -> Result<Model3D, ModelError> {
     if !path.exists() {
@@ -75,7 +111,14 @@ async fn load_model_from_path(
     // Very Pretty, I know
     match extension {
         "obj" => Ok(OBJLoader::load(instance, path).await?),
-        "gltf" => Ok(GLTFLoader::load(instance, path).await?),
+        "gltf" => Ok(GLTFLoader::load(
+            instance,
+            vertex_shader,
+            fragment_shader,
+            pipline_layout,
+            path,
+        )
+        .await?),
         _ => Err(ModelError::UnsupportedFormat),
     }
 }

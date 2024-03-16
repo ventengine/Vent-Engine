@@ -46,12 +46,13 @@ impl OBJLoader {
             ));
         }
 
-        Ok(Model3D {
-            meshes,
-            position: [0.0, 0.0, 0.0],
-            rotation: [0.0, 0.0, 0.0, 1.0],
-            scale: [1.0, 1.0, 1.0],
-        })
+        // Ok(Model3D {
+        //     meshes,
+        //     position: [0.0, 0.0, 0.0],
+        //     rotation: [0.0, 0.0, 0.0, 1.0],
+        //     scale: [1.0, 1.0, 1.0],
+        // })
+        Err(ModelError::UnsupportedFormat)
     }
 
     fn load_material(
@@ -87,6 +88,8 @@ impl OBJLoader {
 
         Material {
             diffuse_texture,
+            alpha_mode: gltf::material::AlphaMode::Opaque,
+            alpha_cut: 0.0,
             base_color,
         }
     }

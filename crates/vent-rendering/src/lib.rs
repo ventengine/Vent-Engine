@@ -10,6 +10,8 @@ pub mod instance;
 pub mod pipeline;
 mod surface;
 
+const DEFAULT_FENCE_TIMEOUT: u64 = 100000000000;
+
 // Simple offset_of macro akin to C++ offsetof
 #[macro_export]
 macro_rules! offset_of {
@@ -19,6 +21,12 @@ macro_rules! offset_of {
             std::ptr::addr_of!(b.$field) as isize - std::ptr::addr_of!(b) as isize
         }
     }};
+}
+
+pub struct MaterialPipelineInfo {
+    pub mode: vk::PrimitiveTopology,
+    pub alpha_cut: Option<f32>,
+    pub double_sided: bool,
 }
 
 pub trait Vertex {
@@ -123,7 +131,7 @@ pub fn end_single_time_command(
             .queue_submit2(submit_queue, &[*submit_info], fence)
             .expect("Failed to Queue Submit!");
         device
-            .wait_for_fences(&[fence], true, 100000000000)
+            .wait_for_fences(&[fence], true, DEFAULT_FENCE_TIMEOUT)
             .expect("Failed to wait for Fence");
 
         device.destroy_fence(fence, None);

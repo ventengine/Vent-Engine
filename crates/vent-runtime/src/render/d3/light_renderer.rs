@@ -13,10 +13,6 @@ pub struct LightUBO {
 pub struct LightRenderer {
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
-    // light_buffer: wgpu::Buffer,
-    // pub light_bind_group_layout: wgpu::BindGroupLayout,
-    // pub light_bind_group: wgpu::BindGroup,
-    // light_render_pipeline: wgpu::RenderPipeline,
 }
 
 impl LightRenderer {
@@ -26,7 +22,7 @@ impl LightRenderer {
 
         let pipeline_layout = instance.create_pipeline_layout(&[]);
 
-        let pipeline = vent_rendering::pipeline::create_pipeline(
+        let pipeline = vent_rendering::pipeline::create_simple_pipeline(
             instance,
             vertex_shader.to_owned(),
             fragment_shader.to_owned(),
@@ -39,10 +35,6 @@ impl LightRenderer {
         Self {
             pipeline_layout,
             pipeline,
-            // light_buffer,
-            // light_bind_group_layout,
-            // light_bind_group,
-            // light_render_pipeline,
         }
     }
 
@@ -51,7 +43,6 @@ impl LightRenderer {
         instance: &VulkanInstance,
         command_buffer: vk::CommandBuffer,
         buffer_index: usize,
-        // camera_bind_group: &'rp wgpu::BindGroup,
         mesh: &Mesh3D,
     ) {
         unsafe {
