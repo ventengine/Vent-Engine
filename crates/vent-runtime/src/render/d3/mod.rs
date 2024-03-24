@@ -1,13 +1,11 @@
-use std::mem::size_of;
+use std::{mem::size_of};
 
 use ash::vk;
 use glam::{Mat4, Vec3, Vec4};
 use vent_assets::Mesh3D;
 
 use vent_ecs::world::World;
-use vent_rendering::{
-    any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex3D,
-};
+use vent_rendering::{any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex3D};
 use winit::dpi::PhysicalSize;
 
 use self::light_renderer::{LightRenderer, LightUBO};
@@ -84,11 +82,11 @@ impl Renderer for Renderer3D {
 
         let vertex_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/shader.vert"
+            "/res/shaders/app/3D/shader.vert.spv"
         );
         let fragment_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/shader.frag"
+            "/res/shaders/app/3D/shader.frag.spv"
         );
 
         pollster::block_on(async {
@@ -103,8 +101,7 @@ impl Renderer for Renderer3D {
                 .await,
             );
             for pipeline in mesh.model.pipelines.iter_mut() {
-                let mesh = &pipeline.mesh;
-                if let Some(material) = &mesh.material {
+                for material in pipeline.materials.iter_mut() {
                     let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
                         &instance.device,
                         instance.descriptor_pool,
@@ -113,6 +110,7 @@ impl Renderer for Renderer3D {
                     );
 
                     for &descriptor_set in descriptor_sets.iter() {
+                        let material = &material.material;
                         let diffuse_texture = &material.diffuse_texture;
 
                         let matieral_buffer = VulkanBuffer::new_init(
@@ -192,7 +190,7 @@ impl Renderer for Renderer3D {
                         material_ubos.push(matieral_buffer);
                         light_ubos.push(light_buffer);
                     }
-                    pipeline.mesh.set_descriptor_set(descriptor_sets);
+                    material.descriptor_set = Some(descriptor_sets);
                 }
             }
 
@@ -324,8 +322,7 @@ impl Renderer for Renderer3D {
             .drain(..)
             .for_each(|mut ubo| ubo.destroy(&instance.device));
 
-        self.tmp_light_mesh
-            .destroy(instance.descriptor_pool, &instance.device);
+        self.tmp_light_mesh.destroy(&instance.device);
         unsafe {
             instance
                 .device
@@ -393,7 +390,6 @@ fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
         &instance.memory_allocator,
         &vertices,
         &indices,
-        None,
         None,
     )
 }

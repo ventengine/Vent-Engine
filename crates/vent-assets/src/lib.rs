@@ -18,10 +18,18 @@ pub struct Model3D {
     pub scale: [f32; 3],    // Default: 1.0, 1.0, 1.0
 }
 
-/// Often we must create new Pipelines for Meshes
+/// Often we must create new Pipelines for Materials/Meshes
 pub struct ModelPipeline {
     pub pipeline: vk::Pipeline,
-    pub mesh: Mesh3D, // In future we should put many meshes into an Vec and not create an pipeline for every pipeline of course
+    pub materials: Vec<ModelMaterial>,
+}
+
+pub struct ModelMaterial {
+    pub material: Material,
+    // So every App is Specfic and you will need to create your own DescriptorSet's out of this
+    // We only binding them
+    pub descriptor_set: Option<Vec<vk::DescriptorSet>>,
+    pub meshes: Vec<Mesh3D>,
 }
 
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
@@ -35,14 +43,12 @@ pub struct Mesh3D {
     vertex_buf: VulkanBuffer,
     index_buf: VulkanBuffer,
     index_count: u32,
-    // So every App is Specfic and you will need to create your own DescriptorSet's out of this
-    pub material: Option<Material>,
-    pub descriptor_set: Option<Vec<vk::DescriptorSet>>,
 }
 
 pub struct Material {
     pub diffuse_texture: VulkanImage,
     pub base_color: [f32; 4],
     pub alpha_mode: AlphaMode,
+    pub double_sided: bool,
     pub alpha_cut: f32,
 }

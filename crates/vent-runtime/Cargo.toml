@@ -17,7 +17,7 @@ winit = "0.29"
 pollster = "0.3.0"
 log = "0.4"
 
-glam = "0.25"
+glam = "0.26"
 downcast-rs = "1.2.0"
 
 # egui

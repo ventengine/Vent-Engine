@@ -1,4 +1,4 @@
-use std::{ffi::CStr, fs::File};
+use std::{ffi::CStr, fs::File, path::Path};
 
 use ash::{util::read_spv, vk};
 
@@ -14,20 +14,22 @@ use crate::{instance::VulkanInstance, MaterialPipelineInfo};
 ///
 pub fn create_simple_pipeline(
     instance: &VulkanInstance,
-    vertex_file: String,
-    fragment_file: String,
+    vertex_file: &Path,
+    fragment_file: &Path,
     binding_desc: &[vk::VertexInputBindingDescription],
     pipeline_layout: vk::PipelineLayout,
     attrib_desc: &[vk::VertexInputAttributeDescription],
     surface_resolution: vk::Extent2D,
 ) -> vk::Pipeline {
-    let vertex_code =
-        read_spv(&mut File::open(vertex_file + ".spv").expect("Failed to open Vertex File"))
-            .unwrap();
+    let vertex_code = read_spv(
+        &mut File::open(vertex_file.with_extension("spv")).expect("Failed to open Vertex File"),
+    )
+    .unwrap();
     let vertex_module_info = vk::ShaderModuleCreateInfo::builder().code(&vertex_code);
-    let fragment_code =
-        read_spv(&mut File::open(fragment_file + ".spv").expect("Failed to open Fragment File"))
-            .unwrap();
+    let fragment_code = read_spv(
+        &mut File::open(fragment_file.with_extension("spv")).expect("Failed to open Fragment File"),
+    )
+    .unwrap();
     let fragment_module_info = vk::ShaderModuleCreateInfo::builder().code(&fragment_code);
 
     let vertex_module = unsafe {

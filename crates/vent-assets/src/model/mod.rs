@@ -26,8 +26,8 @@ impl Model3D {
     #[inline]
     pub async fn load<P: AsRef<Path>>(
         instance: &VulkanInstance,
-        vertex_shader: &str,
-        fragment_shader: &str,
+        vertex_shader: P,
+        fragment_shader: P,
         pipeline_layout: vk::PipelineLayout,
         path: P,
     ) -> Self {
@@ -35,15 +35,15 @@ impl Model3D {
         log::info!("Loading new Model...");
         let model = load_model_from_path(
             instance,
-            vertex_shader,
-            fragment_shader,
+            vertex_shader.as_ref(),
+            fragment_shader.as_ref(),
             pipeline_layout,
             path.as_ref(),
         )
         .await
         .expect("Failed to Load 3D Model");
         log::info!(
-            "Model {} took {}ms to Load, {} Meshes",
+            "Model {} took {}ms to Load, {} Pipelines",
             path.as_ref().to_str().unwrap(),
             sw.elapsed_ms(),
             model.pipelines.len(), // TODO
@@ -52,7 +52,6 @@ impl Model3D {
     }
 
     /// So your ideal render loop would be
-    /// For each pipeline
 
     /// For each pipeline
     ///  Set pipeline
@@ -60,13 +59,13 @@ impl Model3D {
     ///      Set material bind group
     ///       For each primitive that uses material with pipeline
     ///        Draw primitive
-
     pub fn draw(
         &self,
         device: &ash::Device,
         pipeline_layout: vk::PipelineLayout,
         command_buffer: vk::CommandBuffer,
         buffer_index: usize,
+        with_descriptor_set: bool,
     ) {
         self.pipelines.iter().for_each(|pipeline| {
             unsafe {
@@ -76,29 +75,52 @@ impl Model3D {
                     pipeline.pipeline,
                 )
             }
-            let mesh = &pipeline.mesh;
-            // rpass.push_debug_group("Bind Mesh");
-            mesh.bind(device, command_buffer, buffer_index, pipeline_layout, true);
-            // rpass.pop_debug_group();
-            // rpass.insert_debug_marker("Draw!");
-            mesh.draw(device, command_buffer);
+            pipeline.materials.iter().for_each(|material| {
+                if with_descriptor_set {
+                    if let Some(ds) = &material.descriptor_set {
+                        unsafe {
+                            device.cmd_bind_descriptor_sets(
+                                command_buffer,
+                                vk::PipelineBindPoint::GRAPHICS,
+                                pipeline_layout,
+                                0,
+                                &ds[buffer_index..=buffer_index],
+                                &[],
+                            )
+                        }
+                    }
+                }
+                material.meshes.iter().for_each(|mesh| {
+                    // rpass.push_debug_group("Bind Mesh");
+                    mesh.bind(device, command_buffer);
+                    // rpass.pop_debug_group();
+                    // rpass.insert_debug_marker("Draw!");
+                    mesh.draw(device, command_buffer);
+                });
+            });
         })
     }
 
     pub fn destroy(&mut self, instance: &VulkanInstance) {
         self.pipelines.drain(..).for_each(|mut pipline| {
             unsafe { instance.device.destroy_pipeline(pipline.pipeline, None) };
-            pipline
-                .mesh
-                .destroy(instance.descriptor_pool, &instance.device)
+            pipline.materials.drain(..).for_each(|mut model_material| {
+                model_material
+                    .material
+                    .diffuse_texture
+                    .destroy(&instance.device);
+                model_material.meshes.drain(..).for_each(|mut mesh| {
+                    mesh.destroy(&instance.device);
+                });
+            });
         });
     }
 }
 
 async fn load_model_from_path(
     instance: &VulkanInstance,
-    vertex_shader: &str,
-    fragment_shader: &str,
+    vertex_shader: &Path,
+    fragment_shader: &Path,
     pipline_layout: vk::PipelineLayout,
     path: &Path,
 ) -> Result<Model3D, ModelError> {
@@ -129,7 +151,6 @@ impl Mesh3D {
         allocator: &MemoryAllocator,
         vertices: &[Vertex3D],
         indices: &[u32],
-        material: Option<Material>,
         name: Option<&str>,
     ) -> Self {
         let vertex_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
@@ -210,38 +231,13 @@ impl Mesh3D {
             vertex_buf,
             index_buf,
             index_count: indices.len() as u32,
-            material,
-            descriptor_set: None,
         }
     }
 
-    pub fn set_descriptor_set(&mut self, descriptor_set: Vec<vk::DescriptorSet>) {
-        self.descriptor_set = Some(descriptor_set);
-    }
-
-    pub fn bind(
-        &self,
-        device: &ash::Device,
-        command_buffer: vk::CommandBuffer,
-        buffer_index: usize,
-        pipeline_layout: vk::PipelineLayout,
-        with_descriptor_set: bool,
-    ) {
+    pub fn bind(&self, device: &ash::Device, command_buffer: vk::CommandBuffer) {
         unsafe {
             device.cmd_bind_vertex_buffers(command_buffer, 0, &[*self.vertex_buf], &[0]);
             device.cmd_bind_index_buffer(command_buffer, *self.index_buf, 0, vk::IndexType::UINT32);
-            if with_descriptor_set {
-                if let Some(ds) = &self.descriptor_set {
-                    device.cmd_bind_descriptor_sets(
-                        command_buffer,
-                        vk::PipelineBindPoint::GRAPHICS,
-                        pipeline_layout,
-                        0,
-                        &ds[buffer_index..=buffer_index],
-                        &[],
-                    )
-                }
-            }
         }
     }
 
@@ -249,7 +245,7 @@ impl Mesh3D {
         unsafe { device.cmd_draw_indexed(command_buffer, self.index_count, 1, 0, 0, 0) };
     }
 
-    pub fn destroy(&mut self, _descriptor_pool: vk::DescriptorPool, device: &ash::Device) {
+    pub fn destroy(&mut self, device: &ash::Device) {
         self.vertex_buf.destroy(device);
         self.index_buf.destroy(device);
         // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
@@ -260,8 +256,5 @@ impl Mesh3D {
         //             .expect("Failed to free Model descriptor sets")
         //     };
         // }
-        if let Some(material) = &mut self.material {
-            material.diffuse_texture.destroy(device);
-        }
     }
 }

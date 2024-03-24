@@ -3,7 +3,6 @@ use std::{
     fs::{self, File},
     io::BufReader,
     path::Path,
-    sync, thread,
 };
 
 use ash::{
@@ -35,8 +34,8 @@ struct MaterialData<'a> {
 impl GLTFLoader {
     pub async fn load(
         instance: &VulkanInstance,
-        vertex_shader: &str,
-        fragment_shader: &str,
+        vertex_shader: &Path,
+        fragment_shader: &Path,
         pipeline_layout: vk::PipelineLayout,
         path: &Path,
     ) -> Result<Model3D, ModelError> {
@@ -49,8 +48,8 @@ impl GLTFLoader {
 
         let mut pipelines = Vec::new();
         let mut matrix = None;
-        gltf.document.scenes().for_each(|scene| {
-            scene.nodes().for_each(|node| {
+        for scene in gltf.document.scenes() {
+            for node in scene.nodes() {
                 matrix = Some(node.transform().decomposed());
                 Self::load_node(
                     instance,
@@ -60,10 +59,11 @@ impl GLTFLoader {
                     path,
                     node,
                     &buffer_data,
+                    &gltf.document,
                     &mut pipelines,
                 );
-            })
-        });
+            }
+        }
 
         let matrix = matrix.unwrap_or_default();
 
@@ -77,27 +77,28 @@ impl GLTFLoader {
 
     fn load_node(
         instance: &VulkanInstance,
-        vertex_shader: &str,
-        fragment_shader: &str,
+        vertex_shader: &Path,
+        fragment_shader: &Path,
         pipeline_layout: vk::PipelineLayout,
         model_dir: &Path,
         node: gltf::Node<'_>,
         buffer_data: &[gltf::buffer::Data],
+        document: &gltf::Document,
         pipelines: &mut Vec<ModelPipeline>,
     ) {
         if let Some(mesh) = node.mesh() {
             Self::load_mesh_multithreaded(
                 instance,
+                model_dir,
                 vertex_shader,
                 fragment_shader,
                 pipeline_layout,
-                model_dir,
                 mesh,
                 buffer_data,
+                document,
                 pipelines,
             );
         }
-
         node.children().for_each(|child| {
             Self::load_node(
                 instance,
@@ -107,58 +108,32 @@ impl GLTFLoader {
                 model_dir,
                 child,
                 buffer_data,
+                document,
                 pipelines,
             )
-        })
+        });
     }
 
     fn load_mesh_multithreaded(
         instance: &VulkanInstance,
-        vertex_shader: &str,
-        fragment_shader: &str,
-        pipeline_layout: vk::PipelineLayout,
         model_dir: &Path,
+        vertex_shader: &Path,
+        fragment_shader: &Path,
+        pipeline_layout: vk::PipelineLayout,
         mesh: gltf::Mesh,
         buffer_data: &[gltf::buffer::Data],
+        document: &gltf::Document,
         pipelines: &mut Vec<ModelPipeline>,
     ) {
-        let primitive_len = mesh.primitives().size_hint().0;
-        let (tx, rx) = sync::mpsc::sync_channel(primitive_len); // Create bounded channels
+        let materials = document.materials();
 
-        // Spawn threads to load mesh
-        thread::scope(|s| {
-            for primitive in mesh.primitives() {
-                let tx = tx.clone();
-                let mode = primitive.mode();
-
-                s.spawn(move || {
-                    let material_data =
-                        Self::parse_material_data(model_dir, primitive.material(), buffer_data);
-
-                    let final_primitive = Self::load_primitive(buffer_data, primitive);
-                    let pipeline_info = MaterialPipelineInfo {
-                        mode: Self::conv_primitive_mode(mode),
-                        alpha_cut: material_data.alpha_cut,
-                        double_sided: material_data.double_sided,
-                    };
-
-                    tx.send((material_data, final_primitive, pipeline_info))
-                        .unwrap();
-                });
-            }
-        });
         //  This is very ugly i know, I originally had the idea to put this into vent_rendering::pipeline but then i had no good idea how to cache the vertex and fragment shader modules outside the for loop
-        let vertex_code = read_spv(
-            &mut File::open(vertex_shader.to_string() + ".spv")
-                .expect("Failed to open Vertex File"),
-        )
-        .unwrap();
+        let vertex_code =
+            read_spv(&mut File::open(vertex_shader).expect("Failed to open Vertex File")).unwrap();
         let vertex_module_info = vk::ShaderModuleCreateInfo::builder().code(&vertex_code);
-        let fragment_code = read_spv(
-            &mut File::open(fragment_shader.to_string() + ".spv")
-                .expect("Failed to open Fragment File"),
-        )
-        .unwrap();
+        let fragment_code =
+            read_spv(&mut File::open(fragment_shader).expect("Failed to open Fragment File"))
+                .unwrap();
         let fragment_module_info = vk::ShaderModuleCreateInfo::builder().code(&fragment_code);
 
         let vertex_module = unsafe {
@@ -210,17 +185,43 @@ impl GLTFLoader {
         let viewport_state_info = vk::PipelineViewportStateCreateInfo::builder()
             .scissors(&scissors)
             .viewports(&viewports);
-        for _ in 0..primitive_len {
-            let (material_data, final_primitive, pipeline_info) = rx.recv().unwrap();
+
+        // So First we load all Materials our glTF file has
+        let mut loaded_materials = Vec::with_capacity(materials.len());
+        materials.for_each(|material| {
+            let material_data = Self::parse_material_data(model_dir, material, buffer_data);
             let material = Self::load_material(instance, material_data);
-            let loaded_mesh = Mesh3D::new(
-                instance,
-                &instance.memory_allocator,
-                &final_primitive.0,
-                &final_primitive.1,
-                Some(material),
-                mesh.name(),
-            );
+            loaded_materials.push(material);
+        });
+
+        for (i, material) in loaded_materials.into_iter().enumerate() {
+            let mut all_meshes = vec![];
+            for primitive in mesh
+                .primitives()
+                .filter(|p| i == p.material().index().unwrap())
+            {
+                // An ugly solution for filtering only that meshes that uses this material
+                let final_primitive = Self::load_primitive(buffer_data, primitive);
+                let loaded_mesh = Mesh3D::new(
+                    instance,
+                    &instance.memory_allocator,
+                    &final_primitive.0,
+                    &final_primitive.1,
+                    mesh.name(),
+                );
+                all_meshes.push(loaded_mesh);
+            }
+            let pipeline_info = MaterialPipelineInfo {
+                mode: vk::PrimitiveTopology::TRIANGLE_LIST, // TODO
+                alpha_cut: Some(material.alpha_cut),
+                double_sided: material.double_sided,
+            };
+            let model_material = crate::ModelMaterial {
+                material,
+                descriptor_set: None,
+                meshes: all_meshes,
+            };
+
             let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
                 topology: pipeline_info.mode,
                 ..Default::default()
@@ -282,9 +283,10 @@ impl GLTFLoader {
 
             pipelines.push(ModelPipeline {
                 pipeline: graphics_pipelines[0],
-                mesh: loaded_mesh,
+                materials: vec![model_material], // TODO
             });
         }
+
         unsafe {
             instance.device.destroy_shader_module(vertex_module, None);
             instance.device.destroy_shader_module(fragment_module, None);
@@ -369,6 +371,7 @@ impl GLTFLoader {
             diffuse_texture,
             alpha_mode: data.alpha_mode,
             alpha_cut: data.alpha_cut.unwrap_or(0.5),
+            double_sided: data.double_sided,
             base_color: data.base_color,
         }
     }

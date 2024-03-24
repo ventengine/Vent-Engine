@@ -17,15 +17,21 @@ pub struct LightRenderer {
 
 impl LightRenderer {
     pub fn new(instance: &VulkanInstance) -> Self {
-        let vertex_shader = concat!(env!("CARGO_MANIFEST_DIR"), "/res/shaders/app/3D/light.vert");
-        let fragment_shader = concat!(env!("CARGO_MANIFEST_DIR"), "/res/shaders/app/3D/light.frag");
+        let vertex_shader = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/res/shaders/app/3D/light.vert.spv"
+        );
+        let fragment_shader = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/res/shaders/app/3D/light.frag.spv"
+        );
 
         let pipeline_layout = instance.create_pipeline_layout(&[]);
 
         let pipeline = vent_rendering::pipeline::create_simple_pipeline(
             instance,
-            vertex_shader.to_owned(),
-            fragment_shader.to_owned(),
+            vertex_shader.as_ref(),
+            fragment_shader.as_ref(),
             &[Vertex3D::binding_description()],
             pipeline_layout,
             &Vertex3D::input_descriptions(),
@@ -42,7 +48,7 @@ impl LightRenderer {
         &self,
         instance: &VulkanInstance,
         command_buffer: vk::CommandBuffer,
-        buffer_index: usize,
+        _buffer_index: usize,
         mesh: &Mesh3D,
     ) {
         unsafe {
@@ -53,13 +59,7 @@ impl LightRenderer {
             )
         };
 
-        mesh.bind(
-            &instance.device,
-            command_buffer,
-            buffer_index,
-            self.pipeline_layout,
-            false,
-        );
+        mesh.bind(&instance.device, command_buffer);
         mesh.draw(&instance.device, command_buffer);
     }
 

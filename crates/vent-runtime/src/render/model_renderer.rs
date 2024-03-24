@@ -62,6 +62,7 @@ impl ModelRenderer3D {
                 pipeline_layout,
                 command_buffer,
                 buffer_index,
+                true,
             );
         }
     }

@@ -30,7 +30,7 @@ impl OBJLoader {
         for model in models {
             let mesh = Self::load_mesh(&model.mesh);
 
-            let matieral = Self::load_material(
+            let _matieral = Self::load_material(
                 instance,
                 path.parent().unwrap(),
                 &materials[model.mesh.material_id.unwrap()],
@@ -41,7 +41,6 @@ impl OBJLoader {
                 &instance.memory_allocator,
                 &mesh.0,
                 mesh.1,
-                Some(matieral),
                 Some(&model.name),
             ));
         }
@@ -90,6 +89,7 @@ impl OBJLoader {
             diffuse_texture,
             alpha_mode: gltf::material::AlphaMode::Opaque,
             alpha_cut: 0.0,
+            double_sided: false,
             base_color,
         }
     }
