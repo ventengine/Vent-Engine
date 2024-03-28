@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     ffi::CStr,
     fs::{self, File},
     io::BufReader,
@@ -442,6 +441,7 @@ impl GLTFLoader {
     }
 
     #[must_use]
+    #[allow(dead_code)]
     const fn conv_primitive_mode(mode: Mode) -> vk::PrimitiveTopology {
         match mode {
             Mode::Points => vk::PrimitiveTopology::POINT_LIST,
