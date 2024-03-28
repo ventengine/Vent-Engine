@@ -112,6 +112,7 @@ impl Model3D {
                 model_material.meshes.drain(..).for_each(|mut mesh| {
                     mesh.destroy(&instance.device);
                 });
+                // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
             });
         });
     }
@@ -248,13 +249,5 @@ impl Mesh3D {
     pub fn destroy(&mut self, device: &ash::Device) {
         self.vertex_buf.destroy(device);
         self.index_buf.destroy(device);
-        // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
-        // if let Some(descriptor_set) = &mut self.descriptor_set {
-        //     unsafe {
-        //         device
-        //             .free_descriptor_sets(descriptor_pool, descriptor_set)
-        //             .expect("Failed to free Model descriptor sets")
-        //     };
-        // }
     }
 }

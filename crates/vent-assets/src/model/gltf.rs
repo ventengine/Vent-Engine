@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     ffi::CStr,
     fs::{self, File},
     io::BufReader,
@@ -199,8 +200,8 @@ impl GLTFLoader {
             for primitive in mesh
                 .primitives()
                 .filter(|p| i == p.material().index().unwrap())
+            // Maybe there are an better way, we just need the index that the premitive already has
             {
-                // An ugly solution for filtering only that meshes that uses this material
                 let final_primitive = Self::load_primitive(buffer_data, primitive);
                 let loaded_mesh = Mesh3D::new(
                     instance,
@@ -216,6 +217,7 @@ impl GLTFLoader {
                 alpha_cut: Some(material.alpha_cut),
                 double_sided: material.double_sided,
             };
+
             let model_material = crate::ModelMaterial {
                 material,
                 descriptor_set: None,
@@ -237,54 +239,57 @@ impl GLTFLoader {
                 },
                 ..Default::default()
             };
-            let multisample_state_info = vk::PipelineMultisampleStateCreateInfo {
-                rasterization_samples: vk::SampleCountFlags::TYPE_1,
-                ..Default::default()
-            };
 
-            let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::builder()
-                .depth_test_enable(true)
-                .depth_write_enable(true)
-                .depth_compare_op(vk::CompareOp::LESS)
-                .max_depth_bounds(1.0);
-            let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
-                color_write_mask: vk::ColorComponentFlags::RGBA,
-                ..Default::default()
-            }];
-            let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
-                .logic_op(vk::LogicOp::COPY)
-                .attachments(&color_blend_attachment_states);
+            {
+                let multisample_state_info = vk::PipelineMultisampleStateCreateInfo {
+                    rasterization_samples: vk::SampleCountFlags::TYPE_1,
+                    ..Default::default()
+                };
 
-            let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]; // TODO
-            let dynamic_state_info =
-                vk::PipelineDynamicStateCreateInfo::builder().dynamic_states(&dynamic_state);
+                let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::builder()
+                    .depth_test_enable(true)
+                    .depth_write_enable(true)
+                    .depth_compare_op(vk::CompareOp::LESS)
+                    .max_depth_bounds(1.0);
+                let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
+                    color_write_mask: vk::ColorComponentFlags::RGBA,
+                    ..Default::default()
+                }];
+                let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
+                    .logic_op(vk::LogicOp::COPY)
+                    .attachments(&color_blend_attachment_states);
 
-            let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
-                .stages(&shader_stage_create_info)
-                .vertex_input_state(&vertex_input_state_info)
-                .input_assembly_state(&vertex_input_assembly_state_info)
-                .viewport_state(&viewport_state_info)
-                .rasterization_state(&rasterization_info)
-                .multisample_state(&multisample_state_info)
-                .depth_stencil_state(&depth_state_info)
-                .color_blend_state(&color_blend_state)
-                .dynamic_state(&dynamic_state_info)
-                .layout(pipeline_layout)
-                .render_pass(instance.render_pass);
+                let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]; // TODO
+                let dynamic_state_info =
+                    vk::PipelineDynamicStateCreateInfo::builder().dynamic_states(&dynamic_state);
 
-            let graphics_pipelines = unsafe {
-                instance.device.create_graphics_pipelines(
-                    vk::PipelineCache::null(),
-                    &[*graphic_pipeline_info],
-                    None,
-                )
+                let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
+                    .stages(&shader_stage_create_info)
+                    .vertex_input_state(&vertex_input_state_info)
+                    .input_assembly_state(&vertex_input_assembly_state_info)
+                    .viewport_state(&viewport_state_info)
+                    .rasterization_state(&rasterization_info)
+                    .multisample_state(&multisample_state_info)
+                    .depth_stencil_state(&depth_state_info)
+                    .color_blend_state(&color_blend_state)
+                    .dynamic_state(&dynamic_state_info)
+                    .layout(pipeline_layout)
+                    .render_pass(instance.render_pass);
+
+                let graphics_pipelines = unsafe {
+                    instance.device.create_graphics_pipelines(
+                        vk::PipelineCache::null(),
+                        &[*graphic_pipeline_info],
+                        None,
+                    )
+                }
+                .expect("Unable to create graphics pipeline");
+
+                pipelines.push(ModelPipeline {
+                    pipeline: graphics_pipelines[0],
+                    materials: vec![model_material], // TODO
+                });
             }
-            .expect("Unable to create graphics pipeline");
-
-            pipelines.push(ModelPipeline {
-                pipeline: graphics_pipelines[0],
-                materials: vec![model_material], // TODO
-            });
         }
 
         unsafe {

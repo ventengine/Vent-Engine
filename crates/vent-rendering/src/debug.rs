@@ -70,24 +70,19 @@ pub fn check_validation_layer_support(entry: &Entry) {
 }
 #[cfg(debug_assertions)]
 pub fn set_object_name<H: Handle>(instance: &VulkanInstance, handle: H, name: &str) {
-    if cfg!(debug_assertions) {
-        let object_name = CString::new(name).expect("Failed to convert &str to CString");
+    let object_name = CString::new(name).expect("Failed to convert &str to CString");
 
-        let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::builder()
-            .object_type(H::TYPE)
-            .object_handle(handle.as_raw())
-            .object_name(&object_name);
+    let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::builder()
+        .object_type(H::TYPE)
+        .object_handle(handle.as_raw())
+        .object_name(&object_name);
 
-        unsafe {
-            instance
-                .debug_utils
-                .set_debug_utils_object_name(
-                    instance.device.handle(),
-                    &debug_utils_object_name_info,
-                )
-                .expect("Failed to set debug object name")
-        };
-    }
+    unsafe {
+        instance
+            .debug_utils
+            .set_debug_utils_object_name(instance.device.handle(), &debug_utils_object_name_info)
+            .expect("Failed to set debug object name")
+    };
 }
 
 pub fn get_validation_features() -> vk::ValidationFeaturesEXT {

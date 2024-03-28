@@ -1,4 +1,4 @@
-use std::mem;
+use std::mem::{self, offset_of};
 
 use ash::vk;
 
@@ -12,20 +12,10 @@ mod surface;
 
 const DEFAULT_FENCE_TIMEOUT: u64 = 100000000000;
 
-// Simple offset_of macro akin to C++ offsetof
-#[macro_export]
-macro_rules! offset_of {
-    ($base:path, $field:ident) => {{
-        unsafe {
-            let b: $base = mem::zeroed();
-            std::ptr::addr_of!(b.$field) as isize - std::ptr::addr_of!(b) as isize
-        }
-    }};
-}
-
+#[derive(PartialEq)]
 pub struct MaterialPipelineInfo {
     pub mode: vk::PrimitiveTopology,
-    pub alpha_cut: Option<f32>,
+    pub alpha_cut: Option<f32>, // Default 0.5
     pub double_sided: bool,
 }
 
@@ -51,6 +41,7 @@ impl Vertex for Vertex3D {
     }
     fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
         [
+            // offset_of macro got stabilized in rust 1.77
             vk::VertexInputAttributeDescription::builder()
                 .location(0)
                 .binding(0)

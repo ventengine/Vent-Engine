@@ -1,4 +1,4 @@
-use std::{mem::size_of};
+use std::mem::size_of;
 
 use ash::vk;
 use glam::{Mat4, Vec3, Vec4};
@@ -204,9 +204,6 @@ impl Renderer for Renderer3D {
             mesh_renderer,
             light_renderer,
             tmp_light_mesh,
-            // depth_view,
-            // bind_group,
-            // uniform_buf,
             pipeline_layout,
             material_ubos,
             light_ubos,
