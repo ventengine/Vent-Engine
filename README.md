@@ -45,7 +45,7 @@ features, or discuss ideas.
 
 ### 🎮 Platforms
 
-Vent-Engine Supports all common platforms.
+Vent-Engine Platform Support:
 
 | Platform | Runtime | Editor |
 | -------- | ------- | ------ |
