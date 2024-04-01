@@ -11,7 +11,7 @@ vent-common = { path = "../vent-common"}
 
 vent-rendering = { path = "../vent-rendering"}
 
-ash = { version= "0.37.3", default-features = false, features = ["linked", "debug"] }
+ash = { version= "0.38", default-features = false, features = ["linked", "debug"] }
 
 # egui
 egui = "0.27"

@@ -20,7 +20,7 @@ impl MemoryAllocator {
     ) -> vk::DeviceMemory {
         let memory_req = unsafe { device.get_buffer_memory_requirements(buffer) };
 
-        let memory_info = vk::MemoryAllocateInfo::builder()
+        let memory_info = vk::MemoryAllocateInfo::default()
             .allocation_size(memory_req.size)
             .memory_type_index(
                 self.find_memorytype_index(memory_req, flags)
@@ -45,7 +45,7 @@ impl MemoryAllocator {
     ) -> vk::DeviceMemory {
         let memory_req = unsafe { device.get_image_memory_requirements(image) };
 
-        let memory_info = vk::MemoryAllocateInfo::builder()
+        let memory_info = vk::MemoryAllocateInfo::default()
             .allocation_size(memory_req.size)
             .memory_type_index(
                 self.find_memorytype_index(memory_req, flags)

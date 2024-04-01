@@ -132,11 +132,11 @@ impl GLTFLoader {
         //  This is very ugly i know, I originally had the idea to put this into vent_rendering::pipeline but then i had no good idea how to cache the vertex and fragment shader modules outside the for loop
         let vertex_code =
             read_spv(&mut File::open(vertex_shader).expect("Failed to open Vertex File")).unwrap();
-        let vertex_module_info = vk::ShaderModuleCreateInfo::builder().code(&vertex_code);
+        let vertex_module_info = vk::ShaderModuleCreateInfo::default().code(&vertex_code);
         let fragment_code =
             read_spv(&mut File::open(fragment_shader).expect("Failed to open Fragment File"))
                 .unwrap();
-        let fragment_module_info = vk::ShaderModuleCreateInfo::builder().code(&fragment_code);
+        let fragment_module_info = vk::ShaderModuleCreateInfo::default().code(&fragment_code);
 
         let vertex_module = unsafe {
             instance
@@ -170,10 +170,9 @@ impl GLTFLoader {
 
         let binding = [Vertex3D::binding_description()];
         let attrib = Vertex3D::input_descriptions();
-        let vertex_input_state_info: vk::PipelineVertexInputStateCreateInfoBuilder<'_> =
-            vk::PipelineVertexInputStateCreateInfo::builder()
-                .vertex_attribute_descriptions(&attrib)
-                .vertex_binding_descriptions(&binding);
+        let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::default()
+            .vertex_attribute_descriptions(&attrib)
+            .vertex_binding_descriptions(&binding);
 
         let viewports = [vk::Viewport {
             x: 0.0,
@@ -184,7 +183,7 @@ impl GLTFLoader {
             max_depth: 1.0,
         }];
         let scissors = [surface_resolution.into()];
-        let viewport_state_info = vk::PipelineViewportStateCreateInfo::builder()
+        let viewport_state_info = vk::PipelineViewportStateCreateInfo::default()
             .scissors(&scissors)
             .viewports(&viewports);
 
@@ -247,7 +246,7 @@ impl GLTFLoader {
                     ..Default::default()
                 };
 
-                let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::builder()
+                let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::default()
                     .depth_test_enable(true)
                     .depth_write_enable(true)
                     .depth_compare_op(vk::CompareOp::LESS)
@@ -256,15 +255,15 @@ impl GLTFLoader {
                     color_write_mask: vk::ColorComponentFlags::RGBA,
                     ..Default::default()
                 }];
-                let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
+                let color_blend_state = vk::PipelineColorBlendStateCreateInfo::default()
                     .logic_op(vk::LogicOp::COPY)
                     .attachments(&color_blend_attachment_states);
 
                 let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]; // TODO
                 let dynamic_state_info =
-                    vk::PipelineDynamicStateCreateInfo::builder().dynamic_states(&dynamic_state);
+                    vk::PipelineDynamicStateCreateInfo::default().dynamic_states(&dynamic_state);
 
-                let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
+                let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::default()
                     .stages(&shader_stage_create_info)
                     .vertex_input_state(&vertex_input_state_info)
                     .input_assembly_state(&vertex_input_assembly_state_info)
@@ -280,7 +279,7 @@ impl GLTFLoader {
                 let graphics_pipelines = unsafe {
                     instance.device.create_graphics_pipelines(
                         vk::PipelineCache::null(),
-                        &[*graphic_pipeline_info],
+                        &[graphic_pipeline_info],
                         None,
                     )
                 }
@@ -384,7 +383,9 @@ impl GLTFLoader {
 
     /// Converts an gltf Texture Sampler into Vulkan Sampler Info
     #[must_use]
-    fn convert_sampler(sampler: &gltf::texture::Sampler) -> vk::SamplerCreateInfo {
+    fn convert_sampler<'a>(
+        sampler: &'a gltf::texture::Sampler<'a>,
+    ) -> vk::SamplerCreateInfo<'static> {
         let mag_filter = sampler.mag_filter().map_or(
             VulkanImage::DEFAULT_TEXTURE_FILTER,
             |filter| match filter {
@@ -423,14 +424,13 @@ impl GLTFLoader {
         let address_mode_u = Self::conv_wrapping_mode(sampler.wrap_s());
         let address_mode_v = Self::conv_wrapping_mode(sampler.wrap_t());
 
-        vk::SamplerCreateInfo::builder()
+        vk::SamplerCreateInfo::default()
             .mag_filter(mag_filter)
             .min_filter(min_filter)
             .mipmap_mode(mipmap_filter)
             .address_mode_u(address_mode_u)
             .address_mode_v(address_mode_v)
             .max_lod(vk::LOD_CLAMP_NONE)
-            .build()
     }
 
     #[must_use]

@@ -1,7 +1,8 @@
-use ash::extensions::khr::{Surface, Swapchain};
+use ash::ext::{debug_utils, validation_features};
+use ash::khr::{portability_subset, swapchain};
 use ash::prelude::VkResult;
 use ash::vk::{Extent2D, PushConstantRange, SwapchainKHR};
-use ash::{extensions::ext::DebugUtils, vk, Entry};
+use ash::{khr, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use winit::dpi::PhysicalSize;
 
@@ -29,12 +30,12 @@ pub struct VulkanInstance {
     pub physical_device: vk::PhysicalDevice,
     pub device: ash::Device,
 
-    pub surface_loader: Surface,
+    pub surface_loader: khr::surface::Instance,
     pub surface: vk::SurfaceKHR,
     pub surface_format: vk::SurfaceFormatKHR,
     pub surface_resolution: vk::Extent2D,
 
-    pub swapchain_loader: Swapchain,
+    pub swapchain_loader: khr::swapchain::Device,
     pub swapchain: vk::SwapchainKHR,
 
     pub swapchain_images: Vec<vk::Image>,
@@ -61,7 +62,9 @@ pub struct VulkanInstance {
     frame: usize,
 
     #[cfg(debug_assertions)]
-    pub debug_utils: DebugUtils,
+    pub debug_utils: debug_utils::Instance,
+    #[cfg(debug_assertions)]
+    pub debug_utils_device: debug_utils::Device,
     #[cfg(debug_assertions)]
     debug_messenger: vk::DebugUtilsMessengerEXT,
 }
@@ -73,7 +76,7 @@ impl VulkanInstance {
         let engine_version: u32 = env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap();
 
         let app_info = unsafe {
-            vk::ApplicationInfo::builder()
+            vk::ApplicationInfo::default()
                 .application_name(CStr::from_bytes_with_nul_unchecked(
                     application_name.as_bytes(),
                 ))
@@ -90,8 +93,8 @@ impl VulkanInstance {
             .expect("Unsupported Surface Extension")
             .to_vec();
         if ENABLE_VALIDATION_LAYERS {
-            extension_names.push(vk::ExtValidationFeaturesFn::name().as_ptr());
-            extension_names.push(vk::ExtDebugUtilsFn::name().as_ptr());
+            extension_names.push(validation_features::NAME.as_ptr());
+            extension_names.push(debug_utils::NAME.as_ptr());
         }
 
         #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -112,7 +115,7 @@ impl VulkanInstance {
 
         let mut validation_features = get_validation_features();
 
-        let create_info = vk::InstanceCreateInfo::builder()
+        let create_info = vk::InstanceCreateInfo::default()
             .application_info(&app_info)
             .enabled_extension_names(&extension_names)
             .enabled_layer_names(&layer_names_ptrs.1)
@@ -124,14 +127,12 @@ impl VulkanInstance {
                 .create_instance(&create_info, None)
                 .expect("Failed Create Vulkan Instance")
         };
-        #[cfg(debug_assertions)]
-        let (debug_utils_loader, debug_messenger) = setup_debug_messenger(&entry, &instance);
 
         let surface = unsafe {
             surface::create_surface(&entry, &instance, display_handle, window_handle, None)
         }
         .unwrap();
-        let surface_loader = Surface::new(&entry, &instance);
+        let surface_loader = khr::surface::Instance::new(&entry, &instance);
 
         let (pdevice, graphics_queue_family_index, present_queue_family_index) =
             Self::create_physical_device(&instance, &surface_loader, surface);
@@ -146,10 +147,14 @@ impl VulkanInstance {
                 .unwrap()[0];
         let device = Self::create_device(&instance, pdevice, graphics_queue_family_index);
 
+        #[cfg(debug_assertions)]
+        let (debug_utils, debug_utils_device, debug_messenger) =
+            setup_debug_messenger(&entry, &instance, &device);
+
         let graphics_queue = unsafe { device.get_device_queue(graphics_queue_family_index, 0) };
         let present_queue = unsafe { device.get_device_queue(present_queue_family_index, 0) };
 
-        let swapchain_loader = Swapchain::new(&instance, &device);
+        let swapchain_loader = khr::swapchain::Device::new(&instance, &device);
 
         let (swapchain, surface_resolution) = Self::create_swapchain(
             &swapchain_loader,
@@ -212,7 +217,9 @@ impl VulkanInstance {
             present_queue,
             render_pass,
             #[cfg(debug_assertions)]
-            debug_utils: debug_utils_loader,
+            debug_utils,
+            #[cfg(debug_assertions)]
+            debug_utils_device,
             descriptor_pool,
             descriptor_set_layout,
             #[cfg(debug_assertions)]
@@ -300,34 +307,34 @@ impl VulkanInstance {
     pub fn submit(&mut self, image_index: u32) -> VkResult<bool> {
         let in_flight_fence = self.in_flight_fences[self.frame];
 
-        let wait_semaphores = vk::SemaphoreSubmitInfo::builder()
+        let wait_semaphores = vk::SemaphoreSubmitInfo::default()
             .semaphore(self.image_available_semaphores[self.frame])
             .stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT);
 
-        let command_buffers = vk::CommandBufferSubmitInfo::builder()
+        let command_buffers = vk::CommandBufferSubmitInfo::default()
             .command_buffer(self.command_buffers[image_index as usize]);
-        let signal_semaphores = vk::SemaphoreSubmitInfo::builder()
+        let signal_semaphores = vk::SemaphoreSubmitInfo::default()
             .semaphore(self.render_finished_semaphores[self.frame])
             .stage_mask(vk::PipelineStageFlags2::ALL_GRAPHICS);
 
-        let signal_infos = [*signal_semaphores];
-        let command_infos = [*command_buffers];
-        let wait_infos = [*wait_semaphores];
-        let submit_info = vk::SubmitInfo2::builder()
+        let signal_infos = [signal_semaphores];
+        let command_infos = [command_buffers];
+        let wait_infos = [wait_semaphores];
+        let submit_info = vk::SubmitInfo2::default()
             .wait_semaphore_infos(&wait_infos)
             .command_buffer_infos(&command_infos)
             .signal_semaphore_infos(&signal_infos);
 
         unsafe {
             self.device
-                .queue_submit2(self.graphics_queue, &[*submit_info], in_flight_fence)
+                .queue_submit2(self.graphics_queue, &[submit_info], in_flight_fence)
                 .unwrap();
         }
 
         let swapchains = &[self.swapchain];
         let image_indices = &[image_index];
         let binding = [self.render_finished_semaphores[self.frame]];
-        let present_info = vk::PresentInfoKHR::builder()
+        let present_info = vk::PresentInfoKHR::default()
             .wait_semaphores(&binding)
             .swapchains(swapchains)
             .image_indices(image_indices);
@@ -399,7 +406,7 @@ impl VulkanInstance {
             .iter()
             .map(|&present_image_view| {
                 let framebuffer_attachments = [present_image_view, depth_image_view];
-                let frame_buffer_create_info = vk::FramebufferCreateInfo::builder()
+                let frame_buffer_create_info = vk::FramebufferCreateInfo::default()
                     .render_pass(render_pass)
                     .attachments(&framebuffer_attachments)
                     .width(surface_resolution.width)
@@ -417,7 +424,7 @@ impl VulkanInstance {
 
     fn create_physical_device(
         instance: &ash::Instance,
-        surface_loader: &Surface,
+        surface_loader: &khr::surface::Instance,
         surface: vk::SurfaceKHR,
     ) -> (vk::PhysicalDevice, u32, u32) {
         let pdevices = unsafe {
@@ -463,26 +470,26 @@ impl VulkanInstance {
         queue_family_index: u32,
     ) -> ash::Device {
         let device_extension_names_raw = [
-            Swapchain::name().as_ptr(),
+            swapchain::NAME.as_ptr(),
             #[cfg(any(target_os = "macos", target_os = "ios"))]
-            KhrPortabilitySubsetFn::name().as_ptr(),
+            portability_subset::NAME.as_ptr(),
         ];
 
-        let mut features_1_3 = vk::PhysicalDeviceVulkan13Features::builder()
+        let mut features_1_3 = vk::PhysicalDeviceVulkan13Features::default()
             .synchronization2(true)
             .maintenance4(true);
 
-        let features = vk::PhysicalDeviceFeatures::builder()
+        let features = vk::PhysicalDeviceFeatures::default()
             .shader_clip_distance(true)
             .sampler_anisotropy(true);
 
         let priorities = [1.0];
 
-        let queue_info = vk::DeviceQueueCreateInfo::builder()
+        let queue_info = vk::DeviceQueueCreateInfo::default()
             .queue_family_index(queue_family_index)
             .queue_priorities(&priorities);
 
-        let device_create_info = vk::DeviceCreateInfo::builder()
+        let device_create_info = vk::DeviceCreateInfo::default()
             .queue_create_infos(std::slice::from_ref(&queue_info))
             .enabled_extension_names(&device_extension_names_raw)
             .enabled_features(&features)
@@ -492,9 +499,9 @@ impl VulkanInstance {
     }
 
     fn create_swapchain(
-        swapchain_loader: &Swapchain,
+        swapchain_loader: &khr::swapchain::Device,
         surface_format: vk::SurfaceFormatKHR,
-        surface_loader: &Surface,
+        surface_loader: &khr::surface::Instance,
         pdevice: vk::PhysicalDevice,
         surface: vk::SurfaceKHR,
         size: winit::dpi::PhysicalSize<u32>,
@@ -540,7 +547,7 @@ impl VulkanInstance {
             .find(|&mode| mode == vk::PresentModeKHR::MAILBOX)
             .unwrap_or(vk::PresentModeKHR::FIFO);
 
-        let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
+        let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
             .surface(surface)
             .min_image_count(desired_image_count)
             .image_color_space(surface_format.color_space)
@@ -562,7 +569,7 @@ impl VulkanInstance {
     }
 
     fn create_command_pool(device: &ash::Device, queue_family_index: u32) -> vk::CommandPool {
-        let create_info = vk::CommandPoolCreateInfo::builder()
+        let create_info = vk::CommandPoolCreateInfo::default()
             .queue_family_index(queue_family_index)
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
         unsafe { device.create_command_pool(&create_info, None) }.unwrap()
@@ -573,7 +580,7 @@ impl VulkanInstance {
         command_pool: vk::CommandPool,
         count: u32,
     ) -> Vec<vk::CommandBuffer> {
-        let allocate_info = vk::CommandBufferAllocateInfo::builder()
+        let allocate_info = vk::CommandBufferAllocateInfo::default()
             .command_pool(command_pool)
             .level(vk::CommandBufferLevel::PRIMARY)
             .command_buffer_count(count);
@@ -595,7 +602,7 @@ impl VulkanInstance {
 
         let create_info = vk::SemaphoreCreateInfo::default();
 
-        let fence_info = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
+        let fence_info = vk::FenceCreateInfo::default().flags(vk::FenceCreateFlags::SIGNALED);
 
         for _ in 0..MAX_FRAMES_IN_FLIGHT {
             image_available_semaphores
@@ -618,7 +625,7 @@ impl VulkanInstance {
 
     fn create_image_views(
         device: &ash::Device,
-        swapchain_loader: &Swapchain,
+        swapchain_loader: &khr::swapchain::Device,
         swapchain: SwapchainKHR,
         surface_format: vk::SurfaceFormatKHR,
     ) -> (Vec<vk::ImageView>, Vec<vk::Image>) {
@@ -627,7 +634,7 @@ impl VulkanInstance {
             images
                 .iter()
                 .map(|&image| {
-                    let create_view_info = vk::ImageViewCreateInfo::builder()
+                    let create_view_info = vk::ImageViewCreateInfo::default()
                         .view_type(vk::ImageViewType::TYPE_2D)
                         .format(surface_format.format)
                         .components(vk::ComponentMapping {
@@ -663,7 +670,7 @@ impl VulkanInstance {
             },
         ];
 
-        let create_info = vk::DescriptorPoolCreateInfo::builder()
+        let create_info = vk::DescriptorPoolCreateInfo::default()
             .pool_sizes(&pool_sizes)
             .max_sets(128);
 
@@ -677,7 +684,7 @@ impl VulkanInstance {
         size: usize,
     ) -> Vec<vk::DescriptorSet> {
         let layouts = (0..size).map(|_| descriptor_set_layout).collect::<Vec<_>>();
-        let info = vk::DescriptorSetAllocateInfo::builder()
+        let info = vk::DescriptorSetAllocateInfo::default()
             .descriptor_pool(descriptor_pool)
             .set_layouts(&layouts);
 
@@ -710,7 +717,7 @@ impl VulkanInstance {
             },
         ];
 
-        let info = vk::DescriptorSetLayoutCreateInfo::builder().bindings(&desc_layout_bindings);
+        let info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&desc_layout_bindings);
 
         unsafe { device.create_descriptor_set_layout(&info, None) }.unwrap()
     }
@@ -721,7 +728,7 @@ impl VulkanInstance {
     ) -> vk::PipelineLayout {
         let binding = [self.descriptor_set_layout];
 
-        let create_info = vk::PipelineLayoutCreateInfo::builder()
+        let create_info = vk::PipelineLayoutCreateInfo::default()
             .push_constant_ranges(push_constant_ranges)
             .set_layouts(&binding);
 
@@ -762,7 +769,7 @@ impl VulkanInstance {
             layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
             ..Default::default()
         }];
-        let depth_attachment_ref = vk::AttachmentReference2::builder()
+        let depth_attachment_ref = vk::AttachmentReference2::default()
             .attachment(1)
             .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
@@ -788,13 +795,12 @@ impl VulkanInstance {
             },
         ];
 
-        let subpass = vk::SubpassDescription2::builder()
+        let subpass = vk::SubpassDescription2::default()
             .color_attachments(&color_attachment_refs)
             .depth_stencil_attachment(&depth_attachment_ref)
-            .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-            .build();
+            .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS);
 
-        let create_info = vk::RenderPassCreateInfo2::builder()
+        let create_info = vk::RenderPassCreateInfo2::default()
             .attachments(&renderpass_attachments)
             .subpasses(std::slice::from_ref(&subpass))
             .dependencies(&dependencies);

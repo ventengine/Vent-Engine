@@ -62,10 +62,10 @@ impl Renderer for Renderer3D {
     {
         let _camera: &Camera3D = camera.downcast_ref().unwrap();
 
-        let push_constant_range = vk::PushConstantRange::builder()
+        let push_constant_range = vk::PushConstantRange::default()
             .size(size_of::<Camera3DData>() as u32)
             .stage_flags(vk::ShaderStageFlags::VERTEX);
-        let pipeline_layout = instance.create_pipeline_layout(&[*push_constant_range]);
+        let pipeline_layout = instance.create_pipeline_layout(&[push_constant_range]);
 
         let mut mesh_renderer = ModelRenderer3D::default();
 
@@ -141,17 +141,17 @@ impl Renderer for Renderer3D {
                             None,
                         );
 
-                        let image_info = vk::DescriptorImageInfo::builder()
+                        let image_info = vk::DescriptorImageInfo::default()
                             .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
                             .image_view(diffuse_texture.image_view)
                             .sampler(diffuse_texture.sampler);
 
-                        let material_buffer_info = vk::DescriptorBufferInfo::builder()
+                        let material_buffer_info = vk::DescriptorBufferInfo::default()
                             .buffer(*matieral_buffer)
                             .offset(0)
                             .range(size_of::<MaterialUBO>() as vk::DeviceSize);
 
-                        let light_buffer_info = vk::DescriptorBufferInfo::builder()
+                        let light_buffer_info = vk::DescriptorBufferInfo::default()
                             .buffer(*light_buffer)
                             .offset(0)
                             .range(size_of::<LightUBO>() as vk::DeviceSize);
@@ -162,7 +162,7 @@ impl Renderer for Renderer3D {
                                 dst_binding: 0, // From DescriptorSetLayoutBinding
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                                p_image_info: &*image_info,
+                                p_image_info: &image_info,
                                 ..Default::default()
                             },
                             vk::WriteDescriptorSet {
@@ -170,7 +170,7 @@ impl Renderer for Renderer3D {
                                 dst_binding: 1,
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                                p_buffer_info: &*material_buffer_info,
+                                p_buffer_info: &material_buffer_info,
                                 ..Default::default()
                             },
                             vk::WriteDescriptorSet {
@@ -178,7 +178,7 @@ impl Renderer for Renderer3D {
                                 dst_binding: 2,
                                 descriptor_count: 1,
                                 descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                                p_buffer_info: &*light_buffer_info,
+                                p_buffer_info: &light_buffer_info,
                                 ..Default::default()
                             },
                         ];
@@ -228,11 +228,11 @@ impl Renderer for Renderer3D {
 
         let command_buffer = instance.command_buffers[image_index];
 
-        let render_area = vk::Rect2D::builder()
+        let render_area = vk::Rect2D::default()
             .offset(vk::Offset2D::default())
             .extent(instance.surface_resolution);
 
-        let viewport = vk::Viewport::builder()
+        let viewport = vk::Viewport::default()
             .width(instance.surface_resolution.width as f32)
             .height(instance.surface_resolution.height as f32)
             .max_depth(1.0);
@@ -268,21 +268,21 @@ impl Renderer for Renderer3D {
                 .begin_command_buffer(command_buffer, &info)
                 .unwrap();
 
-            let info = vk::RenderPassBeginInfo::builder()
+            let info = vk::RenderPassBeginInfo::default()
                 .render_pass(instance.render_pass)
                 .framebuffer(instance.frame_buffers[image_index])
-                .render_area(*render_area)
+                .render_area(render_area)
                 .clear_values(clear_values);
 
             instance
                 .device
-                .cmd_set_scissor(command_buffer, 0, &[*render_area]);
+                .cmd_set_scissor(command_buffer, 0, &[render_area]);
             instance
                 .device
-                .cmd_set_viewport(command_buffer, 0, &[*viewport]);
+                .cmd_set_viewport(command_buffer, 0, &[viewport]);
 
             let subpass_info =
-                vk::SubpassBeginInfo::builder().contents(vk::SubpassContents::INLINE);
+                vk::SubpassBeginInfo::default().contents(vk::SubpassContents::INLINE);
 
             instance
                 .device

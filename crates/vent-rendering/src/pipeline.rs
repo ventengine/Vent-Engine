@@ -1,6 +1,9 @@
 use std::{ffi::CStr, fs::File, path::Path};
 
-use ash::{util::read_spv, vk};
+use ash::{
+    util::{self, read_spv},
+    vk,
+};
 
 use crate::instance::VulkanInstance;
 
@@ -25,12 +28,12 @@ pub fn create_simple_pipeline(
         &mut File::open(vertex_file.with_extension("spv")).expect("Failed to open Vertex File"),
     )
     .unwrap();
-    let vertex_module_info = vk::ShaderModuleCreateInfo::builder().code(&vertex_code);
+    let vertex_module_info = vk::ShaderModuleCreateInfo::default().code(&vertex_code);
     let fragment_code = read_spv(
         &mut File::open(fragment_file.with_extension("spv")).expect("Failed to open Fragment File"),
     )
     .unwrap();
-    let fragment_module_info = vk::ShaderModuleCreateInfo::builder().code(&fragment_code);
+    let fragment_module_info = vk::ShaderModuleCreateInfo::default().code(&fragment_code);
 
     let vertex_module = unsafe {
         instance
@@ -61,7 +64,7 @@ pub fn create_simple_pipeline(
         },
     ];
 
-    let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::builder()
+    let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::default()
         .vertex_attribute_descriptions(attrib_desc)
         .vertex_binding_descriptions(binding_desc);
     let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
@@ -77,7 +80,7 @@ pub fn create_simple_pipeline(
         max_depth: 1.0,
     }];
     let scissors = [surface_resolution.into()];
-    let viewport_state_info = vk::PipelineViewportStateCreateInfo::builder()
+    let viewport_state_info = vk::PipelineViewportStateCreateInfo::default()
         .scissors(&scissors)
         .viewports(&viewports);
 
@@ -93,7 +96,7 @@ pub fn create_simple_pipeline(
         ..Default::default()
     };
 
-    let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::builder()
+    let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::default()
         .depth_test_enable(true)
         .depth_write_enable(true)
         .depth_compare_op(vk::CompareOp::LESS)
@@ -102,15 +105,15 @@ pub fn create_simple_pipeline(
         color_write_mask: vk::ColorComponentFlags::RGBA,
         ..Default::default()
     }];
-    let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
+    let color_blend_state = vk::PipelineColorBlendStateCreateInfo::default()
         .logic_op(vk::LogicOp::COPY)
         .attachments(&color_blend_attachment_states);
 
     let dynamic_state = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]; // TODO
     let dynamic_state_info =
-        vk::PipelineDynamicStateCreateInfo::builder().dynamic_states(&dynamic_state);
+        vk::PipelineDynamicStateCreateInfo::default().dynamic_states(&dynamic_state);
 
-    let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
+    let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::default()
         .stages(&shader_stage_create_info)
         .vertex_input_state(&vertex_input_state_info)
         .input_assembly_state(&vertex_input_assembly_state_info)
@@ -126,7 +129,7 @@ pub fn create_simple_pipeline(
     let graphics_pipelines = unsafe {
         instance.device.create_graphics_pipelines(
             vk::PipelineCache::null(),
-            &[*graphic_pipeline_info],
+            &[graphic_pipeline_info],
             None,
         )
     }

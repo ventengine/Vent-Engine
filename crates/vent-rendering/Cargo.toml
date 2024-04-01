@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ash = { version= "0.37.3", default-features = false, features = ["linked", "debug"] }
+ash = { version= "0.38", default-features = false, features = ["linked", "debug", "std"] }
 
 image = "0.25"
 

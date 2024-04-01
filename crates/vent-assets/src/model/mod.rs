@@ -189,24 +189,26 @@ impl Mesh3D {
         // copy vertex buffer
         unsafe { staging_buf.upload_data(memory, vertices, vertex_size) };
         // copy index buffer
-        unsafe { staging_buf.upload_data(
-            memory.wrapping_add(vertex_size as usize),
-            indices,
-            index_size,
-        ) };
+        unsafe {
+            staging_buf.upload_data(
+                memory.wrapping_add(vertex_size as usize),
+                indices,
+                index_size,
+            )
+        };
 
         let command_buffer = begin_single_time_command(&instance.device, instance.command_pool);
 
         unsafe {
-            let buffer_info = vk::BufferCopy::builder().size(vertex_size);
+            let buffer_info = vk::BufferCopy::default().size(vertex_size);
 
             instance.device.cmd_copy_buffer(
                 command_buffer,
                 *staging_buf,
                 *vertex_buf,
-                &[*buffer_info],
+                &[buffer_info],
             );
-            let buffer_info = vk::BufferCopy::builder()
+            let buffer_info = vk::BufferCopy::default()
                 .size(index_size)
                 .src_offset(vertex_size);
 
@@ -214,7 +216,7 @@ impl Mesh3D {
                 command_buffer,
                 *staging_buf,
                 *index_buf,
-                &[*buffer_info],
+                &[buffer_info],
             );
         };
         staging_buf.unmap(&instance.device);

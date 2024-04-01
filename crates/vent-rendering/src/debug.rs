@@ -1,4 +1,4 @@
-use ash::extensions::ext::DebugUtils;
+use ash::ext::debug_utils;
 use ash::vk::Handle;
 use ash::{vk, Entry, Instance};
 use std::os::raw::c_void;
@@ -56,7 +56,7 @@ pub fn get_layer_names_and_pointers() -> (Vec<CString>, Vec<*const c_char>) {
 /// Panic if at least one on the layer is not supported.
 pub fn check_validation_layer_support(entry: &Entry) {
     for required in REQUIRED_LAYERS.iter() {
-        let properties = entry.enumerate_instance_layer_properties().unwrap(); // TODO: Cache
+        let properties = unsafe { entry.enumerate_instance_layer_properties().unwrap() }; // TODO: Cache
         let layers = properties.iter().find(|layer| {
             let name = unsafe { CStr::from_ptr(layer.layer_name.as_ptr()) };
             let name = name.to_str().expect("Failed to get layer name pointer");
@@ -72,30 +72,26 @@ pub fn check_validation_layer_support(entry: &Entry) {
 pub fn set_object_name<H: Handle>(instance: &VulkanInstance, handle: H, name: &str) {
     let object_name = CString::new(name).expect("Failed to convert &str to CString");
 
-    let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::builder()
-        .object_type(H::TYPE)
-        .object_handle(handle.as_raw())
+    let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::default()
+        .object_handle(handle)
         .object_name(&object_name);
 
     unsafe {
         instance
-            .debug_utils
-            .set_debug_utils_object_name(instance.device.handle(), &debug_utils_object_name_info)
+            .debug_utils_device
+            .set_debug_utils_object_name(&debug_utils_object_name_info)
             .expect("Failed to set debug object name")
     };
 }
 
-pub fn get_validation_features() -> vk::ValidationFeaturesEXT {
+pub fn get_validation_features() -> vk::ValidationFeaturesEXT<'static> {
     if ENABLE_VALIDATION_LAYERS {
-        let features = [
-            vk::ValidationFeatureEnableEXT::BEST_PRACTICES,
-            vk::ValidationFeatureEnableEXT::SYNCHRONIZATION_VALIDATION,
-        ];
-
-        return vk::ValidationFeaturesEXT::builder()
-            .enabled_validation_features(&features)
-            .disabled_validation_features(&[]) // We need to give it an empty Array, If not we get an validation error
-            .build();
+        return vk::ValidationFeaturesEXT::default()
+            .enabled_validation_features(&[
+                vk::ValidationFeatureEnableEXT::BEST_PRACTICES,
+                vk::ValidationFeatureEnableEXT::SYNCHRONIZATION_VALIDATION,
+            ])
+            .disabled_validation_features(&[]); // We need to give it an empty Array, If not we get an validation error
     } else {
         vk::ValidationFeaturesEXT::default()
     }
@@ -106,8 +102,13 @@ pub fn get_validation_features() -> vk::ValidationFeaturesEXT {
 pub fn setup_debug_messenger(
     entry: &Entry,
     instance: &Instance,
-) -> (DebugUtils, vk::DebugUtilsMessengerEXT) {
-    let create_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
+    device: &ash::Device,
+) -> (
+    debug_utils::Instance,
+    debug_utils::Device,
+    vk::DebugUtilsMessengerEXT,
+) {
+    let create_info = vk::DebugUtilsMessengerCreateInfoEXT::default()
         .message_severity(
             vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
                 | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
@@ -121,12 +122,13 @@ pub fn setup_debug_messenger(
                 | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
         )
         .pfn_user_callback(Some(vulkan_debug_callback));
-    let debug_utils = DebugUtils::new(entry, instance);
+    let debug_utils = debug_utils::Instance::new(entry, instance);
+    let debug_utils_device = debug_utils::Device::new(instance, device);
     let debug_utils_messenger = unsafe {
         debug_utils
             .create_debug_utils_messenger(&create_info, None)
             .unwrap()
     };
 
-    (debug_utils, debug_utils_messenger)
+    (debug_utils, debug_utils_device, debug_utils_messenger)
 }

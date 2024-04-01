@@ -180,7 +180,7 @@ impl VulkanImage {
     ) {
         let command_buffer = begin_single_time_command(device, command_pool);
 
-        let image_barrier = vk::ImageMemoryBarrier2::builder()
+        let image_barrier = vk::ImageMemoryBarrier2::default()
             .dst_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
             .new_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
             .image(image)
@@ -195,29 +195,29 @@ impl VulkanImage {
                 ..Default::default()
             });
 
-        let binding = [*image_barrier];
-        let dep_info = vk::DependencyInfo::builder()
+        let binding = [image_barrier];
+        let dep_info = vk::DependencyInfo::default()
             .image_memory_barriers(&binding)
             .dependency_flags(vk::DependencyFlags::BY_REGION);
 
         unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
-        let subresource = vk::ImageSubresourceLayers::builder()
+        let subresource = vk::ImageSubresourceLayers::default()
             .aspect_mask(vk::ImageAspectFlags::COLOR)
             .mip_level(0)
             .base_array_layer(0)
             .layer_count(1);
 
-        let region = vk::BufferImageCopy2::builder()
+        let region = vk::BufferImageCopy2::default()
             .buffer_offset(0)
             .buffer_row_length(0)
             .buffer_image_height(0)
-            .image_subresource(*subresource)
+            .image_subresource(subresource)
             .image_offset(vk::Offset3D::default())
             .image_extent(size.into());
 
-        let binding = [*region];
-        let copy_image_info = vk::CopyBufferToImageInfo2::builder()
+        let binding = [region];
+        let copy_image_info = vk::CopyBufferToImageInfo2::default()
             .src_buffer(staging_buffer.buffer)
             .dst_image(image)
             .dst_image_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
@@ -239,17 +239,17 @@ impl VulkanImage {
     ) {
         let command_buffer = begin_single_time_command(device, command_pool);
 
-        let subresource = vk::ImageSubresourceRange::builder()
+        let subresource = vk::ImageSubresourceRange::default()
             .aspect_mask(vk::ImageAspectFlags::COLOR)
             .base_array_layer(0)
             .layer_count(1)
             .level_count(1);
 
-        let mut barrier = vk::ImageMemoryBarrier::builder()
+        let mut barrier = vk::ImageMemoryBarrier::default()
             .image(image)
             .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
             .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
-            .subresource_range(*subresource);
+            .subresource_range(subresource);
 
         let mut mip_width = width as i32;
         let mut mip_height = height as i32;
@@ -269,23 +269,23 @@ impl VulkanImage {
                     vk::DependencyFlags::empty(),
                     &[],
                     &[],
-                    &[*barrier],
+                    &[barrier],
                 )
             };
 
-            let src_subresource = vk::ImageSubresourceLayers::builder()
+            let src_subresource = vk::ImageSubresourceLayers::default()
                 .aspect_mask(vk::ImageAspectFlags::COLOR)
                 .mip_level(i - 1)
                 .base_array_layer(0)
                 .layer_count(1);
 
-            let dst_subresource = vk::ImageSubresourceLayers::builder()
+            let dst_subresource = vk::ImageSubresourceLayers::default()
                 .aspect_mask(vk::ImageAspectFlags::COLOR)
                 .mip_level(i)
                 .base_array_layer(0)
                 .layer_count(1);
 
-            let blit = vk::ImageBlit::builder()
+            let blit = vk::ImageBlit::default()
                 .src_offsets([
                     vk::Offset3D::default(),
                     vk::Offset3D {
@@ -294,7 +294,7 @@ impl VulkanImage {
                         z: 1,
                     },
                 ])
-                .src_subresource(*src_subresource)
+                .src_subresource(src_subresource)
                 .dst_offsets([
                     vk::Offset3D::default(),
                     vk::Offset3D {
@@ -303,7 +303,7 @@ impl VulkanImage {
                         z: 1,
                     },
                 ])
-                .dst_subresource(*dst_subresource);
+                .dst_subresource(dst_subresource);
 
             unsafe {
                 device.cmd_blit_image(
@@ -312,7 +312,7 @@ impl VulkanImage {
                     vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
                     image,
                     vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                    &[*blit],
+                    &[blit],
                     vk::Filter::LINEAR,
                 )
             };
@@ -330,7 +330,7 @@ impl VulkanImage {
                     vk::DependencyFlags::empty(),
                     &[],
                     &[],
-                    &[*barrier],
+                    &[barrier],
                 )
             };
 
@@ -357,15 +357,15 @@ impl VulkanImage {
                 vk::DependencyFlags::empty(),
                 &[],
                 &[],
-                &[*barrier],
+                &[barrier],
             )
         };
 
         end_single_time_command(device, command_pool, submit_queue, command_buffer);
     }
 
-    pub fn default_sampler() -> vk::SamplerCreateInfo {
-        vk::SamplerCreateInfo::builder()
+    pub fn default_sampler() -> vk::SamplerCreateInfo<'static> {
+        vk::SamplerCreateInfo::default()
             .mag_filter(Self::DEFAULT_TEXTURE_FILTER)
             .min_filter(Self::DEFAULT_TEXTURE_FILTER)
             .address_mode_u(vk::SamplerAddressMode::REPEAT)
@@ -376,7 +376,6 @@ impl VulkanImage {
             .compare_enable(false)
             .compare_op(vk::CompareOp::ALWAYS)
             .mipmap_mode(vk::SamplerMipmapMode::LINEAR)
-            .build()
     }
 
     fn create_image_view(
@@ -386,13 +385,12 @@ impl VulkanImage {
         mip_level: u32,
         mask: vk::ImageAspectFlags,
     ) -> vk::ImageView {
-        let image_view_info = vk::ImageViewCreateInfo::builder()
+        let image_view_info = vk::ImageViewCreateInfo::default()
             .subresource_range(
-                vk::ImageSubresourceRange::builder()
+                vk::ImageSubresourceRange::default()
                     .aspect_mask(mask)
                     .level_count(mip_level)
-                    .layer_count(1)
-                    .build(),
+                    .layer_count(1),
             )
             .image(image)
             .format(format)
@@ -408,7 +406,7 @@ impl VulkanImage {
         mip_level: u32,
         usage: vk::ImageUsageFlags,
     ) -> vk::Image {
-        let create_info = vk::ImageCreateInfo::builder()
+        let create_info = vk::ImageCreateInfo::default()
             .image_type(vk::ImageType::TYPE_2D)
             .format(format)
             .extent(size.into())

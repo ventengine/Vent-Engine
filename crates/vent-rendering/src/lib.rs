@@ -33,33 +33,29 @@ pub struct Vertex3D {
 
 impl Vertex for Vertex3D {
     fn binding_description() -> vk::VertexInputBindingDescription {
-        vk::VertexInputBindingDescription::builder()
+        vk::VertexInputBindingDescription::default()
             .binding(0)
             .stride(mem::size_of::<Self>() as u32)
             .input_rate(vk::VertexInputRate::VERTEX)
-            .build()
     }
     fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
         [
             // offset_of macro got stabilized in rust 1.77
-            vk::VertexInputAttributeDescription::builder()
+            vk::VertexInputAttributeDescription::default()
                 .location(0)
                 .binding(0)
                 .format(vk::Format::R32G32B32A32_SFLOAT)
-                .offset(offset_of!(Self, position) as u32)
-                .build(),
-            vk::VertexInputAttributeDescription::builder()
+                .offset(offset_of!(Self, position) as u32),
+            vk::VertexInputAttributeDescription::default()
                 .location(1)
                 .binding(0)
                 .format(vk::Format::R32G32_SFLOAT)
-                .offset(offset_of!(Self, tex_coord) as u32)
-                .build(),
-            vk::VertexInputAttributeDescription::builder()
+                .offset(offset_of!(Self, tex_coord) as u32),
+            vk::VertexInputAttributeDescription::default()
                 .location(2)
                 .binding(0)
                 .format(vk::Format::R32G32B32A32_SFLOAT)
-                .offset(offset_of!(Self, normal) as u32)
-                .build(),
+                .offset(offset_of!(Self, normal) as u32),
         ]
     }
 }
@@ -73,7 +69,7 @@ pub fn begin_single_time_command(
     device: &ash::Device,
     command_pool: vk::CommandPool,
 ) -> vk::CommandBuffer {
-    let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
+    let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::default()
         .command_buffer_count(1)
         .command_pool(command_pool)
         .level(vk::CommandBufferLevel::PRIMARY);
@@ -85,7 +81,7 @@ pub fn begin_single_time_command(
     }[0];
 
     let command_buffer_begin_info =
-        vk::CommandBufferBeginInfo::builder().flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+        vk::CommandBufferBeginInfo::default().flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
     unsafe {
         device
@@ -108,10 +104,10 @@ pub fn end_single_time_command(
             .expect("Failed to record Command Buffer at Ending!");
     }
 
-    let buffers_to_submit = vk::CommandBufferSubmitInfo::builder().command_buffer(command_buffer);
+    let buffers_to_submit = vk::CommandBufferSubmitInfo::default().command_buffer(command_buffer);
 
-    let binding = [*buffers_to_submit];
-    let submit_info = vk::SubmitInfo2::builder().command_buffer_infos(&binding);
+    let binding = [buffers_to_submit];
+    let submit_info = vk::SubmitInfo2::default().command_buffer_infos(&binding);
 
     unsafe {
         let fence = device
@@ -119,7 +115,7 @@ pub fn end_single_time_command(
             .unwrap();
 
         device
-            .queue_submit2(submit_queue, &[*submit_info], fence)
+            .queue_submit2(submit_queue, &[submit_info], fence)
             .expect("Failed to Queue Submit!");
         device
             .wait_for_fences(&[fence], true, DEFAULT_FENCE_TIMEOUT)

@@ -11,7 +11,7 @@ vent-rendering = { path = "../vent-rendering"}
 vent-assets = { path = "../vent-assets" }
 vent-ecs = { path = "../vent-ecs"}
 
-ash = { version= "0.37.3", default-features = false, features = ["linked", "debug"] }
+ash = { version= "0.38", default-features = false, features = ["linked", "debug"] }
 
 winit = "0.29"
 pollster = "0.3.0"
