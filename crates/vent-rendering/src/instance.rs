@@ -1,5 +1,5 @@
 use ash::ext::{debug_utils, validation_features};
-use ash::khr::{portability_subset, swapchain};
+use ash::khr::swapchain;
 use ash::prelude::VkResult;
 use ash::vk::{Extent2D, PushConstantRange, SwapchainKHR};
 use ash::{khr, vk, Entry};

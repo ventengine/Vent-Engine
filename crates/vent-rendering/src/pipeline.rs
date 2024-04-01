@@ -1,9 +1,6 @@
 use std::{ffi::CStr, fs::File, path::Path};
 
-use ash::{
-    util::{self, read_spv},
-    vk,
-};
+use ash::{util::read_spv, vk};
 
 use crate::instance::VulkanInstance;
 
