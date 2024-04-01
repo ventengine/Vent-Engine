@@ -67,16 +67,22 @@ impl VulkanBuffer {
     ) -> Self {
         let buffer = Self::new(instance, allocator, size, usage, flags, name);
         let memory = buffer.map(&instance.device, size);
-        buffer.upload_data(memory, data, size);
+        unsafe { buffer.upload_data(memory, data, size) };
         buffer.unmap(&instance.device);
         buffer
     }
 
-    pub fn upload_data<T: Copy>(&self, memory: *mut c_void, data: &[T], size: vk::DeviceSize) {
-        unsafe {
-            let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
-            align.copy_from_slice(data);
-        }
+    /// # Safety
+    ///
+    /// Do not give an bad memory pointer
+    pub unsafe fn upload_data<T: Copy>(
+        &self,
+        memory: *mut c_void,
+        data: &[T],
+        size: vk::DeviceSize,
+    ) {
+        let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
+        align.copy_from_slice(data);
     }
 
     pub fn map(&self, device: &ash::Device, size: vk::DeviceSize) -> *mut c_void {

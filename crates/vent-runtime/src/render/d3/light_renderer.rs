@@ -15,6 +15,7 @@ pub struct LightRenderer {
     pipeline: vk::Pipeline,
 }
 
+#[allow(dead_code)]
 impl LightRenderer {
     pub fn new(instance: &VulkanInstance) -> Self {
         let vertex_shader = concat!(

@@ -88,8 +88,7 @@ impl VulkanImage {
             &staging_buffer,
             command_pool,
             submit_queue,
-            image_size.width,
-            image_size.height,
+            image_size,
             mip_level,
         );
         staging_buffer.destroy(&instance.device);
@@ -176,8 +175,7 @@ impl VulkanImage {
         staging_buffer: &VulkanBuffer,
         command_pool: vk::CommandPool,
         submit_queue: vk::Queue,
-        width: u32,
-        height: u32,
+        size: Extent2D,
         mip_level: u32,
     ) {
         let command_buffer = begin_single_time_command(device, command_pool);
@@ -216,11 +214,7 @@ impl VulkanImage {
             .buffer_image_height(0)
             .image_subresource(*subresource)
             .image_offset(vk::Offset3D::default())
-            .image_extent(vk::Extent3D {
-                width,
-                height,
-                depth: 1,
-            });
+            .image_extent(size.into());
 
         let binding = [*region];
         let copy_image_info = vk::CopyBufferToImageInfo2::builder()

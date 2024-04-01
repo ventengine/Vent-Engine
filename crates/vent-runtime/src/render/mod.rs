@@ -152,11 +152,9 @@ impl RawRuntimeRenderer {
             Ok((image_index, _)) => {
                 self.multi_renderer.render(instance, image_index, camera);
                 let result = instance.submit(image_index);
-                match result {
-                    Err(vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR) => {
-                        instance.recreate_swap_chain(&window.inner_size());
-                    }
-                    _ => {}
+                if let Err(vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR) = result
+                {
+                    instance.recreate_swap_chain(&window.inner_size());
                 }
             }
             Err(vk::Result::ERROR_OUT_OF_DATE_KHR) => {

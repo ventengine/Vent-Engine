@@ -1,5 +1,6 @@
 use super::{debug_gui::RenderData, GUI};
 
+#[allow(dead_code)]
 pub struct EguiRenderer {
     // renderer: egui_winit_ash_integration::Integration,
     context: egui::Context,

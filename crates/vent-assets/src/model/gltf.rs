@@ -75,6 +75,7 @@ impl GLTFLoader {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn load_node(
         instance: &VulkanInstance,
         vertex_shader: &Path,
@@ -114,6 +115,7 @@ impl GLTFLoader {
         });
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn load_mesh_multithreaded(
         instance: &VulkanInstance,
         model_dir: &Path,

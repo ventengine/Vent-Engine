@@ -64,6 +64,4 @@
 //         .expect("Window Event Loop Error");
 // }
 
-fn main() {
-    
-}
+fn main() {}

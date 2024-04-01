@@ -1,5 +1,6 @@
 use super::{camera::Camera, Renderer};
 
+#[allow(dead_code)]
 pub struct UBO2D {}
 
 pub struct Renderer2D {}

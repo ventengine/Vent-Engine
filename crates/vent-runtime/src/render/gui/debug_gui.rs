@@ -32,14 +32,8 @@ impl GUI for DebugGUI {
             ui.label(format!("FPS: {}", render_data.fps));
             ui.label(format!("Frame Time: {}ms", render_data.frame_time));
 
-            ui.label(format!(
-                "Device: {}",
-                format!("{:?}", self.properties.device_name)
-            ));
-            ui.label(format!(
-                "Device Type: {}",
-                format!("{:?}", self.properties.device_type)
-            ));
+            ui.label(format!("Device: {:?}", self.properties.device_name));
+            ui.label(format!("Device Type: {:?}", self.properties.device_type));
             ui.label(format!(
                 "Driver: {}, API Version: {}",
                 self.properties.driver_version, self.properties.api_version
