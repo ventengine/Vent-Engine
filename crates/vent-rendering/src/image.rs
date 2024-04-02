@@ -245,7 +245,7 @@ impl VulkanImage {
             .layer_count(1)
             .level_count(1);
 
-        let mut barrier = vk::ImageMemoryBarrier::default()
+        let mut barrier = vk::ImageMemoryBarrier2::default()
             .image(image)
             .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
             .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
@@ -258,20 +258,17 @@ impl VulkanImage {
             barrier.subresource_range.base_mip_level = i - 1;
             barrier.old_layout = vk::ImageLayout::TRANSFER_DST_OPTIMAL;
             barrier.new_layout = vk::ImageLayout::TRANSFER_SRC_OPTIMAL;
-            barrier.src_access_mask = vk::AccessFlags::TRANSFER_WRITE;
-            barrier.dst_access_mask = vk::AccessFlags::TRANSFER_READ;
+            barrier.src_access_mask = vk::AccessFlags2::TRANSFER_WRITE;
+            barrier.dst_access_mask = vk::AccessFlags2::TRANSFER_READ;
+            barrier.src_stage_mask = vk::PipelineStageFlags2::TRANSFER;
+            barrier.dst_stage_mask = vk::PipelineStageFlags2::TRANSFER;
 
-            unsafe {
-                device.cmd_pipeline_barrier(
-                    command_buffer,
-                    vk::PipelineStageFlags::TRANSFER,
-                    vk::PipelineStageFlags::TRANSFER,
-                    vk::DependencyFlags::empty(),
-                    &[],
-                    &[],
-                    &[barrier],
-                )
-            };
+            let binding = [barrier];
+            let dep_info = vk::DependencyInfo::default()
+                .image_memory_barriers(&binding)
+                .dependency_flags(vk::DependencyFlags::BY_REGION);
+    
+            unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
             let src_subresource = vk::ImageSubresourceLayers::default()
                 .aspect_mask(vk::ImageAspectFlags::COLOR)
@@ -319,20 +316,17 @@ impl VulkanImage {
 
             barrier.old_layout = vk::ImageLayout::TRANSFER_SRC_OPTIMAL;
             barrier.new_layout = vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
-            barrier.src_access_mask = vk::AccessFlags::TRANSFER_READ;
-            barrier.dst_access_mask = vk::AccessFlags::SHADER_READ;
+            barrier.src_access_mask = vk::AccessFlags2::TRANSFER_READ;
+            barrier.dst_access_mask = vk::AccessFlags2::SHADER_READ;
+            barrier.src_stage_mask = vk::PipelineStageFlags2::TRANSFER;
+            barrier.dst_stage_mask = vk::PipelineStageFlags2::FRAGMENT_SHADER;
 
-            unsafe {
-                device.cmd_pipeline_barrier(
-                    command_buffer,
-                    vk::PipelineStageFlags::TRANSFER,
-                    vk::PipelineStageFlags::FRAGMENT_SHADER,
-                    vk::DependencyFlags::empty(),
-                    &[],
-                    &[],
-                    &[barrier],
-                )
-            };
+            let binding = [barrier];
+            let dep_info = vk::DependencyInfo::default()
+                .image_memory_barriers(&binding)
+                .dependency_flags(vk::DependencyFlags::BY_REGION);
+    
+            unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
             if mip_width > 1 {
                 mip_width /= 2;
@@ -346,20 +340,17 @@ impl VulkanImage {
         barrier.subresource_range.base_mip_level = mip_level - 1;
         barrier.old_layout = vk::ImageLayout::TRANSFER_DST_OPTIMAL;
         barrier.new_layout = vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL;
-        barrier.src_access_mask = vk::AccessFlags::TRANSFER_WRITE;
-        barrier.dst_access_mask = vk::AccessFlags::SHADER_READ;
+        barrier.src_access_mask = vk::AccessFlags2::TRANSFER_WRITE;
+        barrier.dst_access_mask = vk::AccessFlags2::SHADER_READ;
+        barrier.src_stage_mask = vk::PipelineStageFlags2::BLIT;
+        barrier.dst_stage_mask = vk::PipelineStageFlags2::FRAGMENT_SHADER;
 
-        unsafe {
-            device.cmd_pipeline_barrier(
-                command_buffer,
-                vk::PipelineStageFlags::TRANSFER,
-                vk::PipelineStageFlags::FRAGMENT_SHADER,
-                vk::DependencyFlags::empty(),
-                &[],
-                &[],
-                &[barrier],
-            )
-        };
+        let binding = [barrier];
+        let dep_info = vk::DependencyInfo::default()
+            .image_memory_barriers(&binding)
+            .dependency_flags(vk::DependencyFlags::BY_REGION);
+
+        unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
         end_single_time_command(device, command_pool, submit_queue, command_buffer);
     }
