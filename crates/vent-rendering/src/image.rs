@@ -267,7 +267,7 @@ impl VulkanImage {
             let dep_info = vk::DependencyInfo::default()
                 .image_memory_barriers(&binding)
                 .dependency_flags(vk::DependencyFlags::BY_REGION);
-    
+
             unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
             let src_subresource = vk::ImageSubresourceLayers::default()
@@ -325,7 +325,7 @@ impl VulkanImage {
             let dep_info = vk::DependencyInfo::default()
                 .image_memory_barriers(&binding)
                 .dependency_flags(vk::DependencyFlags::BY_REGION);
-    
+
             unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
             if mip_width > 1 {

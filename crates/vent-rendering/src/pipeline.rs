@@ -4,6 +4,7 @@ use ash::{util::read_spv, vk};
 
 use crate::instance::VulkanInstance;
 
+
 ///
 /// Creates an Simple Pipeline from an Vertex & Fragment Shader
 ///
@@ -21,15 +22,11 @@ pub fn create_simple_pipeline(
     attrib_desc: &[vk::VertexInputAttributeDescription],
     surface_resolution: vk::Extent2D,
 ) -> vk::Pipeline {
-    let vertex_code = read_spv(
-        &mut File::open(vertex_file.with_extension("spv")).expect("Failed to open Vertex File"),
-    )
-    .unwrap();
+    let vertex_code =
+        read_spv(&mut File::open(vertex_file).expect("Failed to open Vertex File")).unwrap();
     let vertex_module_info = vk::ShaderModuleCreateInfo::default().code(&vertex_code);
-    let fragment_code = read_spv(
-        &mut File::open(fragment_file.with_extension("spv")).expect("Failed to open Fragment File"),
-    )
-    .unwrap();
+    let fragment_code =
+        read_spv(&mut File::open(fragment_file).expect("Failed to open Fragment File")).unwrap();
     let fragment_module_info = vk::ShaderModuleCreateInfo::default().code(&fragment_code);
 
     let vertex_module = unsafe {
@@ -60,6 +57,7 @@ pub fn create_simple_pipeline(
             ..Default::default()
         },
     ];
+    
 
     let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::default()
         .vertex_attribute_descriptions(attrib_desc)
@@ -139,3 +137,27 @@ pub fn create_simple_pipeline(
 
     graphics_pipelines[0]
 }
+
+fn conv_shader_stage(model: spirv::ExecutionModel) -> vk::ShaderStageFlags {
+     match model {
+        spirv::ExecutionModel::Vertex => vk::ShaderStageFlags::VERTEX,
+        spirv::ExecutionModel::TessellationControl => vk::ShaderStageFlags::TESSELLATION_CONTROL,
+        spirv::ExecutionModel::TessellationEvaluation => vk::ShaderStageFlags::TESSELLATION_EVALUATION,
+        spirv::ExecutionModel::Geometry => vk::ShaderStageFlags::GEOMETRY,
+        spirv::ExecutionModel::Fragment => vk::ShaderStageFlags::FRAGMENT,
+        spirv::ExecutionModel::GLCompute => vk::ShaderStageFlags::COMPUTE,
+        spirv::ExecutionModel::Kernel => todo!(),
+        spirv::ExecutionModel::TaskNV => vk::ShaderStageFlags::TASK_NV,
+        spirv::ExecutionModel::MeshNV => vk::ShaderStageFlags::MESH_NV,
+        spirv::ExecutionModel::RayGenerationNV => vk::ShaderStageFlags::RAYGEN_NV,
+        spirv::ExecutionModel::IntersectionNV => vk::ShaderStageFlags::INTERSECTION_NV,
+        spirv::ExecutionModel::AnyHitNV => vk::ShaderStageFlags::ANY_HIT_NV,
+        spirv::ExecutionModel::ClosestHitNV => vk::ShaderStageFlags::CLOSEST_HIT_NV,
+        spirv::ExecutionModel::MissNV => vk::ShaderStageFlags::MISS_NV,
+        spirv::ExecutionModel::CallableNV => vk::ShaderStageFlags::CALLABLE_NV,
+        spirv::ExecutionModel::TaskEXT => vk::ShaderStageFlags::TASK_EXT,
+        spirv::ExecutionModel::MeshEXT => vk::ShaderStageFlags::MESH_EXT,
+    }
+}
+
+

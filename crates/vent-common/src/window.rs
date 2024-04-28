@@ -3,11 +3,14 @@ pub struct VentWindow {
     pub event_loop: winit::event_loop::EventLoop<()>,
 }
 
+
+
+
 impl VentWindow {
     #[must_use]
-    pub fn new(builder: winit::window::WindowBuilder) -> Self {
+    pub fn new(attributes: winit::window::WindowAttributes) -> Self {
         let event_loop = winit::event_loop::EventLoop::new().unwrap();
-        let window = builder.build(&event_loop).expect("Failed to Create Window");
+        let window = event_loop.create_window(attributes).expect("Failed to Create Window");
 
         Self { window, event_loop }
     }

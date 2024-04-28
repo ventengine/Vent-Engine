@@ -14,6 +14,7 @@ use self::obj::OBJLoader;
 
 mod gltf;
 mod obj;
+mod optimizer;
 
 #[derive(Debug)]
 pub enum ModelError {

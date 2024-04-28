@@ -1,4 +1,6 @@
-use std::mem::{self, offset_of};
+use std::{
+    mem::{self, offset_of},
+};
 
 use ash::vk;
 
@@ -24,7 +26,7 @@ pub trait Vertex {
     fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3];
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Vertex3D {
     pub position: [f32; 3],
     pub tex_coord: [f32; 2],

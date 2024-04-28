@@ -9,7 +9,7 @@ use ash::{
     util::read_spv,
     vk::{self},
 };
-use gltf::{material::AlphaMode, mesh::Mode, texture::Sampler};
+use gltf::{material::AlphaMode, mesh::{Mode}, texture::Sampler};
 use image::DynamicImage;
 use vent_rendering::{
     image::VulkanImage, instance::VulkanInstance, MaterialPipelineInfo, Vertex, Vertex3D,
@@ -17,7 +17,7 @@ use vent_rendering::{
 
 use crate::{Material, Model3D, ModelPipeline};
 
-use super::{Mesh3D, ModelError};
+use super::{optimizer, Mesh3D, ModelError};
 
 pub(crate) struct GLTFLoader {}
 
@@ -382,7 +382,6 @@ impl GLTFLoader {
     }
 
     /// Converts an gltf Texture Sampler into Vulkan Sampler Info
-    #[must_use]
     fn convert_sampler<'a>(
         sampler: &'a gltf::texture::Sampler<'a>,
     ) -> vk::SamplerCreateInfo<'static> {
@@ -483,6 +482,8 @@ impl GLTFLoader {
                 vertices[tex_coord_index].tex_coord = tex_coord;
             }
         }
+
+        let vertices = optimizer::optimize_vertices(vertices);
 
         let indices: Vec<_> = reader.read_indices().unwrap().into_u32().collect();
         (vertices, indices)

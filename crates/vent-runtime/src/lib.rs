@@ -7,8 +7,7 @@ use vent_common::project::VentApplicationProject;
 
 use vent_common::util::crash::init_panic_hook;
 use vent_common::window::VentWindow;
-use winit::event::{DeviceEvent, Event, WindowEvent};
-use winit::window::WindowBuilder;
+use winit::{event::{DeviceEvent, Event, WindowEvent}, window::WindowAttributes};
 
 pub mod render;
 
@@ -40,14 +39,13 @@ impl VentApplication {
     }
 
     pub fn start(self) {
-        let window_builder = WindowBuilder::new().with_title(self.project.name);
+        let window_builder = WindowAttributes::default().with_title(self.project.name);
         let vent_window = VentWindow::new(window_builder);
 
         // TODO
         let mut renderer = DefaultRuntimeRenderer::new(
             Dimension::D3,
             &vent_window.window,
-            &vent_window.event_loop,
         );
 
         let mut controller = CameraController3D::new(1000.0, 10.0);

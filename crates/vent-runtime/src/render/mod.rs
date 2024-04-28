@@ -30,7 +30,6 @@ impl DefaultRuntimeRenderer {
     pub(crate) fn new(
         dimension: Dimension,
         window: &winit::window::Window,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
     ) -> Self {
         let instance = VulkanInstance::new("TODO", window);
         let window_size = window.inner_size();
@@ -39,7 +38,7 @@ impl DefaultRuntimeRenderer {
             &dimension,
         );
         let runtime_renderer =
-            RawRuntimeRenderer::new(dimension, &instance, event_loop, camera.as_mut());
+            RawRuntimeRenderer::new(dimension, &instance,  camera.as_mut());
         Self {
             instance,
             runtime_renderer,
@@ -113,7 +112,6 @@ impl RawRuntimeRenderer {
     pub fn new(
         dimension: Dimension,
         instance: &VulkanInstance,
-        _event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         camera: &mut dyn Camera,
     ) -> Self {
         let multi_renderer: Box<dyn Renderer> = match dimension {
