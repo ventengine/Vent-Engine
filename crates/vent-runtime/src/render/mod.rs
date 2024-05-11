@@ -2,8 +2,6 @@ use std::time::{Duration, Instant};
 
 use ash::vk;
 use vent_rendering::instance::VulkanInstance;
-use winit::dpi::PhysicalSize;
-use winit::window::Window;
 
 use self::camera::{from_dimension, Camera};
 use self::d2::Renderer2D;
@@ -27,18 +25,11 @@ pub(crate) struct DefaultRuntimeRenderer {
 }
 
 impl DefaultRuntimeRenderer {
-    pub(crate) fn new(
-        dimension: Dimension,
-        window: &winit::window::Window,
-    ) -> Self {
+    pub(crate) fn new(dimension: Dimension, window: &vent_window::Window) -> Self {
         let instance = VulkanInstance::new("TODO", window);
-        let window_size = window.inner_size();
-        let mut camera = from_dimension(
-            window_size.width as f32 / window_size.height as f32,
-            &dimension,
-        );
-        let runtime_renderer =
-            RawRuntimeRenderer::new(dimension, &instance,  camera.as_mut());
+        let window_size = window.size();
+        let mut camera = from_dimension(window_size.0 as f32 / window_size.1 as f32, &dimension);
+        let runtime_renderer = RawRuntimeRenderer::new(dimension, &instance, camera.as_mut());
         Self {
             instance,
             runtime_renderer,
@@ -46,24 +37,24 @@ impl DefaultRuntimeRenderer {
         }
     }
 
-    pub(crate) fn progress_event(&mut self, event: &winit::event::WindowEvent) {
+    pub(crate) fn progress_event(&mut self, event: &vent_window::WindowEvent) {
         self.runtime_renderer.progress_event(event);
     }
 
-    pub(crate) fn render(&mut self, window: &winit::window::Window) -> f32 {
+    pub(crate) fn render(&mut self, window_size: (u32, u32)) -> f32 {
         self.runtime_renderer
-            .render(&mut self.instance, window, self.camera.as_mut())
+            .render(&mut self.instance, window_size, self.camera.as_mut())
     }
 
-    pub(crate) fn resize(&mut self, new_size: &PhysicalSize<u32>) {
+    pub(crate) fn resize(&mut self, new_size: (u32, u32)) {
         let old_size = self.instance.surface_resolution;
-        if old_size.width == new_size.width && old_size.height == new_size.height {
+        if old_size.width == new_size.0 && old_size.height == new_size.1 {
             return;
         }
 
         log::info!("Resizing to {:?} ", new_size);
         self.camera
-            .recreate_projection(new_size.width as f32 / new_size.height as f32);
+            .recreate_projection(new_size.0 as f32 / new_size.1 as f32);
         self.runtime_renderer
             .resize(&mut self.instance, new_size, self.camera.as_mut());
     }
@@ -88,7 +79,7 @@ pub trait Renderer {
     fn resize(
         &mut self,
         instance: &mut VulkanInstance,
-        new_size: &PhysicalSize<u32>,
+        new_size: (u32, u32),
         camera: &mut dyn Camera,
     );
 
@@ -109,11 +100,7 @@ pub struct RawRuntimeRenderer {
 }
 
 impl RawRuntimeRenderer {
-    pub fn new(
-        dimension: Dimension,
-        instance: &VulkanInstance,
-        camera: &mut dyn Camera,
-    ) -> Self {
+    pub fn new(dimension: Dimension, instance: &VulkanInstance, camera: &mut dyn Camera) -> Self {
         let multi_renderer: Box<dyn Renderer> = match dimension {
             Dimension::D2 => Box::new(Renderer2D::init(instance, camera)),
             Dimension::D3 => Box::new(Renderer3D::init(instance, camera)),
@@ -139,7 +126,7 @@ impl RawRuntimeRenderer {
     pub fn render(
         &mut self,
         instance: &mut VulkanInstance,
-        window: &Window,
+        window_size: (u32, u32), // TODO
         camera: &mut dyn Camera,
     ) -> f32 {
         let frame_start = Instant::now();
@@ -152,11 +139,11 @@ impl RawRuntimeRenderer {
                 let result = instance.submit(image_index);
                 if let Err(vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR) = result
                 {
-                    instance.recreate_swap_chain(&window.inner_size());
+                    instance.recreate_swap_chain(window_size);
                 }
             }
             Err(vk::Result::ERROR_OUT_OF_DATE_KHR) => {
-                instance.recreate_swap_chain(&window.inner_size());
+                instance.recreate_swap_chain(window_size);
             }
             Err(_) => {}
         }
@@ -209,14 +196,14 @@ impl RawRuntimeRenderer {
         }
     }
 
-    pub fn progress_event(&mut self, event: &winit::event::WindowEvent) {
-        self.gui_renderer.progress_event(event);
+    pub fn progress_event(&mut self, event: &vent_window::WindowEvent) {
+        // self.gui_renderer.progress_event(event);
     }
 
     pub fn resize(
         &mut self,
         instance: &mut VulkanInstance,
-        new_size: &PhysicalSize<u32>,
+        new_size: (u32, u32),
         camera: &mut dyn Camera,
     ) {
         // Uses the NEW Resized config

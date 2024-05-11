@@ -10,10 +10,10 @@ vent-common = { path = "../vent-common"}
 vent-rendering = { path = "../vent-rendering"}
 vent-assets = { path = "../vent-assets" }
 vent-ecs = { path = "../vent-ecs"}
+vent-window = { path = "../vent-window"}
 
 ash = { version= "0.38", default-features = false, features = ["linked", "debug"] }
 
-winit = "0.30"
 pollster = "0.3.0"
 log = "0.4"
 

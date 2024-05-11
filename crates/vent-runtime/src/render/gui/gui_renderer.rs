@@ -89,8 +89,4 @@ impl EguiRenderer {
         //     sampler_descriptor,
         // )
     }
-
-    pub fn progress_event(&mut self, _event: &winit::event::WindowEvent) {
-        // let _ = self.state.on_event(&self.context, event);
-    }
 }

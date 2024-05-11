@@ -1,6 +1,4 @@
-use std::{
-    mem::{self, offset_of},
-};
+use std::mem::{self, offset_of};
 
 use ash::vk;
 

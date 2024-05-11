@@ -70,17 +70,17 @@ impl CameraController3D {
         false
     }
 
-    pub fn process_mouse_input(
-        &mut self,
-        window: &winit::window::Window,
-        button: &winit::event::MouseButton,
-        state: &winit::event::ElementState,
-    ) {
-        if button == &winit::event::MouseButton::Left {
-            self.mouse_left_down = state == &winit::event::ElementState::Pressed;
-            window.set_cursor_visible(!self.mouse_left_down);
-        }
-    }
+    // pub fn process_mouse_input(
+    //     &mut self,
+    //     window: &winit::window::Window,
+    //     button: &winit::event::MouseButton,
+    //     state: &winit::event::ElementState,
+    // ) {
+    //     if button == &winit::event::MouseButton::Left {
+    //         self.mouse_left_down = state == &winit::event::ElementState::Pressed;
+    //         window.set_cursor_visible(!self.mouse_left_down);
+    //     }
+    // }
 
     pub fn process_mouse_movement(
         &self,

@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+vent-window = { path= "../vent-window"}
 ash = { version= "0.38", default-features = false, features = ["linked", "debug", "std"] }
 spirv = "0.3.0"
 
 image = "0.25"
 
-winit = "0.30"
 raw-window-handle = "0.6"
 log = "0.4"
 

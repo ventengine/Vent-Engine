@@ -5,7 +5,7 @@ use vent_rendering::{any_as_u8_slice, instance::VulkanInstance};
 
 use super::{d3::Camera3DData, Dimension};
 
-pub mod camera_controller3d;
+// pub mod camera_controller3d;
 
 pub trait Camera: Downcast {
     fn new(aspect_ratio: f32) -> Self
