@@ -1,6 +1,5 @@
 use std::ptr::NonNull;
 
-use platform::wayland::WaylandWindow;
 use rwh_06::{
     DisplayHandle, HasDisplayHandle, HasRawDisplayHandle, HasWindowHandle, RawDisplayHandle,
     WaylandDisplayHandle,
@@ -61,15 +60,13 @@ impl EventLoop {
 }
 
 pub struct Window {
-    attribs: WindowAttribs,
-    window: WaylandWindow,
+    window: platform::PlatformWindow,
 }
 
 impl Window {
-    pub fn new(attribs: WindowAttribs) -> Self {
+    pub fn new(inital_attribs: WindowAttribs) -> Self {
         Self {
-            window: WaylandWindow::create_window(&attribs),
-            attribs,
+            window: platform::PlatformWindow::create_window(&inital_attribs),
         }
     }
 
@@ -81,15 +78,15 @@ impl Window {
     }
 
     pub fn width(&self) -> u32 {
-        self.attribs.width
+        self.window.width()
     }
 
     pub fn height(&self) -> u32 {
-        self.attribs.height
+        self.window.height()
     }
 
     pub fn size(&self) -> (u32, u32) {
-        (self.attribs.width, self.attribs.height)
+        (self.window.width(), self.window.height())
     }
 }
 

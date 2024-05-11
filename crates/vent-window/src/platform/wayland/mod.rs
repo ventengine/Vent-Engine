@@ -21,7 +21,7 @@ use wayland_protocols_plasma::server_decoration;
 
 use crate::{Window, WindowAttribs, WindowEvent};
 
-pub struct WaylandWindow {
+pub struct PlatformWindow {
     pub display: WlDisplay,
     event_queue: EventQueue<State>,
     state: State,
@@ -29,8 +29,8 @@ pub struct WaylandWindow {
 
 struct State {
     running: bool,
-    width: u32,
-    height: u32,
+    pub width: u32,
+    pub height: u32,
     base_surface: Option<wl_surface::WlSurface>,
     buffer: Option<wl_buffer::WlBuffer>,
     wm_base: Option<xdg_wm_base::XdgWmBase>,
@@ -193,7 +193,7 @@ impl Dispatch<ZxdgDecorationManagerV1, ()> for State {
 }
 
 
-impl WaylandWindow {
+impl PlatformWindow {
     pub fn create_window(attribs: &WindowAttribs) -> Self {
         let conn = wayland_client::Connection::connect_to_env().expect("Failed to get connection");
         println!("Connected to Wayland Server");
@@ -237,7 +237,7 @@ impl WaylandWindow {
       //  let xdg_decoration_manager: ZxdgDecorationManagerV1  = globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
 
 
-        WaylandWindow {
+      PlatformWindow {
             display,
             state,
             event_queue,
@@ -257,6 +257,14 @@ impl WaylandWindow {
         }
     }
 
+    pub fn width(&self) -> u32 {
+        self.state.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.state.height
+    }
+
     pub fn raw_display_handle(&self) -> RawDisplayHandle {
         RawDisplayHandle::Wayland(
             WaylandDisplayHandle::new(NonNull::new(self.display.id().as_ptr().cast()).unwrap())
@@ -272,7 +280,7 @@ impl WaylandWindow {
     }
 }
 
-impl Drop for WaylandWindow {
+impl Drop for PlatformWindow {
     fn drop(&mut self) {
         self.event_queue
             .flush()
