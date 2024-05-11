@@ -1,11 +1,7 @@
-use std::ptr::NonNull;
 
 use rwh_06::{
-    DisplayHandle, HasDisplayHandle, HasRawDisplayHandle, HasWindowHandle, RawDisplayHandle,
-    WaylandDisplayHandle,
+    DisplayHandle, HasDisplayHandle, HasRawDisplayHandle, HasWindowHandle,
 };
-use wayland_client::Proxy;
-
 pub mod platform;
 
 #[derive(PartialEq, Clone)]
@@ -40,6 +36,12 @@ impl Default for WindowAttribs {
 
 pub struct EventLoop {
     windows: Vec<Window>,
+}
+
+impl Default for EventLoop {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl EventLoop {

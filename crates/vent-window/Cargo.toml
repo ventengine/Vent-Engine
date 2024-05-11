@@ -3,6 +3,15 @@ name = "vent-window"
 version.workspace = true
 edition.workspace = true
 
+targets = [
+    # Windows
+    "i686-pc-windows-msvc",
+    "x86_64-pc-windows-msvc",
+    # Unix Wayland
+    "i686-unknown-linux-gnu",
+    "x86_64-unknown-linux-gnu",
+]
+
 [features]
 default = ["wayland"]
 wayland = [
@@ -20,8 +29,6 @@ rwh_06 = { package = "raw-window-handle", version = "0.6", features = [
     "std",
 ]}
 
-
-
 [target.'cfg(all(unix, not(any(target_os = "redox", target_family = "wasm", target_os = "android", target_os = "ios", target_os = "macos"))))'.dependencies]
 wayland-backend = { version = "0.3.0", features = ["client_system"], optional = true }
 wayland-client = { version = "0.31.2", optional = true }
@@ -34,3 +41,32 @@ wayland-protocols-plasma = { version = "0.2.0", features = [
 wayland-protocols-wlr = { version = "0.2.0", features = ["client"], optional = true }
 wayland-scanner = {version=  "0.31.0", optional = true }
 wayland-csd-frame = { version= "0.3.0", optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies.windows-sys]
+version = "0.52.0"
+features = [
+    "Win32_Devices_HumanInterfaceDevice",
+    "Win32_Foundation",
+    "Win32_Globalization",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Media",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Com",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Ole",
+    "Win32_System_SystemInformation",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_System_WindowsProgramming",
+    "Win32_UI_Accessibility",
+    "Win32_UI_Controls",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_Ime",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Input_Pointer",
+    "Win32_UI_Input_Touch",
+    "Win32_UI_Shell",
+    "Win32_UI_TextServices",
+    "Win32_UI_WindowsAndMessaging",
+]

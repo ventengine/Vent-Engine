@@ -1935,6 +1935,7 @@ dependencies = [
  "wayland-protocols-plasma",
  "wayland-protocols-wlr",
  "wayland-scanner",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

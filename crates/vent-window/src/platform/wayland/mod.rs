@@ -16,7 +16,10 @@ use wayland_client::{
     },
     Connection, Dispatch, EventQueue, Proxy, QueueHandle, WEnum,
 };
-use wayland_protocols::xdg::{decoration::zv1::client::zxdg_decoration_manager_v1::ZxdgDecorationManagerV1, shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base}};
+use wayland_protocols::xdg::{
+    decoration::zv1::client::zxdg_decoration_manager_v1::ZxdgDecorationManagerV1,
+    shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base},
+};
 use wayland_protocols_plasma::server_decoration;
 
 use crate::{Window, WindowAttribs, WindowEvent};
@@ -50,7 +53,7 @@ impl State {
 
         let xdg_surface = wm_base.get_xdg_surface(base_surface, qh, ());
         let toplevel = xdg_surface.get_toplevel(qh, ());
-        toplevel.set_title("Vent Engine!".into());
+        toplevel.set_title("Vent Engine".into());
         toplevel.set_app_id("com.ventengine.VentEngine".into());
 
         self.xdg_surface = Some((xdg_surface, toplevel));
@@ -192,7 +195,6 @@ impl Dispatch<ZxdgDecorationManagerV1, ()> for State {
     }
 }
 
-
 impl PlatformWindow {
     pub fn create_window(attribs: &WindowAttribs) -> Self {
         let conn = wayland_client::Connection::connect_to_env().expect("Failed to get connection");
@@ -234,10 +236,9 @@ impl PlatformWindow {
             .1
             .show_window_menu(&wl_seat, 0, 0, 0);
         state.base_surface.as_ref().unwrap().commit();
-      //  let xdg_decoration_manager: ZxdgDecorationManagerV1  = globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
+        //  let xdg_decoration_manager: ZxdgDecorationManagerV1  = globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
 
-
-      PlatformWindow {
+        PlatformWindow {
             display,
             state,
             event_queue,
