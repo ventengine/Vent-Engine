@@ -64,9 +64,9 @@ A Window creation & management Library
 | Window Creation     | ✅️    |
 | Window Decorations  | ❌    |
 | Event Handling      | ✅️     |
-| Full-Screen         | ❌     |
-| Window Minimization | ❌     |
-| Window Maximization | ❌     |
+| Full-Screen         | ✅️     |
+| Window Minimization | ✅️     |
+| Window Maximization | ✅️     |
 | Window Resizing     | ❌     |
 | Vulkan Rendering    | ✅️     |
 | Keyboard Support    | ❌     |

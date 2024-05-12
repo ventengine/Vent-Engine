@@ -11,15 +11,30 @@ pub enum WindowEvent {
 
 enum WindowError {}
 
+#[derive(PartialEq)]
+pub enum WindowMode {
+    Default,
+    FullScreen,
+    Maximized,
+    Minimized,
+}
+
 pub struct WindowAttribs {
     title: String,
     width: u32,
     height: u32,
+    mode: WindowMode,
+    min_size: Option<(u32, u32)>,
+    max_size: Option<(u32, u32)>
 }
 
 impl WindowAttribs {
     pub fn with_title(mut self, title: String) -> Self {
         self.title = title;
+        self
+    }
+    pub fn set_mode(mut self, mode: WindowMode) -> Self {
+        self.mode = mode;
         self
     }
 }
@@ -30,6 +45,9 @@ impl Default for WindowAttribs {
             title: "Vent Engine".to_string(),
             width: 800,
             height: 600,
+            mode: WindowMode::Default,
+            max_size: None,
+            min_size: None
         }
     }
 }

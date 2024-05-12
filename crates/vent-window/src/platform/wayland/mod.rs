@@ -22,7 +22,7 @@ use wayland_protocols::xdg::{
 };
 use wayland_protocols_plasma::server_decoration;
 
-use crate::{Window, WindowAttribs, WindowEvent};
+use crate::{Window, WindowAttribs, WindowEvent, WindowMode};
 
 pub struct PlatformWindow {
     pub display: WlDisplay,
@@ -47,14 +47,28 @@ delegate_noop!(State: ignore wl_shm_pool::WlShmPool);
 delegate_noop!(State: ignore wl_buffer::WlBuffer);
 
 impl State {
-    fn init_xdg_surface(&mut self, qh: &QueueHandle<State>) {
+    fn init_xdg_surface(&mut self, qh: &QueueHandle<State>, attris: &WindowAttribs) {
         let wm_base = self.wm_base.as_ref().unwrap();
         let base_surface = self.base_surface.as_ref().unwrap();
 
         let xdg_surface = wm_base.get_xdg_surface(base_surface, qh, ());
         let toplevel = xdg_surface.get_toplevel(qh, ());
-        toplevel.set_title("Vent Engine".into());
+        toplevel.set_title(attris.title.clone());
         toplevel.set_app_id("com.ventengine.VentEngine".into());
+        
+        match attris.mode {
+            WindowMode::FullScreen => toplevel.set_fullscreen(None),
+            WindowMode::Maximized => toplevel.set_maximized(),
+            WindowMode::Minimized => toplevel.set_minimized(),
+            _ => {}
+        }
+        if let Some(max_size) = attris.max_size  {
+            toplevel.set_max_size(max_size.0 as i32, max_size.1 as i32)
+        }
+
+        if let Some(min_size) = attris.min_size  {
+            toplevel.set_min_size(min_size.0 as i32, min_size.1 as i32)
+        }
 
         self.xdg_surface = Some((xdg_surface, toplevel));
     }
@@ -225,7 +239,7 @@ impl PlatformWindow {
         state.base_surface = Some(surface);
 
         if state.wm_base.is_some() && state.xdg_surface.is_none() {
-            state.init_xdg_surface(&qhandle);
+            state.init_xdg_surface(&qhandle, attribs);
         }
 
         let wl_seat: wl_seat::WlSeat = globals.bind(&event_queue.handle(), 4..=5, ()).unwrap();
