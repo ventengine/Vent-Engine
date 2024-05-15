@@ -1,7 +1,4 @@
-use std::{
-    ffi::{c_uint},
-    ptr::{null_mut},
-};
+use std::{ffi::c_uint, ptr::null_mut};
 
 use rwh_06::{RawDisplayHandle, RawWindowHandle, Win32WindowHandle, WindowsDisplayHandle};
 use windows_sys::Win32::{
@@ -118,6 +115,10 @@ impl PlatformWindow {
         };
         window_handle.hinstance = std::num::NonZeroIsize::new(hinstance);
         RawWindowHandle::Win32(window_handle)
+    }
+
+    pub fn close(&mut self) {
+        todo!()
     }
 }
 

@@ -1,3 +1,5 @@
+use std::process::exit;
+
 use crate::render::Dimension;
 
 use render::DefaultRuntimeRenderer;
@@ -53,6 +55,8 @@ impl VentApplication {
         event_loop.poll(move |event| {
             if event == WindowEvent::Draw {
                 delta_time = renderer.render(window_size); // Default
+            } else if event == WindowEvent::Close {
+                exit(0) // maybe not so pretty
             }
         });
 

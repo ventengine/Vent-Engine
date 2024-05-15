@@ -1,11 +1,12 @@
-
-use rwh_06::{
-    DisplayHandle, HasDisplayHandle, HasRawDisplayHandle, HasWindowHandle,
-};
+use keyboard::{Key, KeyState};
+use rwh_06::{DisplayHandle, HasDisplayHandle, HasWindowHandle};
+pub mod keyboard;
 pub mod platform;
 
 #[derive(PartialEq, Clone)]
 pub enum WindowEvent {
+    Close,
+    Key { key: Key, state: KeyState },
     Draw,
 }
 
@@ -25,7 +26,7 @@ pub struct WindowAttribs {
     height: u32,
     mode: WindowMode,
     min_size: Option<(u32, u32)>,
-    max_size: Option<(u32, u32)>
+    max_size: Option<(u32, u32)>,
 }
 
 impl WindowAttribs {
@@ -47,7 +48,7 @@ impl Default for WindowAttribs {
             height: 600,
             mode: WindowMode::Default,
             max_size: None,
-            min_size: None
+            min_size: None,
         }
     }
 }
@@ -95,6 +96,10 @@ impl Window {
         F: FnMut(WindowEvent),
     {
         self.window.poll(event_handler);
+    }
+
+    pub fn close(&mut self) {
+        self.window.close()
     }
 
     pub fn width(&self) -> u32 {

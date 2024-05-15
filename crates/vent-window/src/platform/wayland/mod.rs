@@ -16,10 +16,10 @@ use wayland_client::{
     },
     Connection, Dispatch, EventQueue, Proxy, QueueHandle, WEnum,
 };
-use wayland_protocols::xdg::{
+use wayland_protocols::{wp::input_method::zv1, xdg::{
     decoration::zv1::client::zxdg_decoration_manager_v1::ZxdgDecorationManagerV1,
     shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base},
-};
+}};
 use wayland_protocols_plasma::server_decoration;
 
 use crate::{Window, WindowAttribs, WindowEvent, WindowMode};
@@ -39,6 +39,8 @@ struct State {
     wm_base: Option<xdg_wm_base::XdgWmBase>,
     xdg_surface: Option<(xdg_surface::XdgSurface, xdg_toplevel::XdgToplevel)>,
     configured: bool,
+
+    pending_events: Vec<WindowEvent>,
 }
 
 delegate_noop!(State: ignore wl_surface::WlSurface);
@@ -55,18 +57,18 @@ impl State {
         let toplevel = xdg_surface.get_toplevel(qh, ());
         toplevel.set_title(attris.title.clone());
         toplevel.set_app_id("com.ventengine.VentEngine".into());
-        
+
         match attris.mode {
             WindowMode::FullScreen => toplevel.set_fullscreen(None),
             WindowMode::Maximized => toplevel.set_maximized(),
             WindowMode::Minimized => toplevel.set_minimized(),
             _ => {}
         }
-        if let Some(max_size) = attris.max_size  {
+        if let Some(max_size) = attris.max_size {
             toplevel.set_max_size(max_size.0 as i32, max_size.1 as i32)
         }
 
-        if let Some(min_size) = attris.min_size  {
+        if let Some(min_size) = attris.min_size {
             toplevel.set_min_size(min_size.0 as i32, min_size.1 as i32)
         }
 
@@ -83,7 +85,13 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        if let wl_keyboard::Event::Key { key, .. } = event {
+        if let wl_keyboard::Event::Key {
+            key,
+            serial,
+            time,
+            state: key_state,
+        } = event
+        {
             if key == 1 {
                 // ESC key
                 state.running = false;
@@ -158,7 +166,7 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
         _: &QueueHandle<Self>,
     ) {
         if let xdg_toplevel::Event::Close {} = event {
-            state.running = false;
+            state.pending_events.push(WindowEvent::Close);
         }
         if let xdg_toplevel::Event::Configure {
             width,
@@ -223,6 +231,7 @@ impl PlatformWindow {
             wm_base: None,
             xdg_surface: None,
             configured: false,
+            pending_events: vec![],
         };
 
         let display = conn.display();
@@ -268,6 +277,11 @@ impl PlatformWindow {
                 .dispatch_pending(&mut self.state)
                 .expect("Failed to dispatch pending");
 
+            self.state
+                .pending_events
+                .drain(..)
+                .for_each(|event| event_handler(event));
+
             event_handler(WindowEvent::Draw);
         }
     }
@@ -293,12 +307,17 @@ impl PlatformWindow {
             WaylandWindowHandle::new(NonNull::new(ptr as *mut _).unwrap()).into(),
         )
     }
+
+    pub fn close(&mut self) {
+        self.event_queue
+            .flush()
+            .expect("Failed to flush Event Queue");
+        self.state.running = false;
+    }
 }
 
 impl Drop for PlatformWindow {
     fn drop(&mut self) {
-        self.event_queue
-            .flush()
-            .expect("Failed to flush Event Queue");
+        self.close()
     }
 }
