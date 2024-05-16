@@ -16,10 +16,15 @@ use wayland_client::{
     },
     Connection, Dispatch, EventQueue, Proxy, QueueHandle, WEnum,
 };
-use wayland_protocols::{wp::input_method::zv1, xdg::{
-    decoration::zv1::client::zxdg_decoration_manager_v1::ZxdgDecorationManagerV1,
-    shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base},
-}};
+use wayland_protocols::{
+    wp::input_method::zv1,
+    xdg::{
+        activation::v1::client::{xdg_activation_token_v1::XdgActivationTokenV1, xdg_activation_v1::{self, XdgActivationV1}}, decoration::zv1::client::{
+            zxdg_decoration_manager_v1::ZxdgDecorationManagerV1,
+            zxdg_toplevel_decoration_v1::ZxdgToplevelDecorationV1,
+        }, shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base}
+    },
+};
 use wayland_protocols_plasma::server_decoration;
 
 use crate::{Window, WindowAttribs, WindowEvent, WindowMode};
@@ -38,6 +43,8 @@ struct State {
     buffer: Option<wl_buffer::WlBuffer>,
     wm_base: Option<xdg_wm_base::XdgWmBase>,
     xdg_surface: Option<(xdg_surface::XdgSurface, xdg_toplevel::XdgToplevel)>,
+    xdg_decoration_manager: Option<ZxdgDecorationManagerV1>,
+    xdg_toplevel_decoration: Option<ZxdgToplevelDecorationV1>,
     configured: bool,
 
     pending_events: Vec<WindowEvent>,
@@ -72,7 +79,19 @@ impl State {
             toplevel.set_min_size(min_size.0 as i32, min_size.1 as i32)
         }
 
+        if let Some(manager) = &self.xdg_decoration_manager {
+            // if supported, let the compositor render titlebars for us
+            self.xdg_toplevel_decoration = Some(manager.get_toplevel_decoration(&toplevel, qh, ()));
+            self.xdg_toplevel_decoration.as_ref().unwrap().set_mode(wayland_protocols::xdg::decoration::zv1::client::zxdg_toplevel_decoration_v1::Mode::ServerSide);
+        }
+
         self.xdg_surface = Some((xdg_surface, toplevel));
+    }
+
+    fn init_xdg_activation(&mut self,qh: &QueueHandle<State>, xdg_activation_v1: XdgActivationV1) {
+        let token = xdg_activation_v1.get_activation_token(qh, ());
+        token.set_app_id("com.ventengine.VentEngine".into());
+        token.set_surface(&self.base_surface.as_ref().unwrap())
     }
 }
 
@@ -144,7 +163,7 @@ impl Dispatch<xdg_surface::XdgSurface, ()> for State {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
-        if let xdg_surface::Event::Configure { serial, .. } = event {
+        if let xdg_surface::Event::Configure { serial } = event {
             xdg_surface.ack_configure(serial);
             state.configured = true;
             let surface = state.base_surface.as_ref().unwrap();
@@ -168,10 +187,9 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
         if let xdg_toplevel::Event::Close {} = event {
             state.pending_events.push(WindowEvent::Close);
         }
-        if let xdg_toplevel::Event::Configure {
+        if let xdg_toplevel::Event::ConfigureBounds {
             width,
             height,
-            states,
         } = event
         {
             state.width = width as u32;
@@ -216,6 +234,42 @@ impl Dispatch<ZxdgDecorationManagerV1, ()> for State {
         todo!()
     }
 }
+impl Dispatch<ZxdgToplevelDecorationV1, ()> for State {
+    fn event(
+        state: &mut Self,
+        proxy: &ZxdgToplevelDecorationV1,
+        event: <ZxdgToplevelDecorationV1 as Proxy>::Event,
+        data: &(),
+        conn: &Connection,
+        qhandle: &QueueHandle<Self>,
+    ) {
+        todo!()
+    }
+}
+impl Dispatch<XdgActivationV1, ()> for State {
+    fn event(
+        state: &mut Self,
+        proxy: &XdgActivationV1,
+        event: <XdgActivationV1 as Proxy>::Event,
+        data: &(),
+        conn: &Connection,
+        qhandle: &QueueHandle<Self>,
+    ) {
+        todo!()
+    }
+}
+impl Dispatch<XdgActivationTokenV1, ()> for State {
+    fn event(
+        state: &mut Self,
+        proxy: &XdgActivationTokenV1,
+        event: <XdgActivationTokenV1 as Proxy>::Event,
+        data: &(),
+        conn: &Connection,
+        qhandle: &QueueHandle<Self>,
+    ) {
+        todo!()
+    }
+}
 
 impl PlatformWindow {
     pub fn create_window(attribs: &WindowAttribs) -> Self {
@@ -231,6 +285,8 @@ impl PlatformWindow {
             wm_base: None,
             xdg_surface: None,
             configured: false,
+            xdg_toplevel_decoration: None,
+            xdg_decoration_manager: None,
             pending_events: vec![],
         };
 
@@ -239,27 +295,31 @@ impl PlatformWindow {
         let (globals, event_queue) = registry_queue_init::<State>(&conn).unwrap();
         let qhandle = event_queue.handle();
 
-        let wm_base = globals.bind(&event_queue.handle(), 4..=5, ()).unwrap();
+        dbg!(&globals.contents());
+
+        let wm_base: xdg_wm_base::XdgWmBase = globals.bind(&event_queue.handle(), 1..=6 , ()).unwrap();
         state.wm_base = Some(wm_base);
 
         let compositor: wl_compositor::WlCompositor =
-            globals.bind(&event_queue.handle(), 4..=5, ()).unwrap();
+            globals.bind(&event_queue.handle(), 1..=6, ()).unwrap();
         let surface = compositor.create_surface(&qhandle, ());
         state.base_surface = Some(surface);
+
+        let wl_seat: wl_seat::WlSeat = globals.bind(&event_queue.handle(), 1..=6, ()).unwrap();
+        // let xdg_decoration_manager: ZxdgDecorationManagerV1 =
+        //     globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
+        // state.xdg_decoration_manager = Some(xdg_decoration_manager);
 
         if state.wm_base.is_some() && state.xdg_surface.is_none() {
             state.init_xdg_surface(&qhandle, attribs);
         }
-
-        let wl_seat: wl_seat::WlSeat = globals.bind(&event_queue.handle(), 4..=5, ()).unwrap();
-        state
-            .xdg_surface
-            .as_ref()
-            .unwrap()
-            .1
-            .show_window_menu(&wl_seat, 0, 0, 0);
         state.base_surface.as_ref().unwrap().commit();
-        //  let xdg_decoration_manager: ZxdgDecorationManagerV1  = globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
+
+        let xdg_activation: XdgActivationV1 =
+        globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
+
+        state.init_xdg_activation(&qhandle, xdg_activation);
+
 
         PlatformWindow {
             display,
