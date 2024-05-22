@@ -9,7 +9,7 @@ use ash::{
     util::read_spv,
     vk::{self},
 };
-use gltf::{material::AlphaMode, mesh::{Mode}, texture::Sampler};
+use gltf::{material::AlphaMode, mesh::Mode, texture::Sampler};
 use image::DynamicImage;
 use vent_rendering::{
     image::VulkanImage, instance::VulkanInstance, MaterialPipelineInfo, Vertex, Vertex3D,

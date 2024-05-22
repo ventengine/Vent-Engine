@@ -6,7 +6,6 @@ use vent_assets::Mesh3D;
 
 use vent_ecs::world::World;
 use vent_rendering::{any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex3D};
-use winit::dpi::PhysicalSize;
 
 use self::light_renderer::{LightRenderer, LightUBO};
 
@@ -214,7 +213,7 @@ impl Renderer for Renderer3D {
     fn resize(
         &mut self,
         _instance: &mut VulkanInstance,
-        _new_size: &PhysicalSize<u32>,
+        _new_size: (u32, u32),
         _camera: &mut dyn Camera,
     ) {
     }

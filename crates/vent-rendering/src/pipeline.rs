@@ -4,7 +4,6 @@ use ash::{util::read_spv, vk};
 
 use crate::instance::VulkanInstance;
 
-
 ///
 /// Creates an Simple Pipeline from an Vertex & Fragment Shader
 ///
@@ -57,7 +56,6 @@ pub fn create_simple_pipeline(
             ..Default::default()
         },
     ];
-    
 
     let vertex_input_state_info = vk::PipelineVertexInputStateCreateInfo::default()
         .vertex_attribute_descriptions(attrib_desc)
@@ -139,10 +137,12 @@ pub fn create_simple_pipeline(
 }
 
 fn conv_shader_stage(model: spirv::ExecutionModel) -> vk::ShaderStageFlags {
-     match model {
+    match model {
         spirv::ExecutionModel::Vertex => vk::ShaderStageFlags::VERTEX,
         spirv::ExecutionModel::TessellationControl => vk::ShaderStageFlags::TESSELLATION_CONTROL,
-        spirv::ExecutionModel::TessellationEvaluation => vk::ShaderStageFlags::TESSELLATION_EVALUATION,
+        spirv::ExecutionModel::TessellationEvaluation => {
+            vk::ShaderStageFlags::TESSELLATION_EVALUATION
+        }
         spirv::ExecutionModel::Geometry => vk::ShaderStageFlags::GEOMETRY,
         spirv::ExecutionModel::Fragment => vk::ShaderStageFlags::FRAGMENT,
         spirv::ExecutionModel::GLCompute => vk::ShaderStageFlags::COMPUTE,
@@ -159,5 +159,3 @@ fn conv_shader_stage(model: spirv::ExecutionModel) -> vk::ShaderStageFlags {
         spirv::ExecutionModel::MeshEXT => vk::ShaderStageFlags::MESH_EXT,
     }
 }
-
-

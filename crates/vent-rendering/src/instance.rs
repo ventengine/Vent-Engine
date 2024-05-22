@@ -4,7 +4,6 @@ use ash::prelude::VkResult;
 use ash::vk::{Extent2D, PushConstantRange, SwapchainKHR};
 use ash::{khr, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use winit::dpi::PhysicalSize;
 
 use std::{default::Default, ffi::CStr};
 
@@ -70,7 +69,7 @@ pub struct VulkanInstance {
 }
 
 impl VulkanInstance {
-    pub fn new(application_name: &str, window: &winit::window::Window) -> Self {
+    pub fn new(application_name: &str, window: &vent_window::Window) -> Self {
         let entry = Entry::linked();
 
         let engine_version: u32 = env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap();
@@ -162,7 +161,10 @@ impl VulkanInstance {
             &surface_loader,
             pdevice,
             surface,
-            window.inner_size(),
+            (
+                window.width().try_into().unwrap(),
+                window.height().try_into().unwrap(),
+            ),
             None,
         );
 
@@ -257,7 +259,7 @@ impl VulkanInstance {
         }
     }
 
-    pub fn recreate_swap_chain(&mut self, new_size: &PhysicalSize<u32>) {
+    pub fn recreate_swap_chain(&mut self, new_size: (u32, u32)) {
         unsafe {
             self.device.device_wait_idle().unwrap();
 
@@ -267,7 +269,7 @@ impl VulkanInstance {
                 &self.surface_loader,
                 self.physical_device,
                 self.surface,
-                *new_size,
+                new_size,
                 Some(self.swapchain),
             );
             // We reuse the old Swapchain and then deleting it
@@ -504,7 +506,7 @@ impl VulkanInstance {
         surface_loader: &khr::surface::Instance,
         pdevice: vk::PhysicalDevice,
         surface: vk::SurfaceKHR,
-        size: winit::dpi::PhysicalSize<u32>,
+        size: (u32, u32),
         old_swapchain: Option<vk::SwapchainKHR>,
     ) -> (vk::SwapchainKHR, Extent2D) {
         let surface_capabilities =
@@ -517,13 +519,16 @@ impl VulkanInstance {
             desired_image_count = surface_capabilities.max_image_count;
         }
 
+        let width = size.0;
+        let height = size.1;
+
         let surface_resolution = match surface_capabilities.current_extent.width {
             std::u32::MAX => vk::Extent2D {
-                width: size.width.clamp(
+                width: width.clamp(
                     surface_capabilities.min_image_extent.width,
                     surface_capabilities.max_image_extent.width,
                 ),
-                height: size.height.clamp(
+                height: height.clamp(
                     surface_capabilities.min_image_extent.height,
                     surface_capabilities.max_image_extent.height,
                 ),
