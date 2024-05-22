@@ -1,33 +1,30 @@
-use std::{fs::File, os::fd::AsFd, ptr::NonNull};
+use std::ptr::NonNull;
 
-use rwh_06::{
-    DisplayHandle, RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle,
-};
+use rwh_06::{RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle};
 use wayland_client::{
-    backend::protocol::WEnumError,
     delegate_noop,
     globals::{registry_queue_init, GlobalListContents},
     protocol::{
         wl_buffer, wl_compositor,
         wl_display::WlDisplay,
         wl_keyboard,
-        wl_registry::{self, WlRegistry},
+        wl_registry::{self},
         wl_seat, wl_shm, wl_shm_pool, wl_surface,
     },
     Connection, Dispatch, EventQueue, Proxy, QueueHandle, WEnum,
 };
-use wayland_protocols::{
-    wp::input_method::zv1,
-    xdg::{
-        activation::v1::client::{xdg_activation_token_v1::XdgActivationTokenV1, xdg_activation_v1::{self, XdgActivationV1}}, decoration::zv1::client::{
-            zxdg_decoration_manager_v1::ZxdgDecorationManagerV1,
-            zxdg_toplevel_decoration_v1::ZxdgToplevelDecorationV1,
-        }, shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base}
+use wayland_protocols::xdg::{
+    activation::v1::client::{
+        xdg_activation_token_v1::XdgActivationTokenV1, xdg_activation_v1::XdgActivationV1,
     },
+    decoration::zv1::client::{
+        zxdg_decoration_manager_v1::ZxdgDecorationManagerV1,
+        zxdg_toplevel_decoration_v1::ZxdgToplevelDecorationV1,
+    },
+    shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base},
 };
-use wayland_protocols_plasma::server_decoration;
 
-use crate::{Window, WindowAttribs, WindowEvent, WindowMode};
+use crate::{WindowAttribs, WindowEvent, WindowMode};
 
 pub struct PlatformWindow {
     pub display: WlDisplay,
@@ -88,10 +85,10 @@ impl State {
         self.xdg_surface = Some((xdg_surface, toplevel));
     }
 
-    fn init_xdg_activation(&mut self,qh: &QueueHandle<State>, xdg_activation_v1: XdgActivationV1) {
+    fn init_xdg_activation(&mut self, qh: &QueueHandle<State>, xdg_activation_v1: XdgActivationV1) {
         let token = xdg_activation_v1.get_activation_token(qh, ());
         token.set_app_id("com.ventengine.VentEngine".into());
-        token.set_surface(&self.base_surface.as_ref().unwrap())
+        token.set_surface(self.base_surface.as_ref().unwrap())
     }
 }
 
@@ -187,11 +184,7 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
         if let xdg_toplevel::Event::Close {} = event {
             state.pending_events.push(WindowEvent::Close);
         }
-        if let xdg_toplevel::Event::ConfigureBounds {
-            width,
-            height,
-        } = event
-        {
+        if let xdg_toplevel::Event::ConfigureBounds { width, height } = event {
             state.width = width as u32;
             state.height = height as u32;
         }
@@ -297,7 +290,8 @@ impl PlatformWindow {
 
         dbg!(&globals.contents());
 
-        let wm_base: xdg_wm_base::XdgWmBase = globals.bind(&event_queue.handle(), 1..=6 , ()).unwrap();
+        let wm_base: xdg_wm_base::XdgWmBase =
+            globals.bind(&event_queue.handle(), 1..=6, ()).unwrap();
         state.wm_base = Some(wm_base);
 
         let compositor: wl_compositor::WlCompositor =
@@ -316,10 +310,9 @@ impl PlatformWindow {
         state.base_surface.as_ref().unwrap().commit();
 
         let xdg_activation: XdgActivationV1 =
-        globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
+            globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
 
         state.init_xdg_activation(&qhandle, xdg_activation);
-
 
         PlatformWindow {
             display,
@@ -340,7 +333,7 @@ impl PlatformWindow {
             self.state
                 .pending_events
                 .drain(..)
-                .for_each(|event| event_handler(event));
+                .for_each(&mut event_handler);
 
             event_handler(WindowEvent::Draw);
         }
@@ -355,17 +348,16 @@ impl PlatformWindow {
     }
 
     pub fn raw_display_handle(&self) -> RawDisplayHandle {
-        RawDisplayHandle::Wayland(
-            WaylandDisplayHandle::new(NonNull::new(self.display.id().as_ptr().cast()).unwrap())
-                .into(),
-        )
+        RawDisplayHandle::Wayland(WaylandDisplayHandle::new(
+            NonNull::new(self.display.id().as_ptr().cast()).unwrap(),
+        ))
     }
 
     pub fn raw_window_handle(&self) -> RawWindowHandle {
         let ptr = self.state.base_surface.as_ref().unwrap().id().as_ptr();
-        RawWindowHandle::Wayland(
-            WaylandWindowHandle::new(NonNull::new(ptr as *mut _).unwrap()).into(),
-        )
+        RawWindowHandle::Wayland(WaylandWindowHandle::new(
+            NonNull::new(ptr as *mut _).unwrap(),
+        ))
     }
 
     pub fn close(&mut self) {

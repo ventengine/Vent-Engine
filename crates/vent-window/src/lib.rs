@@ -80,6 +80,9 @@ impl EventLoop {
     }
 }
 
+/**
+ * Cross Platform window Wrapper
+ */
 pub struct Window {
     window: platform::PlatformWindow,
 }
