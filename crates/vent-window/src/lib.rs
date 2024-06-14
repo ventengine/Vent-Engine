@@ -1,12 +1,15 @@
 use keyboard::{Key, KeyState};
 use rwh_06::{DisplayHandle, HasDisplayHandle, HasWindowHandle};
+use xkbcommon_dl::keysyms;
 pub mod keyboard;
+pub mod mouse;
 pub mod platform;
 
 #[derive(PartialEq, Clone)]
 pub enum WindowEvent {
     Close,
-    Key { key: Key, state: KeyState },
+    Key { key: keyboard::Key, state: keyboard::KeyState },
+    Mouse { key: mouse::Key, state: mouse::ButtonState },
     Draw,
 }
 

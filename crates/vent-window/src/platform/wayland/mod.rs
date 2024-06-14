@@ -8,10 +8,7 @@ use wayland_client::{
     delegate_noop,
     globals::{registry_queue_init, GlobalListContents},
     protocol::{
-        wl_buffer, wl_compositor,
-        wl_display::WlDisplay,
-        wl_keyboard,
-        wl_registry::{self},
+        wl_buffer, wl_compositor, wl_display::WlDisplay, wl_keyboard, wl_pointer::{self, ButtonState}, wl_registry,
         wl_seat, wl_shm, wl_shm_pool, wl_surface,
     },
     Connection, Dispatch, EventQueue, Proxy, QueueHandle, WEnum,
@@ -27,7 +24,7 @@ use wayland_protocols::xdg::{
     shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base},
 };
 
-use crate::{WindowAttribs, WindowEvent, WindowMode};
+use crate::{mouse, WindowAttribs, WindowEvent, WindowMode};
 
 pub struct PlatformWindow {
     pub display: WlDisplay,
@@ -120,6 +117,51 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
     }
 }
 
+// Taken from <linux/input-event-codes.h>.
+const BTN_LEFT: u32 = 0x110;
+const BTN_RIGHT: u32 = 0x111;
+const BTN_MIDDLE: u32 = 0x112;
+const BTN_SIDE: u32 = 0x113;
+const BTN_EXTRA: u32 = 0x114;
+const BTN_FORWARD: u32 = 0x115;
+const BTN_BACK: u32 = 0x116;
+
+impl Dispatch<wl_pointer::WlPointer, ()> for State {
+    fn event(
+        state: &mut Self,
+        proxy: &wl_pointer::WlPointer,
+        event: <wl_pointer::WlPointer as Proxy>::Event,
+        data: &(),
+        conn: &Connection,
+        qhandle: &QueueHandle<Self>,
+    ) {
+        if let wl_pointer::Event::Button {
+            serial,
+            time,
+            button,
+            state: mouse_state,
+        } = event
+        {
+            let mouse_state = match mouse_state {
+                wayland_client::WEnum::Value(ButtonState::Pressed) => mouse::ButtonState::Pressed,
+                wayland_client::WEnum::Value(ButtonState::Released) => mouse::ButtonState::Released,
+                WEnum::Value(_) => mouse::ButtonState::Released,
+                WEnum::Unknown(_) => mouse::ButtonState::Released,
+            };
+            match button {
+                BTN_LEFT => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::LEFT, state: mouse_state }).unwrap(),
+                BTN_RIGHT => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::RIGHT, state: mouse_state }).unwrap(),
+                BTN_MIDDLE => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::MIDDLE, state: mouse_state }).unwrap(),
+                BTN_SIDE => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::SIDE, state: mouse_state }).unwrap(),
+                BTN_EXTRA => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::EXTRA, state: mouse_state }).unwrap(),
+                BTN_FORWARD => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::FORWARD, state: mouse_state }).unwrap(),
+                BTN_BACK => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::BACK, state: mouse_state }).unwrap(),
+                _ => (),
+            }
+        }
+    }
+}
+
 impl Dispatch<wl_seat::WlSeat, ()> for State {
     fn event(
         data: &mut Self,
@@ -135,6 +177,9 @@ impl Dispatch<wl_seat::WlSeat, ()> for State {
         {
             if capabilities.contains(wl_seat::Capability::Keyboard) {
                 seat.get_keyboard(qh, ());
+            }
+            if capabilities.contains(wl_seat::Capability::Pointer) {
+                seat.get_pointer(qh, ());
             }
         }
     }
