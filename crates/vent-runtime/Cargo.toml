@@ -17,7 +17,7 @@ ash = { version= "0.38", default-features = false, features = ["linked", "debug"
 pollster = "0.3.0"
 log = "0.4"
 
-glam = "0.27"
+glam = "0.28"
 downcast-rs = "1.2.0"
 
 # egui
