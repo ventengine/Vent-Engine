@@ -1,6 +1,7 @@
 use ash::ext::debug_utils;
 use ash::vk::Handle;
 use ash::{vk, Entry, Instance};
+use std::borrow::Cow;
 use std::os::raw::c_void;
 use std::{
     ffi::{CStr, CString},
@@ -23,8 +24,13 @@ unsafe extern "system" fn vulkan_debug_callback(
     _: *mut c_void,
 ) -> vk::Bool32 {
     use vk::DebugUtilsMessageSeverityFlagsEXT as Flag;
+    let callback_data = *p_callback_data;
 
-    let message = CStr::from_ptr((*p_callback_data).p_message);
+    let message = if callback_data.p_message.is_null() {
+        Cow::from("")
+    } else {
+        CStr::from_ptr(callback_data.p_message).to_string_lossy()
+    };
     match flag {
         Flag::VERBOSE => log::debug!("{:?} - {:?}", typ, message),
         Flag::INFO => log::info!("{:?} - {:?}", typ, message),
