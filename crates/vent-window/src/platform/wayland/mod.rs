@@ -1,4 +1,7 @@
-use std::ptr::NonNull;
+use std::{
+    ptr::NonNull,
+    sync::mpsc::{channel, Receiver, Sender},
+};
 
 use rwh_06::{RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle};
 use wayland_client::{
@@ -44,7 +47,8 @@ struct State {
     xdg_toplevel_decoration: Option<ZxdgToplevelDecorationV1>,
     configured: bool,
 
-    pending_events: Vec<WindowEvent>,
+    event_sender: Sender<WindowEvent>,
+    event_receiver: Receiver<WindowEvent>,
 }
 
 delegate_noop!(State: ignore wl_surface::WlSurface);
@@ -182,7 +186,7 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
         _: &QueueHandle<Self>,
     ) {
         if let xdg_toplevel::Event::Close {} = event {
-            state.pending_events.push(WindowEvent::Close);
+            state.event_sender.send(WindowEvent::Close);
         }
         if let xdg_toplevel::Event::ConfigureBounds { width, height } = event {
             state.width = width as u32;
@@ -269,6 +273,8 @@ impl PlatformWindow {
         let conn = wayland_client::Connection::connect_to_env().expect("Failed to get connection");
         println!("Connected to Wayland Server");
 
+        let (event_sender, event_receiver) = channel::<WindowEvent>();
+
         let mut state = State {
             running: true,
             width: attribs.width,
@@ -280,7 +286,8 @@ impl PlatformWindow {
             configured: false,
             xdg_toplevel_decoration: None,
             xdg_decoration_manager: None,
-            pending_events: vec![],
+            event_receiver,
+            event_sender,
         };
 
         let display = conn.display();
@@ -330,10 +337,9 @@ impl PlatformWindow {
                 .dispatch_pending(&mut self.state)
                 .expect("Failed to dispatch pending");
 
-            self.state
-                .pending_events
-                .drain(..)
-                .for_each(&mut event_handler);
+            while let Ok(event) = self.state.event_receiver.try_recv() {
+                event_handler(event);
+            }
 
             event_handler(WindowEvent::Draw);
         }
