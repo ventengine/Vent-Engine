@@ -1,6 +1,5 @@
 use keyboard::{Key, KeyState};
 use rwh_06::{DisplayHandle, HasDisplayHandle, HasWindowHandle};
-use xkbcommon_dl::keysyms;
 pub mod keyboard;
 pub mod mouse;
 pub mod platform;

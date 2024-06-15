@@ -231,9 +231,11 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
         _: &QueueHandle<Self>,
     ) {
         if let xdg_toplevel::Event::Close {} = event {
-            state.event_sender.send(WindowEvent::Close);
-        }
-        if let xdg_toplevel::Event::ConfigureBounds { width, height } = event {
+            state.event_sender.send(WindowEvent::Close).expect("Failed to send Close Event");
+        } else if let xdg_toplevel::Event::ConfigureBounds { width, height } = event {
+            state.width = width as u32;
+            state.height = height as u32;
+        } else if let xdg_toplevel::Event::Configure { width, height, states } = event {
             state.width = width as u32;
             state.height = height as u32;
         }
