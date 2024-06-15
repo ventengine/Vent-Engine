@@ -429,7 +429,6 @@ impl GLTFLoader {
             .mipmap_mode(mipmap_filter)
             .address_mode_u(address_mode_u)
             .address_mode_v(address_mode_v)
-            .max_lod(vk::LOD_CLAMP_NONE)
     }
 
     #[must_use]

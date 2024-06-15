@@ -8,8 +8,11 @@ use wayland_client::{
     delegate_noop,
     globals::{registry_queue_init, GlobalListContents},
     protocol::{
-        wl_buffer, wl_compositor, wl_display::WlDisplay, wl_keyboard, wl_pointer::{self, ButtonState}, wl_registry,
-        wl_seat, wl_shm, wl_shm_pool, wl_surface,
+        wl_buffer, wl_compositor,
+        wl_display::WlDisplay,
+        wl_keyboard,
+        wl_pointer::{self, ButtonState},
+        wl_registry, wl_seat, wl_shm, wl_shm_pool, wl_surface,
     },
     Connection, Dispatch, EventQueue, Proxy, QueueHandle, WEnum,
 };
@@ -149,13 +152,55 @@ impl Dispatch<wl_pointer::WlPointer, ()> for State {
                 WEnum::Unknown(_) => mouse::ButtonState::Released,
             };
             match button {
-                BTN_LEFT => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::LEFT, state: mouse_state }).unwrap(),
-                BTN_RIGHT => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::RIGHT, state: mouse_state }).unwrap(),
-                BTN_MIDDLE => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::MIDDLE, state: mouse_state }).unwrap(),
-                BTN_SIDE => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::SIDE, state: mouse_state }).unwrap(),
-                BTN_EXTRA => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::EXTRA, state: mouse_state }).unwrap(),
-                BTN_FORWARD => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::FORWARD, state: mouse_state }).unwrap(),
-                BTN_BACK => state.event_sender.send(WindowEvent::Mouse { key: crate::mouse::Key::BACK, state: mouse_state }).unwrap(),
+                BTN_LEFT => state
+                    .event_sender
+                    .send(WindowEvent::Mouse {
+                        key: crate::mouse::Key::LEFT,
+                        state: mouse_state,
+                    })
+                    .unwrap(),
+                BTN_RIGHT => state
+                    .event_sender
+                    .send(WindowEvent::Mouse {
+                        key: crate::mouse::Key::RIGHT,
+                        state: mouse_state,
+                    })
+                    .unwrap(),
+                BTN_MIDDLE => state
+                    .event_sender
+                    .send(WindowEvent::Mouse {
+                        key: crate::mouse::Key::MIDDLE,
+                        state: mouse_state,
+                    })
+                    .unwrap(),
+                BTN_SIDE => state
+                    .event_sender
+                    .send(WindowEvent::Mouse {
+                        key: crate::mouse::Key::SIDE,
+                        state: mouse_state,
+                    })
+                    .unwrap(),
+                BTN_EXTRA => state
+                    .event_sender
+                    .send(WindowEvent::Mouse {
+                        key: crate::mouse::Key::EXTRA,
+                        state: mouse_state,
+                    })
+                    .unwrap(),
+                BTN_FORWARD => state
+                    .event_sender
+                    .send(WindowEvent::Mouse {
+                        key: crate::mouse::Key::FORWARD,
+                        state: mouse_state,
+                    })
+                    .unwrap(),
+                BTN_BACK => state
+                    .event_sender
+                    .send(WindowEvent::Mouse {
+                        key: crate::mouse::Key::BACK,
+                        state: mouse_state,
+                    })
+                    .unwrap(),
                 _ => (),
             }
         }
@@ -231,11 +276,19 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
         _: &QueueHandle<Self>,
     ) {
         if let xdg_toplevel::Event::Close {} = event {
-            state.event_sender.send(WindowEvent::Close).expect("Failed to send Close Event");
+            state
+                .event_sender
+                .send(WindowEvent::Close)
+                .expect("Failed to send Close Event");
         } else if let xdg_toplevel::Event::ConfigureBounds { width, height } = event {
             state.width = width as u32;
             state.height = height as u32;
-        } else if let xdg_toplevel::Event::Configure { width, height, states } = event {
+        } else if let xdg_toplevel::Event::Configure {
+            width,
+            height,
+            states,
+        } = event
+        {
             state.width = width as u32;
             state.height = height as u32;
         }

@@ -6,7 +6,7 @@ pub enum Key {
     SIDE,
     EXTRA,
     FORWARD,
-    BACK
+    BACK,
 }
 
 #[derive(PartialEq, Clone)]

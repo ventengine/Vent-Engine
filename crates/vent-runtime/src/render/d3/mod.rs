@@ -309,7 +309,7 @@ impl Renderer for Renderer3D {
 
     fn destroy(&mut self, instance: &VulkanInstance) {
         unsafe { instance.device.device_wait_idle().unwrap() };
-        self.mesh_renderer.destroy_all(instance);
+        self.mesh_renderer.destroy_all(&instance.device);
         self.light_renderer.destroy(&instance.device);
         self.material_ubos
             .drain(..)

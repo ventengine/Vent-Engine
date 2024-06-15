@@ -123,7 +123,6 @@ pub fn setup_debug_messenger(
         )
         .message_type(
             vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
-                | vk::DebugUtilsMessageTypeFlagsEXT::DEVICE_ADDRESS_BINDING
                 | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
                 | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
         )

@@ -102,16 +102,13 @@ impl Model3D {
         })
     }
 
-    pub fn destroy(&mut self, instance: &VulkanInstance) {
+    pub fn destroy(&mut self, device: &ash::Device) {
         self.pipelines.drain(..).for_each(|mut pipline| {
-            unsafe { instance.device.destroy_pipeline(pipline.pipeline, None) };
+            unsafe { device.destroy_pipeline(pipline.pipeline, None) };
             pipline.materials.drain(..).for_each(|mut model_material| {
-                model_material
-                    .material
-                    .diffuse_texture
-                    .destroy(&instance.device);
+                model_material.material.diffuse_texture.destroy(&device);
                 model_material.meshes.drain(..).for_each(|mut mesh| {
-                    mesh.destroy(&instance.device);
+                    mesh.destroy(&device);
                 });
                 // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
             });
@@ -240,7 +237,14 @@ impl Mesh3D {
 
     pub fn bind(&self, device: &ash::Device, command_buffer: vk::CommandBuffer) {
         unsafe {
-            device.cmd_bind_vertex_buffers(command_buffer, 0, &[*self.vertex_buf], &[0]);
+            device.cmd_bind_vertex_buffers2(
+                command_buffer,
+                0,
+                &[*self.vertex_buf],
+                &[0],
+                None,
+                None,
+            );
             device.cmd_bind_index_buffer(command_buffer, *self.index_buf, 0, vk::IndexType::UINT32);
         }
     }

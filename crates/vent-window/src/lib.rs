@@ -7,8 +7,14 @@ pub mod platform;
 #[derive(PartialEq, Clone)]
 pub enum WindowEvent {
     Close,
-    Key { key: keyboard::Key, state: keyboard::KeyState },
-    Mouse { key: mouse::Key, state: mouse::ButtonState },
+    Key {
+        key: keyboard::Key,
+        state: keyboard::KeyState,
+    },
+    Mouse {
+        key: mouse::Key,
+        state: mouse::ButtonState,
+    },
     Draw,
 }
 

@@ -111,12 +111,11 @@ impl VulkanImage {
             vk::ImageAspectFlags::COLOR,
         );
 
-        let sampler = unsafe {
-            instance
-                .device
-                .create_sampler(&sampler_info.unwrap_or(Self::default_sampler()), None)
-        }
-        .unwrap();
+        let sampler_info = sampler_info
+            .unwrap_or(Self::default_sampler())
+            .max_lod(mip_level as f32);
+
+        let sampler = unsafe { instance.device.create_sampler(&sampler_info, None) }.unwrap();
 
         Self {
             image,

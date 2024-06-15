@@ -67,9 +67,9 @@ impl ModelRenderer3D {
         }
     }
 
-    pub fn destroy_all(&mut self, instance: &VulkanInstance) {
+    pub fn destroy_all(&mut self, device: &ash::Device) {
         for model in self.map.values_mut() {
-            model.model.destroy(instance)
+            model.model.destroy(device)
         }
     }
 
