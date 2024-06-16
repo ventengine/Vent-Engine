@@ -968,6 +968,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 
 [[package]]
+name = "memmap2"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a5a03cefb0d953ec0be133036f14e109412fa594edc2f77227249db66cc3ed"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1913,6 +1922,7 @@ version = "0.1.0"
 name = "vent-window"
 version = "0.1.0"
 dependencies = [
+ "log",
  "raw-window-handle",
  "wayland-backend",
  "wayland-client",
@@ -1922,7 +1932,8 @@ dependencies = [
  "wayland-protocols-wlr",
  "wayland-scanner",
  "windows-sys 0.52.0",
- "xkbcommon-dl",
+ "xkbcommon",
+ "xkeysym",
 ]
 
 [[package]]
@@ -2384,15 +2395,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "xkbcommon-dl"
-version = "0.4.2"
+name = "xkbcommon"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d039de8032a9a8856a6be89cea3e5d12fdd82306ab7c94d74e6deab2460651c5"
+checksum = "13867d259930edc7091a6c41b4ce6eee464328c6ff9659b7e4c668ca20d4c91e"
 dependencies = [
- "bitflags 2.5.0",
- "dlib",
- "log",
- "once_cell",
+ "libc",
+ "memmap2",
  "xkeysym",
 ]
 

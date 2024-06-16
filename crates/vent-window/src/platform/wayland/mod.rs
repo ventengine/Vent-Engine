@@ -1,6 +1,9 @@
 use std::{
     ptr::NonNull,
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Mutex,
+    },
 };
 
 use rwh_06::{RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle};
@@ -26,8 +29,13 @@ use wayland_protocols::xdg::{
     },
     shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base},
 };
+use xkbcommon::xkb;
+use xkeysym::KeyCode;
 
-use crate::{mouse, WindowAttribs, WindowEvent, WindowMode};
+use crate::{
+    keyboard::{Key, KeyState},
+    mouse, WindowAttribs, WindowEvent, WindowMode,
+};
 
 pub struct PlatformWindow {
     pub display: WlDisplay,
@@ -46,6 +54,10 @@ struct State {
     xdg_decoration_manager: Option<ZxdgDecorationManagerV1>,
     xdg_toplevel_decoration: Option<ZxdgToplevelDecorationV1>,
     configured: bool,
+
+    // Keybaord
+    xkb_context: Mutex<xkb::Context>,
+    xkb_state: Mutex<Option<xkb::State>>,
 
     event_sender: Sender<WindowEvent>,
     event_receiver: Receiver<WindowEvent>,
@@ -112,9 +124,73 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
             state: key_state,
         } = event
         {
+            match key_state {
+                WEnum::Value(key_state) => {
+                    let state_guard = state.xkb_state.lock().unwrap();
+
+                    if let Some(guard) = state_guard.as_ref() {
+                        let keycode = KeyCode::new(key + 8);
+                        let keysym = guard.key_get_one_sym(keycode);
+                        let key_state = match key_state {
+                            wl_keyboard::KeyState::Pressed => KeyState::Pressed,
+                            wl_keyboard::KeyState::Released => KeyState::Released,
+                            _ => unreachable!(),
+                        };
+
+                        state
+                            .event_sender
+                            .send(WindowEvent::Key {
+                                key: convert_key(keysym.raw()),
+                                state: key_state,
+                            })
+                            .expect("Failed to send key event");
+                    }
+                }
+                WEnum::Unknown(u) => log::error!("Invalid key state {}", u),
+            }
             if key == 1 {
                 // ESC key
                 state.running = false;
+            }
+        } else if let wl_keyboard::Event::Keymap { format, fd, size } = event {
+            match format {
+                WEnum::Value(format) => match format {
+                    wl_keyboard::KeymapFormat::NoKeymap => {
+                        log::error!("no keymap")
+                    }
+
+                    wl_keyboard::KeymapFormat::XkbV1 => {
+                        match unsafe {
+                            let context = state.xkb_context.lock().unwrap();
+
+                            xkb::Keymap::new_from_fd(
+                                &context,
+                                fd,
+                                size as usize,
+                                xkb::KEYMAP_FORMAT_TEXT_V1,
+                                xkb::COMPILE_NO_FLAGS,
+                            )
+                        } {
+                            Ok(Some(keymap)) => {
+                                let xkb_state = xkb::State::new(&keymap);
+                                {
+                                    let mut state_guard = state.xkb_state.lock().unwrap();
+                                    *state_guard = Some(xkb_state);
+                                }
+                            }
+
+                            Ok(None) => {
+                                log::error!("invalid keymap");
+                            }
+
+                            Err(err) => {
+                                log::error!("{}", err);
+                            }
+                        }
+                    }
+                    _ => unreachable!(),
+                },
+                WEnum::Unknown(_) => todo!(),
             }
         }
     }
@@ -388,6 +464,8 @@ impl PlatformWindow {
             xdg_decoration_manager: None,
             event_receiver,
             event_sender,
+            xkb_context: Mutex::new(xkb::Context::new(xkb::CONTEXT_NO_FLAGS)),
+            xkb_state: Mutex::new(None),
         };
 
         let display = conn.display();
@@ -477,5 +555,49 @@ impl PlatformWindow {
 impl Drop for PlatformWindow {
     fn drop(&mut self) {
         self.close()
+    }
+}
+
+fn convert_key(raw_key: xkeysym::RawKeysym) -> Key {
+    match raw_key {
+        xkeysym::key::A | xkeysym::key::a => Key::A,
+        xkeysym::key::B | xkeysym::key::b => Key::B,
+        xkeysym::key::C | xkeysym::key::c => Key::C,
+        xkeysym::key::D | xkeysym::key::d => Key::D,
+        xkeysym::key::E | xkeysym::key::e => Key::E,
+        xkeysym::key::F | xkeysym::key::f => Key::F,
+        xkeysym::key::G | xkeysym::key::g => Key::G,
+        xkeysym::key::H | xkeysym::key::h => Key::H,
+        xkeysym::key::I | xkeysym::key::i => Key::I,
+        xkeysym::key::J | xkeysym::key::j => Key::J,
+        xkeysym::key::K | xkeysym::key::k => Key::K,
+        xkeysym::key::L | xkeysym::key::l => Key::L,
+        xkeysym::key::M | xkeysym::key::m => Key::M,
+        xkeysym::key::N | xkeysym::key::n => Key::N,
+        xkeysym::key::O | xkeysym::key::o => Key::O,
+        xkeysym::key::P | xkeysym::key::p => Key::P,
+        xkeysym::key::Q | xkeysym::key::q => Key::Q,
+        xkeysym::key::R | xkeysym::key::r => Key::R,
+        xkeysym::key::S | xkeysym::key::s => Key::S,
+        xkeysym::key::T | xkeysym::key::t => Key::T,
+        xkeysym::key::U | xkeysym::key::u => Key::U,
+        xkeysym::key::V | xkeysym::key::v => Key::V,
+        xkeysym::key::W | xkeysym::key::w => Key::W,
+        xkeysym::key::X | xkeysym::key::x => Key::X,
+        xkeysym::key::Y | xkeysym::key::y => Key::Y,
+        xkeysym::key::Z | xkeysym::key::z => Key::Z,
+
+        xkeysym::key::space => Key::Space,
+        xkeysym::key::Shift_L => Key::ShiftL,
+        xkeysym::key::Shift_R => Key::ShiftR,
+        xkeysym::key::leftarrow => Key::Leftarrow,
+        xkeysym::key::uparrow => Key::Uparrow,
+        xkeysym::key::rightarrow => Key::Rightarrow,
+        xkeysym::key::downarrow => Key::Downarrow,
+
+        _ => {
+            log::warn!("Unknown key {}", raw_key);
+            Key::Unknown
+        }
     }
 }

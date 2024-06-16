@@ -1,7 +1,4 @@
-use winit::{
-    event::{ElementState, KeyEvent},
-    keyboard::{Key, NamedKey},
-};
+use vent_window::keyboard::{self, Key};
 
 use super::Camera3D;
 
@@ -28,39 +25,41 @@ impl CameraController3D {
     pub fn process_keyboard(
         &self,
         camera: &mut Camera3D,
-        event: &KeyEvent,
+        key: keyboard::Key,
+        state: keyboard::KeyState,
         delta_time: f32,
     ) -> bool {
+        dbg!("Camera con: {}", &key);
         log::info!("{}", camera.position);
-        if event.state == ElementState::Pressed {
+        if state == keyboard::KeyState::Pressed {
             let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
-            match event.logical_key.as_ref() {
+            match key {
                 // Arrow keys works but WASD not :C
-                Key::Character("W") | Key::Named(NamedKey::ArrowUp) => {
+                Key::W | Key::Uparrow => {
                     camera.position.x += sin_pitch * self.speed * delta_time;
                     camera.position.z += cos_pitch * self.speed * delta_time;
                     return true;
                 }
-                Key::Character("S") | Key::Named(NamedKey::ArrowDown) => {
+                Key::S | Key::Downarrow => {
                     camera.position.x -= sin_pitch * self.speed * delta_time;
                     camera.position.z -= cos_pitch * self.speed * delta_time;
                     return true;
                 }
-                Key::Character("A") | Key::Named(NamedKey::ArrowLeft) => {
+                Key::A | Key::Leftarrow => {
                     camera.position.x -= cos_pitch * self.speed * delta_time;
                     camera.position.x += sin_pitch * self.speed * delta_time;
                     return true;
                 }
-                Key::Character("D") | Key::Named(NamedKey::ArrowRight) => {
+                Key::D | Key::Rightarrow => {
                     camera.position.x += cos_pitch * self.speed * delta_time;
                     camera.position.z -= sin_pitch * self.speed * delta_time;
                     return true;
                 }
-                Key::Named(NamedKey::Space) => {
+                Key::Space => {
                     camera.position.y += self.speed * delta_time;
                     return true;
                 }
-                Key::Named(NamedKey::Shift) => {
+                Key::ShiftL => {
                     camera.position.y -= self.speed * delta_time;
                     return true;
                 }

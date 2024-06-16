@@ -1,5 +1,40 @@
-#[derive(PartialEq, Clone)]
-pub enum Key {}
+#[derive(PartialEq, Clone, Debug)]
+pub enum Key {
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
+    Space,
+    ShiftL,
+    ShiftR,
+    Leftarrow,
+    Uparrow,
+    Rightarrow,
+    Downarrow,
+    Unknown,
+}
 
 #[derive(PartialEq, Clone)]
 pub enum KeyState {

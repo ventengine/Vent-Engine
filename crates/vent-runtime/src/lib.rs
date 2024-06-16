@@ -2,7 +2,7 @@ use std::process::exit;
 
 use crate::render::Dimension;
 
-use render::DefaultRuntimeRenderer;
+use render::{camera::camera_controller3d::CameraController3D, DefaultRuntimeRenderer};
 use simple_logger::SimpleLogger;
 use vent_common::project::VentApplicationProject;
 
@@ -47,16 +47,24 @@ impl VentApplication {
         // TODO
         let mut renderer = DefaultRuntimeRenderer::new(Dimension::D3, &vent_window);
 
-        // let mut controller = CameraController3D::new(1000.0, 10.0);
+        let mut controller = CameraController3D::new(1000.0, 10.0);
         let mut delta_time = 0.0;
 
         event_loop.add_window(vent_window);
 
         event_loop.poll(move |event| {
-            if event == WindowEvent::Draw {
-                delta_time = renderer.render(window_size); // Default
-            } else if event == WindowEvent::Close {
-                exit(0) // maybe not so pretty
+            match event {
+                WindowEvent::Close => exit(0), // maybe not so pretty,
+                WindowEvent::Key { key, state } => {
+                    controller.process_keyboard(
+                        renderer.camera.downcast_mut().expect("TODO"),
+                        key,
+                        state,
+                        delta_time,
+                    );
+                }
+                WindowEvent::Draw => delta_time = renderer.render(window_size), // Default,
+                _ => {}
             }
         });
 
@@ -73,10 +81,10 @@ impl VentApplication {
         //                     controller.process_mouse_input(&vent_window.window, button, state);
         //                 }
         //                 WindowEvent::KeyboardInput { event, .. } => {
-        //                     controller.process_keyboard(
-        //                         renderer.camera.downcast_mut().expect("TODO"),
-        //                         event,
-        //                         delta_time,
+        // controller.process_keyboard(
+        //     renderer.camera.downcast_mut().expect("TODO"),
+        //     event,
+        //     delta_time,
         //                     );
         //                 }
         //                 WindowEvent::Resized(physical_size) => {
