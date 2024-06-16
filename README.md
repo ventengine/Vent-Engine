@@ -2,7 +2,7 @@
 
 # ⚜️ Vent-Engine ⚜️
 
-**A game engine written in Rust using an Vulkan renderer with the goal to be very fast & user-friendly**
+**A game engine written in Rust with the goal to be very fast & user-friendly**
 
 ![CI](https://github.com/Snowiiii/Vent-Engine/actions/workflows/rust.yml/badge.svg)
 ![Apache_2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)
@@ -12,36 +12,32 @@
 
 ### 🏆 Goals
 
-- **Built in Rust:** At Vent-Engine, we believe in the power of Rust and strive to avoid any bindings to other languages.
-- **Optimized for performance:** Our engine places a strong emphasis on performance. By utilizing Vulkan, we leverage native APIs to deliver top-tier results.
-- **Designed for Accessibility:** Our engine is designed to be user-friendly, making it easy for you to focus on your work instead of getting bogged down in the details.
-- **Cross-Platform Support:** We support a variety of [platforms](https://github.com/Snowiiii/Vent-Engine#-platforms), You can be confident that your creation will run seamlessly across different devices, making it accessible to all.
+* **Built in Rust:** This engine leverages the power of Rust and avoids external language bindings as much as possible.
+* **Performance Optimization:** Vulkan is used for top-tier performance through native APIs.
+* **User-Friendly Design:** The engine prioritizes ease of use, allowing you to focus on creating games.
+* **Cross-Platform Support:** One goal of the engine is to support various platforms ([Platforms](#platforms)) to ensure your creations run smoothly across devices.
+
 
 ### 🏗 Current Status
+
+For the current Development, look at [GitHub Projects](https://github.com/Snowiiii/Vent-Engine/projects?query=is%3Aopen)
+
 
 -- Vent-Engine is in development --
 ![image](https://github.com/Snowiiii/Vent-Engine/assets/71594357/2dcbdfb8-7b51-47fa-a809-da5c62efa95c)
 **(24.03.2024)**
 
 
-We're using [GitHub Projects](https://github.com/Snowiiii/Vent-Engine/projects?query=is%3Aopen) for managing our tasks
-
-#### Why not a roadmap?
-
-There are several reasons why we don't find a roadmap useful.
-Firstly, we believe that Vent-Engine should be released in a polished and fully functional state with all features included, regardless of how long it takes.
-We have no time constraints, so we can focus on implementing as many polished features as possible without unnecessary stress. Therefore, we do not see the need for a roadmap in this regard.
-
 #### How to contribute?
 
-We welcome contributions in any way, shape, or form. Here's how you can get started:
+Contributions are welcome in any way, shape, or form. Here's how you can get started:
 
 - Fork the repository and clone it to your local machine.
-- Run `cargo run --release --bin vent-editor` to start the editor.
+- Run `cargo run --release --bin vent-runtime` to start the runtime.
 - Make your changes and submit a pull request.
 
-We also have [GitHub Issues](https://github.com/Snowiiii/Vent-Engine/issues) where you can report bugs, request
-features, or discuss ideas.
+Use [GitHub Issues](https://github.com/Snowiiii/Vent-Engine/issues) to report bugs, request
+features.
 
 ### 🎮 Platforms
 
