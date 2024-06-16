@@ -148,10 +148,6 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
                 }
                 WEnum::Unknown(u) => log::error!("Invalid key state {}", u),
             }
-            if key == 1 {
-                // ESC key
-                state.running = false;
-            }
         } else if let wl_keyboard::Event::Keymap { format, fd, size } = event {
             match format {
                 WEnum::Value(format) => match format {
@@ -472,8 +468,6 @@ impl PlatformWindow {
 
         let (globals, event_queue) = registry_queue_init::<State>(&conn).unwrap();
         let qhandle = event_queue.handle();
-
-        dbg!(&globals.contents());
 
         let wm_base: xdg_wm_base::XdgWmBase =
             globals.bind(&event_queue.handle(), 1..=6, ()).unwrap();
