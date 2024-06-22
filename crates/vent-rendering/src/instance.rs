@@ -109,7 +109,9 @@ impl VulkanInstance {
             vk::InstanceCreateFlags::default()
         };
 
-        check_validation_layer_support(&entry);
+        if ENABLE_VALIDATION_LAYERS {
+            check_validation_layer_support(&entry);
+        }
         let layer_names_ptrs = get_layer_names_and_pointers();
 
         let mut validation_features = get_validation_features();
