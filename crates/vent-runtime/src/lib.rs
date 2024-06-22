@@ -47,7 +47,7 @@ impl VentApplication {
         // TODO
         let mut renderer = DefaultRuntimeRenderer::new(Dimension::D3, &vent_window);
 
-        let mut controller = CameraController3D::new(1000.0, 10.0);
+        let controller = CameraController3D::new(1000.0, 10.0);
         let mut delta_time = 0.0;
 
         event_loop.add_window(vent_window);

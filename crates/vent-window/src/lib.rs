@@ -1,4 +1,3 @@
-use keyboard::{Key, KeyState};
 use rwh_06::{DisplayHandle, HasDisplayHandle, HasWindowHandle};
 pub mod keyboard;
 pub mod mouse;

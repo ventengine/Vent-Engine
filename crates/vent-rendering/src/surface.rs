@@ -3,8 +3,7 @@
 use std::os::raw::c_char;
 
 use ash::{
-    ext::metal_surface,
-    khr::{android_surface, surface, wayland_surface, win32_surface, xcb_surface, xlib_surface},
+    khr::{surface, wayland_surface, xcb_surface, xlib_surface},
     prelude::*,
     vk, Entry, Instance,
 };
@@ -111,36 +110,42 @@ pub fn enumerate_required_extensions(
     display_handle: RawDisplayHandle,
 ) -> VkResult<&'static [*const c_char]> {
     let extensions = match display_handle {
+        #[cfg(target_os = "windows")]
         RawDisplayHandle::Windows(_) => {
             const WINDOWS_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), win32_surface::NAME.as_ptr()];
             &WINDOWS_EXTS
         }
 
+        #[cfg(target_os = "linux")]
         RawDisplayHandle::Wayland(_) => {
             const WAYLAND_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), wayland_surface::NAME.as_ptr()];
             &WAYLAND_EXTS
         }
 
+        #[cfg(target_os = "linux")]
         RawDisplayHandle::Xlib(_) => {
             const XLIB_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), xlib_surface::NAME.as_ptr()];
             &XLIB_EXTS
         }
 
+        #[cfg(target_os = "linux")]
         RawDisplayHandle::Xcb(_) => {
             const XCB_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), xcb_surface::NAME.as_ptr()];
             &XCB_EXTS
         }
 
+        #[cfg(target_os = "android")]
         RawDisplayHandle::Android(_) => {
             const ANDROID_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), android_surface::NAME.as_ptr()];
             &ANDROID_EXTS
         }
 
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
         RawDisplayHandle::AppKit(_) | RawDisplayHandle::UiKit(_) => {
             const METAL_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), metal_surface::NAME.as_ptr()];

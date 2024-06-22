@@ -106,9 +106,9 @@ impl Model3D {
         self.pipelines.drain(..).for_each(|mut pipline| {
             unsafe { device.destroy_pipeline(pipline.pipeline, None) };
             pipline.materials.drain(..).for_each(|mut model_material| {
-                model_material.material.diffuse_texture.destroy(&device);
+                model_material.material.diffuse_texture.destroy(device);
                 model_material.meshes.drain(..).for_each(|mut mesh| {
-                    mesh.destroy(&device);
+                    mesh.destroy(device);
                 });
                 // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
             });
