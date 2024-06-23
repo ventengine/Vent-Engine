@@ -47,7 +47,7 @@ impl VentApplication {
         // TODO
         let mut renderer = DefaultRuntimeRenderer::new(Dimension::D3, &vent_window);
 
-        let controller = CameraController3D::new(1000.0, 10.0);
+        let mut controller = CameraController3D::new(1000.0, 10.0);
         let mut delta_time = 0.0;
 
         event_loop.add_window(vent_window);
@@ -62,6 +62,15 @@ impl VentApplication {
                         state,
                         delta_time,
                     );
+                }
+                WindowEvent::Mouse { button, state } => {
+                    controller.process_mouse_input(&button, &state);
+                }
+                WindowEvent::Resize {
+                    new_width,
+                    new_height,
+                } => {
+                    renderer.resize((new_width, new_height));
                 }
                 WindowEvent::Draw => delta_time = renderer.render(window_size), // Default,
                 _ => {}

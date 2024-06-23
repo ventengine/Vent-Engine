@@ -22,10 +22,9 @@ downcast-rs = "1.2.0"
 
 # egui
 egui = "0.27"
-# egui-winit = "0.27"
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.13"
+android_logger = "0.14"
 android-activity = { version = "0.6", features = [ "game-activity" ] }
 ndk = "0.9.0"
 

@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use rwh_06::{DisplayHandle, HasDisplayHandle, HasWindowHandle};
 pub mod keyboard;
 pub mod mouse;
@@ -11,8 +13,12 @@ pub enum WindowEvent {
         state: keyboard::KeyState,
     },
     Mouse {
-        key: mouse::Key,
+        button: mouse::Button,
         state: mouse::ButtonState,
+    },
+    Resize {
+        new_width: u32,
+        new_height: u32,
     },
     Draw,
 }
@@ -29,8 +35,9 @@ pub enum WindowMode {
 
 pub struct WindowAttribs {
     title: String,
-    width: u32,
-    height: u32,
+    app_id: String,
+    width: NonZeroU32,
+    height: NonZeroU32,
     mode: WindowMode,
     min_size: Option<(u32, u32)>,
     max_size: Option<(u32, u32)>,
@@ -51,8 +58,9 @@ impl Default for WindowAttribs {
     fn default() -> Self {
         Self {
             title: "Vent Engine".to_string(),
-            width: 800,
-            height: 600,
+            app_id: "com.ventengine.VentEngine".to_string(),
+            width: unsafe { NonZeroU32::new_unchecked(800) },
+            height: unsafe { NonZeroU32::new_unchecked(600) },
             mode: WindowMode::Default,
             max_size: None,
             min_size: None,
@@ -97,7 +105,7 @@ pub struct Window {
 impl Window {
     pub fn new(inital_attribs: WindowAttribs) -> Self {
         Self {
-            window: platform::PlatformWindow::create_window(&inital_attribs),
+            window: platform::PlatformWindow::create_window(inital_attribs),
         }
     }
 
@@ -123,6 +131,8 @@ impl Window {
     pub fn size(&self) -> (u32, u32) {
         (self.window.width(), self.window.height())
     }
+
+    pub fn set_cursor_visible() {}
 }
 
 impl HasDisplayHandle for Window {

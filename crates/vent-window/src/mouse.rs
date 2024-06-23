@@ -1,5 +1,5 @@
 #[derive(PartialEq, Clone)]
-pub enum Key {
+pub enum Button {
     LEFT,
     RIGHT,
     MIDDLE,

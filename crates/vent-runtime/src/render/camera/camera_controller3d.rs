@@ -29,7 +29,7 @@ impl CameraController3D {
         state: keyboard::KeyState,
         delta_time: f32,
     ) -> bool {
-        log::info!("{}", camera.position);
+        dbg!(camera.position);
         if state == keyboard::KeyState::Pressed {
             let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
             match key {
@@ -68,17 +68,16 @@ impl CameraController3D {
         false
     }
 
-    // pub fn process_mouse_input(
-    //     &mut self,
-    //     window: &winit::window::Window,
-    //     button: &winit::event::MouseButton,
-    //     state: &winit::event::ElementState,
-    // ) {
-    //     if button == &winit::event::MouseButton::Left {
-    //         self.mouse_left_down = state == &winit::event::ElementState::Pressed;
-    //         window.set_cursor_visible(!self.mouse_left_down);
-    //     }
-    // }
+    pub fn process_mouse_input(
+        &mut self,
+        button: &vent_window::mouse::Button,
+        state: &vent_window::mouse::ButtonState,
+    ) {
+        if button == &vent_window::mouse::Button::LEFT {
+            self.mouse_left_down = state == &vent_window::mouse::ButtonState::Pressed;
+            // window.set_cursor_visible(!self.mouse_left_down); TODO
+        }
+    }
 
     pub fn process_mouse_movement(
         &self,

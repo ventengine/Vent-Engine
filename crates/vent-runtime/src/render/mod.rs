@@ -52,7 +52,7 @@ impl DefaultRuntimeRenderer {
             return;
         }
 
-        log::info!("Resizing to {:?} ", new_size);
+        log::debug!("Resizing to {:?} ", new_size);
         self.camera
             .recreate_projection(new_size.0 as f32 / new_size.1 as f32);
         self.runtime_renderer

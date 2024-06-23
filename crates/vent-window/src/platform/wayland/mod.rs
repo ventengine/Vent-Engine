@@ -1,194 +1,329 @@
 use std::{
+    num::NonZeroU32,
     ptr::NonNull,
     sync::{
         mpsc::{channel, Receiver, Sender},
-        Mutex,
+        Arc,
     },
+    time::Duration,
 };
 
+use sctk::reexports::protocols::xdg::shell::client::xdg_toplevel::ResizeEdge as XdgResizeEdge;
+
 use rwh_06::{RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle};
+use sctk::{
+    compositor::{CompositorHandler, CompositorState},
+    delegate_compositor, delegate_keyboard, delegate_output, delegate_pointer, delegate_registry,
+    delegate_seat, delegate_shm, delegate_subcompositor, delegate_xdg_shell, delegate_xdg_window,
+    output::{OutputHandler, OutputState},
+    reexports::{
+        calloop::{self, EventLoop},
+        calloop_wayland_source::WaylandSource,
+    },
+    registry::{ProvidesRegistryState, RegistryState},
+    registry_handlers,
+    seat::{
+        keyboard::KeyboardHandler,
+        pointer::{PointerData, PointerEventKind, PointerHandler},
+        Capability, SeatHandler, SeatState,
+    },
+    shell::{
+        xdg::{
+            window::{DecorationMode, Window, WindowDecorations, WindowHandler},
+            XdgShell, XdgSurface,
+        },
+        WaylandSurface,
+    },
+    shm::{Shm, ShmHandler},
+    subcompositor::SubcompositorState,
+};
+use sctk_adwaita::{AdwaitaFrame, FrameConfig};
 use wayland_client::{
-    delegate_noop,
-    globals::{registry_queue_init, GlobalListContents},
+    globals::registry_queue_init,
     protocol::{
-        wl_buffer, wl_compositor,
-        wl_display::WlDisplay,
-        wl_keyboard,
-        wl_pointer::{self, ButtonState},
-        wl_registry, wl_seat, wl_shm, wl_shm_pool, wl_surface,
+        wl_keyboard, wl_output,
+        wl_pointer::{self},
+        wl_seat, wl_surface,
     },
-    Connection, Dispatch, EventQueue, Proxy, QueueHandle, WEnum,
+    Connection, Proxy, QueueHandle,
 };
-use wayland_protocols::xdg::{
-    activation::v1::client::{
-        xdg_activation_token_v1::XdgActivationTokenV1, xdg_activation_v1::XdgActivationV1,
-    },
-    decoration::zv1::client::{
-        zxdg_decoration_manager_v1::ZxdgDecorationManagerV1,
-        zxdg_toplevel_decoration_v1::ZxdgToplevelDecorationV1,
-    },
-    shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base},
-};
+use wayland_csd_frame::{CursorIcon, DecorationsFrame, FrameAction, FrameClick, ResizeEdge};
 use xkbcommon::xkb;
-use xkeysym::KeyCode;
 
 use crate::{
     keyboard::{Key, KeyState},
-    mouse, WindowAttribs, WindowEvent, WindowMode,
+    mouse, WindowAttribs, WindowEvent,
 };
 
 pub struct PlatformWindow {
-    pub display: WlDisplay,
-    event_queue: EventQueue<State>,
-    state: State,
+    pub connection: Connection,
+    event_loop: calloop::EventLoop<'static, WaylandWindow>,
+    state: WaylandWindow,
 }
 
-struct State {
+struct WaylandWindow {
     running: bool,
-    pub width: u32,
-    pub height: u32,
-    base_surface: Option<wl_surface::WlSurface>,
-    buffer: Option<wl_buffer::WlBuffer>,
-    wm_base: Option<xdg_wm_base::XdgWmBase>,
-    xdg_surface: Option<(xdg_surface::XdgSurface, xdg_toplevel::XdgToplevel)>,
-    xdg_decoration_manager: Option<ZxdgDecorationManagerV1>,
-    xdg_toplevel_decoration: Option<ZxdgToplevelDecorationV1>,
+    pub attribs: WindowAttribs,
+
+    registry_state: RegistryState,
+    shm_state: Shm,
+    seat_state: SeatState,
+    output_state: OutputState,
+    compositor_state: Arc<CompositorState>,
+    subcompositor_state: Arc<SubcompositorState>,
+    _xdg_shell_state: XdgShell,
+
+    // sctk window
+    window: Window,
+
     configured: bool,
 
-    // Keybaord
-    xkb_context: Mutex<xkb::Context>,
-    xkb_state: Mutex<Option<xkb::State>>,
+    // Decoration, Not every Window Manager supports Server Side decorations, Gnome ;D
+    window_frame: Option<AdwaitaFrame<Self>>,
+    decorations_cursor: Option<CursorIcon>,
+
+    // Input
+    keyboard: Option<wl_keyboard::WlKeyboard>,
+    set_cursor: bool,
+    keyboard_focus: bool,
+    pointer: Option<wl_pointer::WlPointer>,
 
     event_sender: Sender<WindowEvent>,
     event_receiver: Receiver<WindowEvent>,
 }
 
-delegate_noop!(State: ignore wl_surface::WlSurface);
-delegate_noop!(State: ignore wl_shm::WlShm);
-delegate_noop!(State: ignore wl_shm_pool::WlShmPool);
-delegate_noop!(State: ignore wl_buffer::WlBuffer);
+delegate_compositor!(WaylandWindow);
+delegate_subcompositor!(WaylandWindow);
+delegate_output!(WaylandWindow);
+delegate_shm!(WaylandWindow);
 
-impl State {
-    fn init_xdg_surface(&mut self, qh: &QueueHandle<State>, attris: &WindowAttribs) {
-        let wm_base = self.wm_base.as_ref().unwrap();
-        let base_surface = self.base_surface.as_ref().unwrap();
+delegate_seat!(WaylandWindow);
+delegate_keyboard!(WaylandWindow);
+delegate_pointer!(WaylandWindow);
 
-        let xdg_surface = wm_base.get_xdg_surface(base_surface, qh, ());
-        let toplevel = xdg_surface.get_toplevel(qh, ());
-        toplevel.set_title(attris.title.clone());
-        toplevel.set_app_id("com.ventengine.VentEngine".into());
+delegate_xdg_shell!(WaylandWindow);
+delegate_xdg_window!(WaylandWindow);
 
-        match attris.mode {
-            WindowMode::FullScreen => toplevel.set_fullscreen(None),
-            WindowMode::Maximized => toplevel.set_maximized(),
-            WindowMode::Minimized => toplevel.set_minimized(),
-            _ => {}
-        }
-        if let Some(max_size) = attris.max_size {
-            toplevel.set_max_size(max_size.0 as i32, max_size.1 as i32)
-        }
+delegate_registry!(WaylandWindow);
 
-        if let Some(min_size) = attris.min_size {
-            toplevel.set_min_size(min_size.0 as i32, min_size.1 as i32)
-        }
-
-        if let Some(manager) = &self.xdg_decoration_manager {
-            // if supported, let the compositor render titlebars for us
-            self.xdg_toplevel_decoration = Some(manager.get_toplevel_decoration(&toplevel, qh, ()));
-            self.xdg_toplevel_decoration.as_ref().unwrap().set_mode(wayland_protocols::xdg::decoration::zv1::client::zxdg_toplevel_decoration_v1::Mode::ServerSide);
-        }
-
-        self.xdg_surface = Some((xdg_surface, toplevel));
+impl WaylandWindow {
+    fn setup_attribs(&mut self) {
+        let window = &self.window;
+        let attribs = &self.attribs;
+        window.set_title(attribs.title.clone());
+        // TODO WindowMode
+        window.set_app_id(attribs.app_id.clone());
+        window.set_max_size(attribs.max_size);
+        window.set_min_size(attribs.min_size);
+        window.commit();
     }
 
-    fn init_xdg_activation(&mut self, qh: &QueueHandle<State>, xdg_activation_v1: XdgActivationV1) {
-        let token = xdg_activation_v1.get_activation_token(qh, ());
-        token.set_app_id("com.ventengine.VentEngine".into());
-        token.set_surface(self.base_surface.as_ref().unwrap())
+    fn frame_action(&mut self, pointer: &wl_pointer::WlPointer, serial: u32, action: FrameAction) {
+        let pointer_data = pointer.data::<PointerData>().unwrap();
+        let seat = pointer_data.seat();
+        match action {
+            FrameAction::Close => self.event_sender.send(WindowEvent::Close).unwrap(),
+            FrameAction::Minimize => self.window.set_minimized(),
+            FrameAction::Maximize => self.window.set_maximized(),
+            FrameAction::UnMaximize => self.window.unset_maximized(),
+            FrameAction::ShowMenu(x, y) => self.window.show_window_menu(seat, serial, (x, y)),
+            FrameAction::Resize(edge) => {
+                let edge = match edge {
+                    ResizeEdge::None => XdgResizeEdge::None,
+                    ResizeEdge::Top => XdgResizeEdge::Top,
+                    ResizeEdge::Bottom => XdgResizeEdge::Bottom,
+                    ResizeEdge::Left => XdgResizeEdge::Left,
+                    ResizeEdge::TopLeft => XdgResizeEdge::TopLeft,
+                    ResizeEdge::BottomLeft => XdgResizeEdge::BottomLeft,
+                    ResizeEdge::Right => XdgResizeEdge::Right,
+                    ResizeEdge::TopRight => XdgResizeEdge::TopRight,
+                    ResizeEdge::BottomRight => XdgResizeEdge::BottomRight,
+                    _ => return,
+                };
+                self.window.resize(seat, serial, edge);
+            }
+            FrameAction::Move => self.window.move_(seat, serial),
+            _ => (),
+        }
+    }
+
+    fn draw(&mut self, qh: &QueueHandle<WaylandWindow>) {
+        // Draw the decorations frame.
+        if let Some(frame) = self.window_frame.as_mut() {
+            if frame.is_dirty() && !frame.is_hidden() {
+                frame.draw();
+            }
+        }
+        self.event_sender.send(WindowEvent::Draw).unwrap();
+        self.window.wl_surface().damage_buffer(
+            0,
+            0,
+            self.attribs.width.get() as i32,
+            self.attribs.height.get() as i32,
+        );
+        self.window
+            .wl_surface()
+            .frame(qh, self.window.wl_surface().clone());
+        self.window.commit();
     }
 }
 
-impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
-    fn event(
-        state: &mut Self,
-        _: &wl_keyboard::WlKeyboard,
-        event: wl_keyboard::Event,
-        _: &(),
-        _: &Connection,
-        _: &QueueHandle<Self>,
+impl CompositorHandler for WaylandWindow {
+    fn scale_factor_changed(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        surface: &wl_surface::WlSurface,
+        new_factor: i32,
     ) {
-        if let wl_keyboard::Event::Key {
-            key,
-            serial,
-            time,
-            state: key_state,
-        } = event
-        {
-            match key_state {
-                WEnum::Value(key_state) => {
-                    let state_guard = state.xkb_state.lock().unwrap();
-
-                    if let Some(guard) = state_guard.as_ref() {
-                        let keycode = KeyCode::new(key + 8);
-                        let keysym = guard.key_get_one_sym(keycode);
-                        let key_state = match key_state {
-                            wl_keyboard::KeyState::Pressed => KeyState::Pressed,
-                            wl_keyboard::KeyState::Released => KeyState::Released,
-                            _ => unreachable!(),
-                        };
-
-                        state
-                            .event_sender
-                            .send(WindowEvent::Key {
-                                key: convert_key(keysym.raw()),
-                                state: key_state,
-                            })
-                            .expect("Failed to send key event");
-                    }
-                }
-                WEnum::Unknown(u) => log::error!("Invalid key state {}", u),
-            }
-        } else if let wl_keyboard::Event::Keymap { format, fd, size } = event {
-            match format {
-                WEnum::Value(format) => match format {
-                    wl_keyboard::KeymapFormat::NoKeymap => {
-                        log::error!("no keymap")
-                    }
-
-                    wl_keyboard::KeymapFormat::XkbV1 => {
-                        match unsafe {
-                            let context = state.xkb_context.lock().unwrap();
-
-                            xkb::Keymap::new_from_fd(
-                                &context,
-                                fd,
-                                size as usize,
-                                xkb::KEYMAP_FORMAT_TEXT_V1,
-                                xkb::COMPILE_NO_FLAGS,
-                            )
-                        } {
-                            Ok(Some(keymap)) => {
-                                let xkb_state = xkb::State::new(&keymap);
-                                {
-                                    let mut state_guard = state.xkb_state.lock().unwrap();
-                                    *state_guard = Some(xkb_state);
-                                }
-                            }
-
-                            Ok(None) => {
-                                log::error!("invalid keymap");
-                            }
-
-                            Err(err) => {
-                                log::error!("{}", err);
-                            }
-                        }
-                    }
-                    _ => unreachable!(),
-                },
-                WEnum::Unknown(_) => todo!(),
+        if self.window.wl_surface() == surface {
+            if let Some(frame) = self.window_frame.as_mut() {
+                frame.set_scaling_factor(new_factor as f64);
             }
         }
+    }
+
+    fn transform_changed(
+        &mut self,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+        _: &wl_surface::WlSurface,
+        _: wl_output::Transform,
+    ) {
+    }
+
+    fn frame(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        _surface: &wl_surface::WlSurface,
+        _time: u32,
+    ) {
+        self.draw(qh)
+    }
+
+    fn surface_enter(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        surface: &wl_surface::WlSurface,
+        output: &wl_output::WlOutput,
+    ) {
+    }
+
+    fn surface_leave(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        surface: &wl_surface::WlSurface,
+        output: &wl_output::WlOutput,
+    ) {
+    }
+}
+
+impl OutputHandler for WaylandWindow {
+    fn output_state(&mut self) -> &mut OutputState {
+        &mut self.output_state
+    }
+
+    fn new_output(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        output: wl_output::WlOutput,
+    ) {
+    }
+
+    fn update_output(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        output: wl_output::WlOutput,
+    ) {
+    }
+
+    fn output_destroyed(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        output: wl_output::WlOutput,
+    ) {
+    }
+}
+
+impl ProvidesRegistryState for WaylandWindow {
+    fn registry(&mut self) -> &mut sctk::registry::RegistryState {
+        &mut self.registry_state
+    }
+    registry_handlers![OutputState, SeatState,];
+}
+
+impl KeyboardHandler for WaylandWindow {
+    fn enter(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        keyboard: &wl_keyboard::WlKeyboard,
+        surface: &wl_surface::WlSurface,
+        serial: u32,
+        raw: &[u32],
+        keysyms: &[xkb::Keysym],
+    ) {
+        self.keyboard_focus = true;
+    }
+
+    fn leave(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        keyboard: &wl_keyboard::WlKeyboard,
+        surface: &wl_surface::WlSurface,
+        serial: u32,
+    ) {
+        self.keyboard_focus = false;
+    }
+
+    fn press_key(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        keyboard: &wl_keyboard::WlKeyboard,
+        serial: u32,
+        event: sctk::seat::keyboard::KeyEvent,
+    ) {
+        self.event_sender
+            .send(WindowEvent::Key {
+                key: convert_key(event.keysym.raw()),
+                state: KeyState::Pressed,
+            })
+            .expect("Failed to send key event");
+    }
+
+    fn release_key(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        keyboard: &wl_keyboard::WlKeyboard,
+        serial: u32,
+        event: sctk::seat::keyboard::KeyEvent,
+    ) {
+        self.event_sender
+            .send(WindowEvent::Key {
+                key: convert_key(event.keysym.raw()),
+                state: KeyState::Released,
+            })
+            .expect("Failed to send key event");
+    }
+
+    fn update_modifiers(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        keyboard: &wl_keyboard::WlKeyboard,
+        serial: u32,
+        modifiers: sctk::seat::keyboard::Modifiers,
+        layout: u32,
+    ) {
     }
 }
 
@@ -201,302 +336,356 @@ const BTN_EXTRA: u32 = 0x114;
 const BTN_FORWARD: u32 = 0x115;
 const BTN_BACK: u32 = 0x116;
 
-impl Dispatch<wl_pointer::WlPointer, ()> for State {
-    fn event(
-        state: &mut Self,
-        proxy: &wl_pointer::WlPointer,
-        event: <wl_pointer::WlPointer as Proxy>::Event,
-        data: &(),
+impl PointerHandler for WaylandWindow {
+    fn pointer_frame(
+        &mut self,
         conn: &Connection,
-        qhandle: &QueueHandle<Self>,
-    ) {
-        if let wl_pointer::Event::Button {
-            serial,
-            time,
-            button,
-            state: mouse_state,
-        } = event
-        {
-            let mouse_state = match mouse_state {
-                wayland_client::WEnum::Value(ButtonState::Pressed) => mouse::ButtonState::Pressed,
-                wayland_client::WEnum::Value(ButtonState::Released) => mouse::ButtonState::Released,
-                WEnum::Value(_) => mouse::ButtonState::Released,
-                WEnum::Unknown(_) => mouse::ButtonState::Released,
-            };
-            match button {
-                BTN_LEFT => state
-                    .event_sender
-                    .send(WindowEvent::Mouse {
-                        key: crate::mouse::Key::LEFT,
-                        state: mouse_state,
-                    })
-                    .unwrap(),
-                BTN_RIGHT => state
-                    .event_sender
-                    .send(WindowEvent::Mouse {
-                        key: crate::mouse::Key::RIGHT,
-                        state: mouse_state,
-                    })
-                    .unwrap(),
-                BTN_MIDDLE => state
-                    .event_sender
-                    .send(WindowEvent::Mouse {
-                        key: crate::mouse::Key::MIDDLE,
-                        state: mouse_state,
-                    })
-                    .unwrap(),
-                BTN_SIDE => state
-                    .event_sender
-                    .send(WindowEvent::Mouse {
-                        key: crate::mouse::Key::SIDE,
-                        state: mouse_state,
-                    })
-                    .unwrap(),
-                BTN_EXTRA => state
-                    .event_sender
-                    .send(WindowEvent::Mouse {
-                        key: crate::mouse::Key::EXTRA,
-                        state: mouse_state,
-                    })
-                    .unwrap(),
-                BTN_FORWARD => state
-                    .event_sender
-                    .send(WindowEvent::Mouse {
-                        key: crate::mouse::Key::FORWARD,
-                        state: mouse_state,
-                    })
-                    .unwrap(),
-                BTN_BACK => state
-                    .event_sender
-                    .send(WindowEvent::Mouse {
-                        key: crate::mouse::Key::BACK,
-                        state: mouse_state,
-                    })
-                    .unwrap(),
-                _ => (),
-            }
-        }
-    }
-}
-
-impl Dispatch<wl_seat::WlSeat, ()> for State {
-    fn event(
-        data: &mut Self,
-        seat: &wl_seat::WlSeat,
-        event: wl_seat::Event,
-        _: &(),
-        _: &Connection,
         qh: &QueueHandle<Self>,
+        pointer: &wl_pointer::WlPointer,
+        events: &[sctk::seat::pointer::PointerEvent],
     ) {
-        if let wl_seat::Event::Capabilities {
-            capabilities: WEnum::Value(capabilities),
-        } = event
-        {
-            if capabilities.contains(wl_seat::Capability::Keyboard) {
-                seat.get_keyboard(qh, ());
+        for event in events {
+            let (x, y) = event.position;
+            match event.kind {
+                PointerEventKind::Enter { serial } => {
+                    self.decorations_cursor = self.window_frame.as_mut().and_then(|frame| {
+                        frame.click_point_moved(Duration::ZERO, &event.surface.id(), x, y)
+                    });
+                }
+                PointerEventKind::Leave { serial } => {
+                    if &event.surface != self.window.wl_surface() {
+                        if let Some(window_frame) = self.window_frame.as_mut() {
+                            window_frame.click_point_left();
+                        }
+                    }
+                }
+                PointerEventKind::Motion { time } => {
+                    if let Some(new_cursor) = self.window_frame.as_mut().and_then(|frame| {
+                        frame.click_point_moved(
+                            Duration::from_millis(time as u64),
+                            &event.surface.id(),
+                            x,
+                            y,
+                        )
+                    }) {
+                        self.set_cursor = true;
+                        self.decorations_cursor = Some(new_cursor);
+                    }
+                }
+                PointerEventKind::Press {
+                    button,
+                    serial,
+                    time,
+                }
+                | PointerEventKind::Release {
+                    button,
+                    serial,
+                    time,
+                } => {
+                    let pressed = matches!(event.kind, PointerEventKind::Press { .. });
+                    if &event.surface != self.window.wl_surface() {
+                        let click = match button {
+                            0x110 => FrameClick::Normal,
+                            0x111 => FrameClick::Alternate,
+                            _ => continue,
+                        };
+
+                        if let Some(action) = self.window_frame.as_mut().and_then(|frame| {
+                            frame.on_click(Duration::from_millis(time as u64), click, pressed)
+                        }) {
+                            self.frame_action(pointer, serial, action);
+                        }
+                    }
+                    let mouse_state = if pressed {
+                        mouse::ButtonState::Pressed
+                    } else {
+                        mouse::ButtonState::Released
+                    };
+                    press_mouse(button, self, mouse_state);
+                }
+                _ => {}
             }
-            if capabilities.contains(wl_seat::Capability::Pointer) {
-                seat.get_pointer(qh, ());
+        }
+    }
+}
+
+fn press_mouse(button: u32, state: &WaylandWindow, mouse_state: mouse::ButtonState) {
+    match button {
+        BTN_LEFT => state
+            .event_sender
+            .send(WindowEvent::Mouse {
+                button: crate::mouse::Button::LEFT,
+                state: mouse_state,
+            })
+            .unwrap(),
+        BTN_RIGHT => state
+            .event_sender
+            .send(WindowEvent::Mouse {
+                button: crate::mouse::Button::RIGHT,
+                state: mouse_state,
+            })
+            .unwrap(),
+        BTN_MIDDLE => state
+            .event_sender
+            .send(WindowEvent::Mouse {
+                button: crate::mouse::Button::MIDDLE,
+                state: mouse_state,
+            })
+            .unwrap(),
+        BTN_SIDE => state
+            .event_sender
+            .send(WindowEvent::Mouse {
+                button: crate::mouse::Button::SIDE,
+                state: mouse_state,
+            })
+            .unwrap(),
+        BTN_EXTRA => state
+            .event_sender
+            .send(WindowEvent::Mouse {
+                button: crate::mouse::Button::EXTRA,
+                state: mouse_state,
+            })
+            .unwrap(),
+        BTN_FORWARD => state
+            .event_sender
+            .send(WindowEvent::Mouse {
+                button: crate::mouse::Button::FORWARD,
+                state: mouse_state,
+            })
+            .unwrap(),
+        BTN_BACK => state
+            .event_sender
+            .send(WindowEvent::Mouse {
+                button: crate::mouse::Button::BACK,
+                state: mouse_state,
+            })
+            .unwrap(),
+        _ => (),
+    }
+}
+
+impl SeatHandler for WaylandWindow {
+    fn seat_state(&mut self) -> &mut SeatState {
+        &mut self.seat_state
+    }
+
+    fn new_seat(&mut self, conn: &Connection, qh: &QueueHandle<Self>, seat: wl_seat::WlSeat) {}
+
+    fn new_capability(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        seat: wl_seat::WlSeat,
+        capability: sctk::seat::Capability,
+    ) {
+        if capability == Capability::Keyboard && self.keyboard.is_none() {
+            println!("Set keyboard capability");
+            let keyboard = self
+                .seat_state
+                .get_keyboard(qh, &seat, None)
+                .expect("Failed to create keyboard");
+            self.keyboard = Some(keyboard);
+        }
+
+        if capability == Capability::Pointer && self.pointer.is_none() {
+            println!("Set pointer capability");
+            let pointer = self
+                .seat_state
+                .get_pointer(qh, &seat)
+                .expect("Failed to create pointer");
+            self.pointer = Some(pointer);
+        }
+    }
+
+    fn remove_capability(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        seat: wl_seat::WlSeat,
+        capability: sctk::seat::Capability,
+    ) {
+        if capability == Capability::Keyboard && self.keyboard.is_some() {
+            println!("Unset keyboard capability");
+            self.keyboard.take().unwrap().release();
+        }
+
+        if capability == Capability::Pointer && self.pointer.is_some() {
+            println!("Unset pointer capability");
+            self.pointer.take().unwrap().release();
+        }
+    }
+
+    fn remove_seat(&mut self, conn: &Connection, qh: &QueueHandle<Self>, seat: wl_seat::WlSeat) {}
+}
+
+impl ShmHandler for WaylandWindow {
+    fn shm_state(&mut self) -> &mut Shm {
+        &mut self.shm_state
+    }
+}
+impl WindowHandler for WaylandWindow {
+    fn request_close(&mut self, conn: &Connection, qh: &QueueHandle<Self>, window: &Window) {
+        self.event_sender
+            .send(WindowEvent::Close)
+            .expect("Failed to send Close Event");
+    }
+
+    fn configure(
+        &mut self,
+        conn: &Connection,
+        qh: &QueueHandle<Self>,
+        window: &Window,
+        configure: sctk::shell::xdg::window::WindowConfigure,
+        serial: u32,
+    ) {
+        let (width, height) = if configure.decoration_mode == DecorationMode::Client {
+            let window_frame = self.window_frame.get_or_insert_with(|| {
+                let mut frame = AdwaitaFrame::new(
+                    &self.window,
+                    &self.shm_state,
+                    self.compositor_state.clone(),
+                    self.subcompositor_state.clone(),
+                    qh.clone(),
+                    FrameConfig::auto(),
+                )
+                .expect("failed to create client side decorations frame.");
+                frame.set_title(self.attribs.title.clone());
+                frame
+            });
+
+            // Un-hide the frame.
+            window_frame.set_hidden(false);
+
+            // Configure state before touching any resizing.
+            window_frame.update_state(configure.state);
+
+            // Configure the button state.
+            window_frame.update_wm_capabilities(configure.capabilities);
+
+            let (width, height) = match configure.new_size {
+                (Some(width), Some(height)) => {
+                    // The size could be 0.
+                    window_frame.subtract_borders(width, height)
+                }
+                _ => {
+                    // You might want to consider checking for configure bounds.
+                    (Some(self.attribs.width), Some(self.attribs.height))
+                }
+            };
+
+            // Clamp the size to at least one pixel.
+            let width = width.unwrap_or(NonZeroU32::new(1).unwrap());
+            let height = height.unwrap_or(NonZeroU32::new(1).unwrap());
+
+            window_frame.resize(width, height);
+
+            let (x, y) = window_frame.location();
+            let outer_size = window_frame.add_borders(width.get(), height.get());
+            window.xdg_surface().set_window_geometry(
+                x,
+                y,
+                outer_size.0 as i32,
+                outer_size.1 as i32,
+            );
+
+            (width, height)
+        } else {
+            // Hide the frame, if any.
+            if let Some(frame) = self.window_frame.as_mut() {
+                frame.set_hidden(true)
             }
+            let width = configure.new_size.0.unwrap_or(self.attribs.width);
+            let height = configure.new_size.1.unwrap_or(self.attribs.height);
+            self.window.xdg_surface().set_window_geometry(
+                0,
+                0,
+                width.get() as i32,
+                height.get() as i32,
+            );
+            (width, height)
+        };
+
+        // Update new width and height;
+        self.attribs.width = width;
+        self.attribs.height = height;
+        self.event_sender
+            .send(WindowEvent::Resize {
+                new_width: width.into(),
+                new_height: height.into(),
+            })
+            .unwrap();
+
+        // Initiate the first draw.
+        if self.configured {
+            self.configured = false;
+            self.draw(qh);
         }
-    }
-}
-
-impl Dispatch<xdg_wm_base::XdgWmBase, ()> for State {
-    fn event(
-        _: &mut Self,
-        wm_base: &xdg_wm_base::XdgWmBase,
-        event: xdg_wm_base::Event,
-        _: &(),
-        _: &Connection,
-        _: &QueueHandle<Self>,
-    ) {
-        if let xdg_wm_base::Event::Ping { serial } = event {
-            wm_base.pong(serial);
-        }
-    }
-}
-
-impl Dispatch<xdg_surface::XdgSurface, ()> for State {
-    fn event(
-        state: &mut Self,
-        xdg_surface: &xdg_surface::XdgSurface,
-        event: xdg_surface::Event,
-        _: &(),
-        _: &Connection,
-        _: &QueueHandle<Self>,
-    ) {
-        if let xdg_surface::Event::Configure { serial } = event {
-            xdg_surface.ack_configure(serial);
-            state.configured = true;
-            let surface = state.base_surface.as_ref().unwrap();
-            if let Some(ref buffer) = state.buffer {
-                surface.attach(Some(buffer), 0, 0);
-                surface.commit();
-            }
-        }
-    }
-}
-
-impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
-    fn event(
-        state: &mut Self,
-        _: &xdg_toplevel::XdgToplevel,
-        event: xdg_toplevel::Event,
-        _: &(),
-        _: &Connection,
-        _: &QueueHandle<Self>,
-    ) {
-        if let xdg_toplevel::Event::Close {} = event {
-            state
-                .event_sender
-                .send(WindowEvent::Close)
-                .expect("Failed to send Close Event");
-        } else if let xdg_toplevel::Event::ConfigureBounds { width, height } = event {
-            state.width = width as u32;
-            state.height = height as u32;
-        } else if let xdg_toplevel::Event::Configure {
-            width,
-            height,
-            states,
-        } = event
-        {
-            state.width = width as u32;
-            state.height = height as u32;
-        }
-    }
-}
-
-impl wayland_client::Dispatch<wl_registry::WlRegistry, GlobalListContents> for State {
-    fn event(
-        state: &mut Self,
-        proxy: &wl_registry::WlRegistry,
-        event: <wl_registry::WlRegistry as Proxy>::Event,
-        data: &GlobalListContents,
-        conn: &Connection,
-        qhandle: &QueueHandle<Self>,
-    ) {
-    }
-}
-
-impl Dispatch<wl_compositor::WlCompositor, ()> for State {
-    fn event(
-        state: &mut Self,
-        proxy: &wl_compositor::WlCompositor,
-        event: <wl_compositor::WlCompositor as Proxy>::Event,
-        data: &(),
-        conn: &Connection,
-        qhandle: &QueueHandle<Self>,
-    ) {
-    }
-}
-
-impl Dispatch<ZxdgDecorationManagerV1, ()> for State {
-    fn event(
-        state: &mut Self,
-        proxy: &ZxdgDecorationManagerV1,
-        event: <ZxdgDecorationManagerV1 as Proxy>::Event,
-        data: &(),
-        conn: &Connection,
-        qhandle: &QueueHandle<Self>,
-    ) {
-        todo!()
-    }
-}
-impl Dispatch<ZxdgToplevelDecorationV1, ()> for State {
-    fn event(
-        state: &mut Self,
-        proxy: &ZxdgToplevelDecorationV1,
-        event: <ZxdgToplevelDecorationV1 as Proxy>::Event,
-        data: &(),
-        conn: &Connection,
-        qhandle: &QueueHandle<Self>,
-    ) {
-        todo!()
-    }
-}
-impl Dispatch<XdgActivationV1, ()> for State {
-    fn event(
-        state: &mut Self,
-        proxy: &XdgActivationV1,
-        event: <XdgActivationV1 as Proxy>::Event,
-        data: &(),
-        conn: &Connection,
-        qhandle: &QueueHandle<Self>,
-    ) {
-        todo!()
-    }
-}
-impl Dispatch<XdgActivationTokenV1, ()> for State {
-    fn event(
-        state: &mut Self,
-        proxy: &XdgActivationTokenV1,
-        event: <XdgActivationTokenV1 as Proxy>::Event,
-        data: &(),
-        conn: &Connection,
-        qhandle: &QueueHandle<Self>,
-    ) {
-        todo!()
     }
 }
 
 impl PlatformWindow {
-    pub fn create_window(attribs: &WindowAttribs) -> Self {
+    pub fn create_window(attribs: WindowAttribs) -> Self {
         let conn = wayland_client::Connection::connect_to_env().expect("Failed to get connection");
-        println!("Connected to Wayland Server");
+        log::debug!("Connected to Wayland Server");
 
         let (event_sender, event_receiver) = channel::<WindowEvent>();
 
-        let mut state = State {
+        let (globals, event_queue) = registry_queue_init(&conn).unwrap();
+        let qhandle = event_queue.handle();
+        let event_loop: EventLoop<WaylandWindow> =
+            EventLoop::try_new().expect("Failed to initialize the event loop!");
+        let loop_handle = event_loop.handle();
+        WaylandSource::new(conn.clone(), event_queue)
+            .insert(loop_handle)
+            .unwrap();
+
+        let registry_state = RegistryState::new(&globals);
+        let seat_state = SeatState::new(&globals, &qhandle);
+        let output_state = OutputState::new(&globals, &qhandle);
+        let compositor_state =
+            CompositorState::bind(&globals, &qhandle).expect("wl_compositor not available");
+        let subcompositor_state =
+            SubcompositorState::bind(compositor_state.wl_compositor().clone(), &globals, &qhandle)
+                .expect("wl_subcompositor not available");
+        let shm_state = Shm::bind(&globals, &qhandle).expect("wl_shm not available");
+        let xdg_shell_state = XdgShell::bind(&globals, &qhandle).expect("xdg shell not available");
+
+        let window_surface = compositor_state.create_surface(&qhandle);
+
+        let window = xdg_shell_state.create_window(
+            window_surface,
+            WindowDecorations::ServerDefault,
+            &qhandle,
+        );
+
+        let mut state = WaylandWindow {
             running: true,
-            width: attribs.width,
-            height: attribs.height,
-            base_surface: None,
-            buffer: None,
-            wm_base: None,
-            xdg_surface: None,
-            configured: false,
-            xdg_toplevel_decoration: None,
-            xdg_decoration_manager: None,
+            attribs,
+            configured: true,
+            output_state,
+            seat_state,
             event_receiver,
             event_sender,
-            xkb_context: Mutex::new(xkb::Context::new(xkb::CONTEXT_NO_FLAGS)),
-            xkb_state: Mutex::new(None),
+            _xdg_shell_state: xdg_shell_state,
+            registry_state,
+            shm_state,
+            compositor_state: compositor_state.into(),
+            subcompositor_state: subcompositor_state.into(),
+            window,
+            window_frame: None,
+            keyboard: None,
+            keyboard_focus: false,
+            pointer: None,
+            decorations_cursor: None,
+            set_cursor: false,
         };
 
-        let display = conn.display();
-
-        let (globals, event_queue) = registry_queue_init::<State>(&conn).unwrap();
-        let qhandle = event_queue.handle();
-
-        let wm_base: xdg_wm_base::XdgWmBase =
-            globals.bind(&event_queue.handle(), 1..=6, ()).unwrap();
-        state.wm_base = Some(wm_base);
-
-        let compositor: wl_compositor::WlCompositor =
-            globals.bind(&event_queue.handle(), 1..=6, ()).unwrap();
-        let surface = compositor.create_surface(&qhandle, ());
-        state.base_surface = Some(surface);
-
-        let wl_seat: wl_seat::WlSeat = globals.bind(&event_queue.handle(), 1..=6, ()).unwrap();
-        // let xdg_decoration_manager: ZxdgDecorationManagerV1 =
-        //     globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
-        // state.xdg_decoration_manager = Some(xdg_decoration_manager);
-
-        if state.wm_base.is_some() && state.xdg_surface.is_none() {
-            state.init_xdg_surface(&qhandle, attribs);
-        }
-        state.base_surface.as_ref().unwrap().commit();
-
-        let xdg_activation: XdgActivationV1 =
-            globals.bind(&event_queue.handle(), 1..=1, ()).unwrap();
-
-        state.init_xdg_activation(&qhandle, xdg_activation);
+        state.setup_attribs();
 
         PlatformWindow {
-            display,
+            connection: conn,
             state,
-            event_queue,
+            event_loop,
         }
     }
 
@@ -505,45 +694,40 @@ impl PlatformWindow {
         F: FnMut(WindowEvent),
     {
         while self.state.running {
-            self.event_queue
-                .dispatch_pending(&mut self.state)
+            self.connection.flush().unwrap();
+            self.event_loop
+                .dispatch(Duration::from_millis(16), &mut self.state)
                 .expect("Failed to dispatch pending");
 
             while let Ok(event) = self.state.event_receiver.try_recv() {
                 event_handler(event);
             }
-
-            event_handler(WindowEvent::Draw);
+            //   self.state.draw();
         }
     }
 
     pub fn width(&self) -> u32 {
-        self.state.width
+        self.state.attribs.width.into()
     }
 
     pub fn height(&self) -> u32 {
-        self.state.height
+        self.state.attribs.height.into()
     }
 
     pub fn raw_display_handle(&self) -> RawDisplayHandle {
         RawDisplayHandle::Wayland(WaylandDisplayHandle::new(
-            NonNull::new(self.display.id().as_ptr().cast()).unwrap(),
+            NonNull::new(self.connection.display().id().as_ptr().cast()).unwrap(),
         ))
     }
 
     pub fn raw_window_handle(&self) -> RawWindowHandle {
-        let ptr = self.state.base_surface.as_ref().unwrap().id().as_ptr();
+        let ptr = self.state.window.wl_surface().id().as_ptr();
         RawWindowHandle::Wayland(WaylandWindowHandle::new(
             NonNull::new(ptr as *mut _).unwrap(),
         ))
     }
 
-    pub fn close(&mut self) {
-        self.event_queue
-            .flush()
-            .expect("Failed to flush Event Queue");
-        self.state.running = false;
-    }
+    pub fn close(&mut self) {}
 }
 
 impl Drop for PlatformWindow {
