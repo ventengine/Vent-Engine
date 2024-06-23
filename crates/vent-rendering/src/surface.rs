@@ -3,7 +3,7 @@
 use std::os::raw::c_char;
 
 use ash::{
-    khr::{surface, wayland_surface, xcb_surface, xlib_surface},
+    khr::{surface},
     prelude::*,
     vk, Entry, Instance,
 };
@@ -33,6 +33,8 @@ pub unsafe fn create_surface(
 
         #[cfg(target_os = "linux")]
         (RawDisplayHandle::Wayland(display), RawWindowHandle::Wayland(window)) => {
+            use ash::khr::wayland_surface;
+
             let surface_desc = vk::WaylandSurfaceCreateInfoKHR::default()
                 .display(display.display.as_ptr())
                 .surface(window.surface.as_ptr());
@@ -42,6 +44,8 @@ pub unsafe fn create_surface(
 
         #[cfg(target_os = "linux")]
         (RawDisplayHandle::Xlib(display), RawWindowHandle::Xlib(window)) => {
+            use ash::khr::xlib_surface;
+
             let surface_desc = vk::XlibSurfaceCreateInfoKHR::default()
                 .dpy(
                     display
@@ -56,6 +60,8 @@ pub unsafe fn create_surface(
 
         #[cfg(target_os = "linux")]
         (RawDisplayHandle::Xcb(display), RawWindowHandle::Xcb(window)) => {
+            use ash::khr::xcb_surface;
+
             let surface_desc = vk::XcbSurfaceCreateInfoKHR::default()
                 .connection(
                     display
@@ -119,6 +125,8 @@ pub fn enumerate_required_extensions(
 
         #[cfg(target_os = "linux")]
         RawDisplayHandle::Wayland(_) => {
+            use ash::khr::wayland_surface;
+
             const WAYLAND_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), wayland_surface::NAME.as_ptr()];
             &WAYLAND_EXTS
@@ -126,6 +134,8 @@ pub fn enumerate_required_extensions(
 
         #[cfg(target_os = "linux")]
         RawDisplayHandle::Xlib(_) => {
+            use ash::khr::xlib_surface;
+
             const XLIB_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), xlib_surface::NAME.as_ptr()];
             &XLIB_EXTS
@@ -133,6 +143,8 @@ pub fn enumerate_required_extensions(
 
         #[cfg(target_os = "linux")]
         RawDisplayHandle::Xcb(_) => {
+            use ash::khr::xcb_surface;
+
             const XCB_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), xcb_surface::NAME.as_ptr()];
             &XCB_EXTS
