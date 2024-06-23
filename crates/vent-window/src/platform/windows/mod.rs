@@ -21,7 +21,7 @@ pub struct PlatformWindow {
 }
 
 impl PlatformWindow {
-    pub fn create_window(attribs: &crate::WindowAttribs) -> Self {
+    pub fn create_window(attribs: crate::WindowAttribs) -> Self {
         let app_name = windows_sys::core::w!("WinAPIApp");
 
         let h_instance = unsafe { GetModuleHandleW(null_mut()) };
@@ -66,8 +66,8 @@ impl PlatformWindow {
 
         Self {
             hwnd,
-            width: attribs.width,
-            height: attribs.height,
+            width: attribs.width.into(),
+            height: attribs.height.into(),
         }
     }
 

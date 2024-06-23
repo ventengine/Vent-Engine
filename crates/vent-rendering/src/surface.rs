@@ -3,7 +3,7 @@
 use std::os::raw::c_char;
 
 use ash::{
-    khr::{surface},
+    khr::surface,
     prelude::*,
     vk, Entry, Instance,
 };
@@ -19,6 +19,8 @@ pub unsafe fn create_surface(
     match (display_handle.as_raw(), window_handle.as_raw()) {
         #[cfg(target_os = "windows")]
         (RawDisplayHandle::Windows(_), RawWindowHandle::Win32(window)) => {
+            use ash::khr::win32_surface;
+
             let surface_desc = vk::Win32SurfaceCreateInfoKHR::default()
                 .hwnd(window.hwnd.get())
                 .hinstance(
@@ -118,6 +120,8 @@ pub fn enumerate_required_extensions(
     let extensions = match display_handle {
         #[cfg(target_os = "windows")]
         RawDisplayHandle::Windows(_) => {
+            use ash::khr::win32_surface;
+
             const WINDOWS_EXTS: [*const c_char; 2] =
                 [surface::NAME.as_ptr(), win32_surface::NAME.as_ptr()];
             &WINDOWS_EXTS
