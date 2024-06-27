@@ -1,6 +1,7 @@
 use std::mem::{self, offset_of};
 
 use ash::vk;
+use ordered_float::OrderedFloat;
 
 pub mod allocator;
 pub mod buffer;
@@ -12,10 +13,10 @@ mod surface;
 
 const DEFAULT_FENCE_TIMEOUT: u64 = 100000000000;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Hash)]
 pub struct MaterialPipelineInfo {
     pub mode: vk::PrimitiveTopology,
-    pub alpha_cut: Option<f32>, // Default 0.5
+    pub alpha_cut: Option<OrderedFloat<f32>>, // Default 0.5
     pub double_sided: bool,
 }
 

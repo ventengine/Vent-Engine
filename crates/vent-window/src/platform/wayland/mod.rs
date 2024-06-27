@@ -8,7 +8,10 @@ use std::{
     time::Duration,
 };
 
-use sctk::{reexports::protocols::xdg::shell::client::xdg_toplevel::ResizeEdge as XdgResizeEdge, seat::pointer::{ThemeSpec, ThemedPointer}};
+use sctk::{
+    reexports::protocols::xdg::shell::client::xdg_toplevel::ResizeEdge as XdgResizeEdge,
+    seat::pointer::{ThemeSpec, ThemedPointer},
+};
 
 use rwh_06::{RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle};
 use sctk::{

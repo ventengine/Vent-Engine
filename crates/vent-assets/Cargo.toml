@@ -9,6 +9,8 @@ edition = "2021"
 vent-sdk = { path = "../vent-sdk" }
 vent-rendering = { path = "../vent-rendering"}
 
+ordered-float = "4.2.0"
+
 image = "0.25"
 
 log = "0.4"

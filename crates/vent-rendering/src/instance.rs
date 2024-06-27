@@ -389,14 +389,14 @@ impl VulkanInstance {
         tiling: vk::ImageTiling,
         features: vk::FormatFeatureFlags,
     ) -> Option<vk::Format> {
-        candidates.iter().cloned().find(|f| {
-            let properties = unsafe { instance.get_physical_device_format_properties(pdevice, *f) };
+        candidates.iter().find(|f| {
+            let properties = unsafe { instance.get_physical_device_format_properties(pdevice, **f) };
             match tiling {
                 vk::ImageTiling::LINEAR => properties.linear_tiling_features.contains(features),
                 vk::ImageTiling::OPTIMAL => properties.optimal_tiling_features.contains(features),
                 _ => false,
             }
-        })
+        }).copied()
     }
 
     fn create_frame_buffers(
@@ -550,9 +550,8 @@ impl VulkanInstance {
                 .unwrap();
         let present_mode = present_modes
             .iter()
-            .cloned()
-            .find(|&mode| mode == vk::PresentModeKHR::MAILBOX)
-            .unwrap_or(vk::PresentModeKHR::FIFO);
+            .find(|&mode| *mode == vk::PresentModeKHR::MAILBOX)
+            .unwrap_or(&vk::PresentModeKHR::FIFO);
 
         let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
             .surface(surface)
@@ -564,7 +563,7 @@ impl VulkanInstance {
             .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
             .pre_transform(pre_transform)
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-            .present_mode(present_mode)
+            .present_mode(*present_mode)
             .clipped(true)
             .image_array_layers(1)
             .old_swapchain(old_swapchain.unwrap_or_default());

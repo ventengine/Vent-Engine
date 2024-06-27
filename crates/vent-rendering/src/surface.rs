@@ -2,11 +2,7 @@
 
 use std::os::raw::c_char;
 
-use ash::{
-    khr::surface,
-    prelude::*,
-    vk, Entry, Instance,
-};
+use ash::{khr::surface, prelude::*, vk, Entry, Instance};
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
 
 pub unsafe fn create_surface(
