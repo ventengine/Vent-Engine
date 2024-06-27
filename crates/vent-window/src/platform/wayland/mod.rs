@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use sctk::reexports::protocols::xdg::shell::client::xdg_toplevel::ResizeEdge as XdgResizeEdge;
+use sctk::{reexports::protocols::xdg::shell::client::xdg_toplevel::ResizeEdge as XdgResizeEdge, seat::pointer::{ThemeSpec, ThemedPointer}};
 
 use rwh_06::{RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle};
 use sctk::{
@@ -86,7 +86,7 @@ struct WaylandWindow {
     keyboard: Option<wl_keyboard::WlKeyboard>,
     set_cursor: bool,
     keyboard_focus: bool,
-    pointer: Option<wl_pointer::WlPointer>,
+    themed_pointer: Option<ThemedPointer>,
 
     event_sender: Sender<WindowEvent>,
     event_receiver: Receiver<WindowEvent>,
@@ -147,7 +147,15 @@ impl WaylandWindow {
         }
     }
 
-    fn draw(&mut self, qh: &QueueHandle<WaylandWindow>) {
+    fn draw(&mut self, conn: &Connection, qh: &QueueHandle<WaylandWindow>) {
+        // Draw cursor
+        if self.set_cursor {
+            if let Some(icon) = self.decorations_cursor {
+                let _ = self.themed_pointer.as_mut().unwrap().set_cursor(conn, icon);
+            }
+            self.set_cursor = false;
+        }
+
         // Draw the decorations frame.
         if let Some(frame) = self.window_frame.as_mut() {
             if frame.is_dirty() && !frame.is_hidden() {
@@ -199,7 +207,7 @@ impl CompositorHandler for WaylandWindow {
         _surface: &wl_surface::WlSurface,
         _time: u32,
     ) {
-        self.draw(qh)
+        self.draw(conn, qh)
     }
 
     fn surface_enter(
@@ -487,13 +495,19 @@ impl SeatHandler for WaylandWindow {
             self.keyboard = Some(keyboard);
         }
 
-        if capability == Capability::Pointer && self.pointer.is_none() {
-            println!("Set pointer capability");
-            let pointer = self
+        if capability == Capability::Pointer && self.themed_pointer.is_none() {
+            let surface = self.compositor_state.create_surface(qh);
+            let themed_pointer = self
                 .seat_state
-                .get_pointer(qh, &seat)
+                .get_pointer_with_theme(
+                    qh,
+                    &seat,
+                    self.shm_state.wl_shm(),
+                    surface,
+                    ThemeSpec::default(),
+                )
                 .expect("Failed to create pointer");
-            self.pointer = Some(pointer);
+            self.themed_pointer.replace(themed_pointer);
         }
     }
 
@@ -509,9 +523,9 @@ impl SeatHandler for WaylandWindow {
             self.keyboard.take().unwrap().release();
         }
 
-        if capability == Capability::Pointer && self.pointer.is_some() {
+        if capability == Capability::Pointer && self.themed_pointer.is_some() {
             println!("Unset pointer capability");
-            self.pointer.take().unwrap().release();
+            self.themed_pointer.take().unwrap().pointer().release();
         }
     }
 
@@ -618,7 +632,7 @@ impl WindowHandler for WaylandWindow {
         // Initiate the first draw.
         if self.configured {
             self.configured = false;
-            self.draw(qh);
+            self.draw(conn, qh);
         }
     }
 }
@@ -675,9 +689,9 @@ impl PlatformWindow {
             window_frame: None,
             keyboard: None,
             keyboard_focus: false,
-            pointer: None,
             decorations_cursor: None,
             set_cursor: false,
+            themed_pointer: None,
         };
 
         state.setup_attribs();
