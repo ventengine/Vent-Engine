@@ -490,7 +490,7 @@ impl SeatHandler for WaylandWindow {
         capability: sctk::seat::Capability,
     ) {
         if capability == Capability::Keyboard && self.keyboard.is_none() {
-            println!("Set keyboard capability");
+            log::debug!("Set keyboard capability");
             let keyboard = self
                 .seat_state
                 .get_keyboard(qh, &seat, None)
@@ -522,12 +522,12 @@ impl SeatHandler for WaylandWindow {
         capability: sctk::seat::Capability,
     ) {
         if capability == Capability::Keyboard && self.keyboard.is_some() {
-            println!("Unset keyboard capability");
+            log::debug!("Unset keyboard capability");
             self.keyboard.take().unwrap().release();
         }
 
         if capability == Capability::Pointer && self.themed_pointer.is_some() {
-            println!("Unset pointer capability");
+            log::debug!("Unset pointer capability");
             self.themed_pointer.take().unwrap().pointer().release();
         }
     }

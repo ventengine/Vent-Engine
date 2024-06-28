@@ -11,6 +11,7 @@ vent-rendering = { path = "../vent-rendering"}
 vent-assets = { path = "../vent-assets" }
 vent-ecs = { path = "../vent-ecs"}
 vent-window = { path = "../vent-window"}
+vent-logging = { path = "../vent-logging"}
 
 ash = { version= "0.38", default-features = false, features = ["linked", "debug"] }
 
@@ -27,10 +28,6 @@ egui = "0.27"
 android_logger = "0.14"
 android-activity = { version = "0.6", features = [ "game-activity" ] }
 ndk = "0.9.0"
-
-[target.'cfg(any(not(target_arch = "wasm32"), target_os = "emscripten"))'.dependencies]
-simple_logger = "5.0"
-
 
 
 [build-dependencies]

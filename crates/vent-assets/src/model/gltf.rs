@@ -227,7 +227,6 @@ impl GLTFLoader {
                 meshes: all_meshes,
             };
 
-
             if cached_pipeline.contains_key(&pipeline_info) {
                 pipelines.push(ModelPipeline {
                     pipeline: *cached_pipeline.get(&pipeline_info).unwrap(),

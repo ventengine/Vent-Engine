@@ -389,14 +389,20 @@ impl VulkanInstance {
         tiling: vk::ImageTiling,
         features: vk::FormatFeatureFlags,
     ) -> Option<vk::Format> {
-        candidates.iter().find(|f| {
-            let properties = unsafe { instance.get_physical_device_format_properties(pdevice, **f) };
-            match tiling {
-                vk::ImageTiling::LINEAR => properties.linear_tiling_features.contains(features),
-                vk::ImageTiling::OPTIMAL => properties.optimal_tiling_features.contains(features),
-                _ => false,
-            }
-        }).copied()
+        candidates
+            .iter()
+            .find(|f| {
+                let properties =
+                    unsafe { instance.get_physical_device_format_properties(pdevice, **f) };
+                match tiling {
+                    vk::ImageTiling::LINEAR => properties.linear_tiling_features.contains(features),
+                    vk::ImageTiling::OPTIMAL => {
+                        properties.optimal_tiling_features.contains(features)
+                    }
+                    _ => false,
+                }
+            })
+            .copied()
     }
 
     fn create_frame_buffers(

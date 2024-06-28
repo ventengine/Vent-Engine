@@ -1,7 +1,5 @@
 // use crate::render::EditorRenderer;
 
-// use simple_logger::SimpleLogger;
-
 // use vent_common::util::crash::init_panic_hook;
 // use vent_common::window::VentWindow;
 // use vent_runtime::render::camera::{Camera, Camera3D};

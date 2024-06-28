@@ -3,10 +3,10 @@ use std::process::exit;
 use crate::render::Dimension;
 
 use render::{camera::camera_controller3d::CameraController3D, DefaultRuntimeRenderer};
-use simple_logger::SimpleLogger;
 use vent_common::project::VentApplicationProject;
 
 use vent_common::util::crash::init_panic_hook;
+use vent_logging::Logger;
 use vent_window::{EventLoop, Window, WindowAttribs, WindowEvent};
 
 pub mod render;
@@ -18,13 +18,7 @@ pub struct VentApplication {
 impl VentApplication {
     pub fn default() {
         init_panic_hook();
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            SimpleLogger::new()
-                .with_level(log::LevelFilter::Info)
-                .init()
-                .unwrap();
-        };
+        Logger::new();
 
         let project = VentApplicationProject {
             name: "Placeholder".to_string(),
