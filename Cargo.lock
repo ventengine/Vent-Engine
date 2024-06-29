@@ -2008,6 +2008,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "vent-math"
+version = "0.1.0"
+
+[[package]]
 name = "vent-rendering"
 version = "0.1.0"
 dependencies = [

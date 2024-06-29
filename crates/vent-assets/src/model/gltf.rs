@@ -325,9 +325,14 @@ impl GLTFLoader {
         let diffuse_texture = if let Some(texture) = pbr.base_color_texture() {
             match texture.texture().source().source() {
                 gltf::image::Source::View { view, mime_type } => {
+                    let parent_buffer_data = &buffer_data[view.buffer().index()].0;
+                    let begin = view.offset();
+                    let end = begin + view.length();
+                    let encoded_image = &parent_buffer_data[begin..end];
+
                     let sampler = texture.texture().sampler();
                     let image = image::load_from_memory_with_format(
-                        &buffer_data[view.buffer().index()],
+                        &encoded_image,
                         image::ImageFormat::from_mime_type(mime_type)
                             .expect("TODO: Error Handling"),
                     )

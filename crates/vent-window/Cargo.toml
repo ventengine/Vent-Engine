@@ -16,7 +16,7 @@ targets = [
 
 [dependencies]
 log = "0.4"
-rwh_06 = { package = "raw-window-handle", version = "0.6", features = [
+raw-window-handle  = { version = "0.6", features = [
     "std",
 ]}
 

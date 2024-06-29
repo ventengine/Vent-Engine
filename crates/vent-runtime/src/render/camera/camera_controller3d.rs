@@ -29,7 +29,6 @@ impl CameraController3D {
         state: keyboard::KeyState,
         delta_time: f32,
     ) -> bool {
-        dbg!(camera.position);
         if state == keyboard::KeyState::Pressed {
             let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
             match key {

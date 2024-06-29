@@ -132,7 +132,7 @@ async fn load_model_from_path(
     // Very Pretty, I know
     match extension {
         "obj" => Ok(OBJLoader::load(instance, path).await?),
-        "gltf" => Ok(GLTFLoader::load(
+        "gltf" | "glb" => Ok(GLTFLoader::load(
             instance,
             vertex_shader,
             fragment_shader,

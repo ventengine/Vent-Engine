@@ -9,7 +9,7 @@ pub struct Logger {
 
 impl Logger {
     pub fn new()  {
-        log::set_max_level(LevelFilter::Trace);
+        log::set_max_level(LevelFilter::Debug);
         log::set_boxed_logger(Box::new(Self {})).expect("failed to set boxed logger");
     }
 }
