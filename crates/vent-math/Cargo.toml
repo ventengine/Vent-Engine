@@ -1,0 +1,6 @@
+[package]
+name = "vent-math"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

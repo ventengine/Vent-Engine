@@ -67,7 +67,6 @@ impl VentApplication {
                     renderer.resize((new_width, new_height));
                 }
                 WindowEvent::Draw => delta_time = renderer.render(window_size), // Default,
-                _ => {}
             }
         });
 

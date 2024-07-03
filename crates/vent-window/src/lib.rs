@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use rwh_06::{DisplayHandle, HasDisplayHandle, HasWindowHandle};
+use raw_window_handle::{DisplayHandle, HasDisplayHandle, HasWindowHandle};
 pub mod keyboard;
 pub mod mouse;
 pub mod platform;
@@ -136,15 +136,17 @@ impl Window {
 }
 
 impl HasDisplayHandle for Window {
-    fn display_handle(&self) -> Result<DisplayHandle<'_>, rwh_06::HandleError> {
+    fn display_handle(&self) -> Result<DisplayHandle<'_>, raw_window_handle::HandleError> {
         let raw = self.window.raw_display_handle();
-        Ok(unsafe { rwh_06::DisplayHandle::borrow_raw(raw) })
+        Ok(unsafe { raw_window_handle::DisplayHandle::borrow_raw(raw) })
     }
 }
 
 impl HasWindowHandle for Window {
-    fn window_handle(&self) -> Result<rwh_06::WindowHandle<'_>, rwh_06::HandleError> {
+    fn window_handle(
+        &self,
+    ) -> Result<raw_window_handle::WindowHandle<'_>, raw_window_handle::HandleError> {
         let raw = self.window.raw_window_handle();
-        Ok(unsafe { rwh_06::WindowHandle::borrow_raw(raw) })
+        Ok(unsafe { raw_window_handle::WindowHandle::borrow_raw(raw) })
     }
 }

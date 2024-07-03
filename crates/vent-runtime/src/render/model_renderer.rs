@@ -1,7 +1,7 @@
 use ash::vk::{self};
-use glam::{Mat4, Quat};
 use std::collections::HashMap;
 use vent_ecs::entity::Entity;
+use vent_math::scalar::{mat4::Mat4, quat::Quat};
 use vent_rendering::instance::VulkanInstance;
 
 use super::{d3::Camera3DData, model::Entity3D};
@@ -56,7 +56,7 @@ impl ModelRenderer3D {
         ubo: &mut Camera3DData,
     ) {
         for model in self.map.values() {
-            ubo.transformation = Self::calc_trans_matrix(model);
+            ubo.transformation = Entity3D::calc_trans_matrix(&model.model);
             model.model.draw(
                 &instance.device,
                 pipeline_layout,
@@ -71,14 +71,5 @@ impl ModelRenderer3D {
         for model in self.map.values_mut() {
             model.model.destroy(device)
         }
-    }
-
-    fn calc_trans_matrix(mesh: &Entity3D) -> glam::Mat4 {
-        let rotation_quat = Quat::from_scaled_axis(Quat::from_array(mesh.model.rotation).xyz());
-        Mat4::from_scale_rotation_translation(
-            mesh.model.scale.into(),
-            rotation_quat,
-            mesh.model.position.into(),
-        )
     }
 }

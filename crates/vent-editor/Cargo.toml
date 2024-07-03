@@ -13,10 +13,6 @@ vent-rendering = { path = "../vent-rendering"}
 
 ash = { version= "0.38", default-features = false, features = ["linked", "debug"] }
 
-# egui
-egui = "0.27"
-egui_dock = "0.12"
-
 pollster = "0.3.0"
 
 log = "0.4"

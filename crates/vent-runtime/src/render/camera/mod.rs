@@ -1,6 +1,9 @@
 use ash::vk;
 use downcast_rs::{impl_downcast, Downcast};
-use glam::Vec3;
+use vent_math::{
+    scalar::{mat4::Mat4, quat::Quat},
+    vec::{vec2::Vec2, vec3::Vec3},
+};
 use vent_rendering::{any_as_u8_slice, instance::VulkanInstance};
 
 use super::{d3::Camera3DData, Dimension};
@@ -25,7 +28,7 @@ pub fn from_dimension(aspect_ratio: f32, dimension: &Dimension) -> Box<dyn Camer
 
 #[allow(dead_code)]
 pub struct Camera2D {
-    position: glam::Vec2,
+    position: Vec2,
 }
 
 impl Camera for Camera2D {
@@ -36,7 +39,7 @@ impl Camera for Camera2D {
         Self: Sized,
     {
         Self {
-            position: glam::Vec2::ZERO,
+            position: Vec2::ZERO,
         }
     }
 
@@ -51,8 +54,8 @@ pub struct Camera3D {
     zfar: f32,
     pub ubo: Camera3DData,
 
-    pub position: glam::Vec3,
-    pub rotation: glam::Quat,
+    pub position: Vec3,
+    pub rotation: Quat,
 }
 
 impl Camera for Camera3D {
@@ -66,7 +69,7 @@ impl Camera for Camera3D {
             fovy: 60.0,
             znear: 0.1,
             zfar: 10000.0,
-            rotation: glam::Quat::IDENTITY,
+            rotation: Quat::IDENTITY,
             position: Vec3::ZERO,
             ubo: Default::default(),
         };
@@ -79,7 +82,7 @@ impl Camera for Camera3D {
 
     fn recreate_projection(&mut self, aspect_ratio: f32) {
         self.ubo.projection =
-            glam::Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
+            Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
         // Flip the cameras prospective upside down as glam assumes that the renderer we are using renders top to bottom, vulkan is the opposite
         self.ubo.projection.y_axis.y *= -1.0;
     }
@@ -89,11 +92,7 @@ impl Camera3D {
     pub fn update_set() {}
 
     pub fn recreate_view(&mut self) {
-        let view = glam::Mat4::look_at_rh(
-            self.position,
-            self.position + self.direction(),
-            glam::Vec3::Y,
-        );
+        let view = Mat4::look_at_rh(self.position, self.position + self.direction(), Vec3::Y);
         self.ubo.view_position = self.position;
         self.ubo.view = view;
     }
@@ -121,6 +120,6 @@ impl Camera3D {
         let (sin_yaw, cos_yaw) = self.rotation.x.sin_cos();
         let (sin_pitch, cos_pitch) = self.rotation.y.sin_cos();
 
-        glam::vec3(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize()
+        Vec3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize()
     }
 }

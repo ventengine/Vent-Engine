@@ -3,7 +3,6 @@ use super::{debug_gui::RenderData, GUI};
 #[allow(dead_code)]
 pub struct EguiRenderer {
     // renderer: egui_winit_ash_integration::Integration,
-    context: egui::Context,
     //   state: egui_winit::State,
     guis: Vec<Box<dyn GUI>>,
 }
@@ -16,11 +15,7 @@ impl Default for EguiRenderer {
 
 impl EguiRenderer {
     pub fn new() -> Self {
-        //let renderer = egui_winit_ash_integration::Integration::new(event_loop, );
-        let context = egui::Context::default();
-        // let state = egui_winit::State::new(event_loop);
         Self {
-            context,
             //   state,
             guis: Vec::new(),
         }

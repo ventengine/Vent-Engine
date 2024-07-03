@@ -1,6 +1,8 @@
 use std::{ffi::c_uint, ptr::null_mut};
 
-use rwh_06::{RawDisplayHandle, RawWindowHandle, Win32WindowHandle, WindowsDisplayHandle};
+use raw_window_handle::{
+    RawDisplayHandle, RawWindowHandle, Win32WindowHandle, WindowsDisplayHandle,
+};
 use windows_sys::Win32::{
     Foundation::{self, HWND, LPARAM, LRESULT, WPARAM},
     System::LibraryLoader::GetModuleHandleW,

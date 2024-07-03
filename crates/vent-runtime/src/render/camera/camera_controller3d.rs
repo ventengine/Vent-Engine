@@ -1,3 +1,4 @@
+use vent_math::vec::vec2::Vec2;
 use vent_window::keyboard::{self, Key};
 
 use super::Camera3D;
@@ -86,10 +87,10 @@ impl CameraController3D {
         delta_time: f32,
     ) {
         if self.mouse_left_down {
-            let deltaposition = glam::vec2(mouse_dx as f32, mouse_dy as f32);
+            let deltaposition = Vec2::new(mouse_dx as f32, mouse_dy as f32);
 
             let moveposition =
-                deltaposition * glam::vec2(self.sensitivity_x, self.sensitivity_y) * delta_time;
+                deltaposition * Vec2::new(self.sensitivity_x, self.sensitivity_y) * delta_time;
             camera.rotation.x += moveposition.x;
             camera.rotation.y += moveposition.y;
         }

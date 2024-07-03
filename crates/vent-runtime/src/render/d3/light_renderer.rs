@@ -1,6 +1,6 @@
 use ash::vk;
-use glam::Vec3;
 use vent_assets::Mesh3D;
+use vent_math::vec::vec3::Vec3;
 use vent_rendering::Vertex;
 use vent_rendering::{instance::VulkanInstance, Vertex3D};
 

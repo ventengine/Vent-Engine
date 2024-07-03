@@ -4,11 +4,10 @@ use log::{Level, LevelFilter, Log};
 ///
 /// Cross Platform Logger
 ///
-pub struct Logger {
-}
+pub struct Logger {}
 
 impl Logger {
-    pub fn new()  {
+    pub fn new() {
         log::set_max_level(LevelFilter::Debug);
         log::set_boxed_logger(Box::new(Self {})).expect("failed to set boxed logger");
     }

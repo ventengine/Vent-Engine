@@ -1,11 +1,14 @@
 use std::mem::size_of;
 
 use ash::vk;
-use glam::{Mat4, Vec3, Vec4};
 use pollster::FutureExt;
 use vent_assets::Mesh3D;
 
 use vent_ecs::world::World;
+use vent_math::{
+    scalar::mat4::Mat4,
+    vec::{vec3::Vec3, vec4::Vec4},
+};
 use vent_rendering::{any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex3D};
 
 use self::light_renderer::{LightRenderer, LightUBO};
@@ -37,9 +40,9 @@ pub struct Camera3DData {
 impl Default for Camera3DData {
     fn default() -> Self {
         Self {
-            view_position: Default::default(),
-            projection: Default::default(),
-            view: Default::default(),
+            view_position: Vec3::ZERO,
+            projection: Mat4::IDENTITY,
+            view: Mat4::IDENTITY,
             transformation: Mat4::IDENTITY,
         }
     }
@@ -132,8 +135,8 @@ impl Renderer for Renderer3D {
                         size_of::<LightUBO>() as vk::DeviceSize,
                         vk::BufferUsageFlags::UNIFORM_BUFFER,
                         any_as_u8_slice(&LightUBO {
-                            position: [2.0, 100.0, 2.0].into(),
-                            color: [1.0, 1.0, 1.0].into(),
+                            position: Vec3::new(2.0, 100.0, 2.0),
+                            color: Vec3::new(1.0, 1.0, 1.0),
                         }),
                         vk::MemoryPropertyFlags::HOST_VISIBLE
                             | vk::MemoryPropertyFlags::DEVICE_LOCAL,

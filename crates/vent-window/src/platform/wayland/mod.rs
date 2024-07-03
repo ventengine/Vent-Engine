@@ -8,12 +8,14 @@ use std::{
     time::Duration,
 };
 
+use raw_window_handle::{
+    RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle,
+};
 use sctk::{
     reexports::protocols::xdg::shell::client::xdg_toplevel::ResizeEdge as XdgResizeEdge,
     seat::pointer::{ThemeSpec, ThemedPointer},
 };
 
-use rwh_06::{RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle};
 use sctk::{
     compositor::{CompositorHandler, CompositorState},
     delegate_compositor, delegate_keyboard, delegate_output, delegate_pointer, delegate_registry,
