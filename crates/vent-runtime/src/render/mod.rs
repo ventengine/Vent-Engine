@@ -1,13 +1,13 @@
 use std::time::{Duration, Instant};
 
 use ash::vk;
+use gui::gui_renderer::GuiRenderer;
 use vent_rendering::instance::VulkanInstance;
 
 use self::camera::{from_dimension, Camera};
 use self::d2::Renderer2D;
 use self::d3::Renderer3D;
 use self::gui::debug_gui::{DebugGUI, RenderData};
-use self::gui::gui_renderer::EguiRenderer;
 
 pub mod camera;
 pub mod gui;
@@ -89,7 +89,7 @@ pub trait Renderer {
 }
 
 pub struct RawRuntimeRenderer {
-    gui_renderer: EguiRenderer,
+    gui_renderer: GuiRenderer,
     multi_renderer: Box<dyn Renderer>,
 
     current_data: RenderData,
@@ -105,7 +105,7 @@ impl RawRuntimeRenderer {
             Dimension::D2 => Box::new(Renderer2D::init(instance, camera)),
             Dimension::D3 => Box::new(Renderer3D::init(instance, camera)),
         };
-        let egui = EguiRenderer::new()
+        let gui_renderer = GuiRenderer::new()
             // TODO
             .add_gui(Box::new(DebugGUI::new(unsafe {
                 instance
@@ -115,7 +115,7 @@ impl RawRuntimeRenderer {
 
         Self {
             multi_renderer,
-            gui_renderer: egui,
+            gui_renderer,
             current_frames: 0,
             current_data: RenderData::default(),
             last_fps: Instant::now(),

@@ -1,6 +1,11 @@
-use std::mem::{self, offset_of};
+use std::{
+    mem::{self, offset_of},
+    os::raw::c_void,
+};
 
 use ash::vk;
+use buffer::VulkanBuffer;
+use bytemuck::cast_slice;
 use ordered_float::OrderedFloat;
 
 pub mod allocator;
@@ -30,6 +35,56 @@ pub struct Vertex3D {
     pub position: [f32; 3],
     pub tex_coord: [f32; 2],
     pub normal: [f32; 3],
+}
+
+pub enum Indices {
+    U8(Vec<u8>),
+    U16(Vec<u16>),
+    U32(Vec<u32>),
+}
+
+impl Indices {
+    /// Returns the number of indices.
+    pub fn len(&self) -> usize {
+        match self {
+            Indices::U8(vec) => vec.len(),
+            Indices::U16(vec) => vec.len(),
+            Indices::U32(vec) => vec.len(),
+        }
+    }
+
+    pub fn upload(&self, buffer: &VulkanBuffer, memory: *mut c_void, size: vk::DeviceSize) {
+        match self {
+            Indices::U8(vec) => unsafe { buffer.upload_data(memory, vec, size) },
+            Indices::U16(vec) => unsafe { buffer.upload_data(memory, vec, size) },
+            Indices::U32(vec) => unsafe { buffer.upload_data(memory, vec, size) },
+        }
+    }
+
+    pub fn get_slice(&self) -> &[u8] {
+        match self {
+            Indices::U8(indices) => cast_slice(&indices[..]),
+            Indices::U16(indices) => cast_slice(&indices[..]),
+            Indices::U32(indices) => cast_slice(&indices[..]),
+        }
+    }
+
+    /// Returns `true` if there are no indices.
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Indices::U8(vec) => vec.is_empty(),
+            Indices::U16(vec) => vec.is_empty(),
+            Indices::U32(vec) => vec.is_empty(),
+        }
+    }
+
+    pub fn vk_type(&self) -> vk::IndexType {
+        match self {
+            Indices::U8(_) => vk::IndexType::UINT8_KHR,
+            Indices::U16(_) => vk::IndexType::UINT16,
+            Indices::U32(_) => vk::IndexType::UINT32,
+        }
+    }
 }
 
 impl Vertex for Vertex3D {

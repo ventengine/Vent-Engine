@@ -13,7 +13,7 @@ use ash::{
 use gltf::{material::AlphaMode, mesh::Mode, texture::Sampler};
 use image::DynamicImage;
 use vent_rendering::{
-    image::VulkanImage, instance::VulkanInstance, MaterialPipelineInfo, Vertex, Vertex3D,
+    image::VulkanImage, instance::VulkanInstance, Indices, MaterialPipelineInfo, Vertex, Vertex3D,
 };
 
 use crate::{Material, Model3D, ModelPipeline};
@@ -210,7 +210,7 @@ impl GLTFLoader {
                     instance,
                     &instance.memory_allocator,
                     &final_primitive.0,
-                    &final_primitive.1,
+                    final_primitive.1,
                     mesh.name(),
                 );
                 all_meshes.push(loaded_mesh);
@@ -471,10 +471,10 @@ impl GLTFLoader {
         }
     }
 
-    fn load_primitive(
-        buffer_data: &[gltf::buffer::Data],
-        primitive: gltf::Primitive,
-    ) -> (Vec<Vertex3D>, Vec<u32>) {
+    fn load_primitive<'a>(
+        buffer_data: &'a [gltf::buffer::Data],
+        primitive: gltf::Primitive<'a>,
+    ) -> (Vec<Vertex3D>, Indices) {
         let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
 
         let mut vertices: Vec<Vertex3D> = reader
@@ -501,7 +501,16 @@ impl GLTFLoader {
 
         let vertices = optimizer::optimize_vertices(vertices);
 
-        let indices: Vec<_> = reader.read_indices().unwrap().into_u32().collect();
+        // TODO Handle where there are no indices
+        let indices = match reader.read_indices().unwrap() {
+            gltf::mesh::util::ReadIndices::U8(indices) => Indices::U8(indices.collect::<Vec<_>>()),
+            gltf::mesh::util::ReadIndices::U16(indices) => {
+                Indices::U16(indices.collect::<Vec<_>>())
+            }
+            gltf::mesh::util::ReadIndices::U32(indices) => {
+                Indices::U32(indices.collect::<Vec<_>>())
+            }
+        };
         (vertices, indices)
     }
 }

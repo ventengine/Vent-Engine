@@ -28,7 +28,7 @@ impl OBJLoader {
 
         let mut meshes = Vec::new();
         for model in models {
-            let mesh = Self::load_mesh(&model.mesh);
+            let vertices = Self::load_mesh(&model.mesh);
 
             let _matieral = Self::load_material(
                 instance,
@@ -39,8 +39,8 @@ impl OBJLoader {
             meshes.push(Mesh3D::new(
                 instance,
                 &instance.memory_allocator,
-                &mesh.0,
-                mesh.1,
+                &vertices,
+                vent_rendering::Indices::U32(model.mesh.indices),
                 Some(&model.name),
             ));
         }
@@ -94,7 +94,7 @@ impl OBJLoader {
         }
     }
 
-    fn load_mesh(mesh: &tobj::Mesh) -> (Vec<Vertex3D>, &[u32]) {
+    fn load_mesh(mesh: &tobj::Mesh) -> Vec<Vertex3D> {
         let vertices = (0..mesh.positions.len() / 3)
             .map(|i| Vertex3D {
                 position: [
@@ -110,6 +110,6 @@ impl OBJLoader {
                 ],
             })
             .collect::<Vec<_>>();
-        (vertices, &mesh.indices)
+        vertices
     }
 }

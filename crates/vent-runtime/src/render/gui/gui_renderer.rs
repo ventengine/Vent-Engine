@@ -1,19 +1,19 @@
 use super::{debug_gui::RenderData, GUI};
 
 #[allow(dead_code)]
-pub struct EguiRenderer {
+pub struct GuiRenderer {
     // renderer: egui_winit_ash_integration::Integration,
     //   state: egui_winit::State,
     guis: Vec<Box<dyn GUI>>,
 }
 
-impl Default for EguiRenderer {
+impl Default for GuiRenderer {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl EguiRenderer {
+impl GuiRenderer {
     pub fn new() -> Self {
         Self {
             //   state,

@@ -387,7 +387,7 @@ fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
         instance,
         &instance.memory_allocator,
         &vertices,
-        &indices,
+        vent_rendering::Indices::U8(indices.to_vec()),
         None,
     )
 }

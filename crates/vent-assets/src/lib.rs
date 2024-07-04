@@ -42,6 +42,7 @@ pub struct Mesh3D {
     // Basic
     vertex_buf: VulkanBuffer,
     index_buf: VulkanBuffer,
+    index_type: vk::IndexType,
     index_count: u32,
 }
 

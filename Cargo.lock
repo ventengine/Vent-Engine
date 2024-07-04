@@ -1848,6 +1848,7 @@ name = "vent-rendering"
 version = "0.1.0"
 dependencies = [
  "ash",
+ "bytemuck",
  "image",
  "log",
  "ordered-float",

@@ -485,13 +485,15 @@ impl VulkanInstance {
             portability_subset::NAME.as_ptr(),
         ];
 
+        let available_features = unsafe { instance.get_physical_device_features(pdevice) };
+
         let mut features_1_3 = vk::PhysicalDeviceVulkan13Features::default()
             .synchronization2(true)
             .maintenance4(true);
 
-        let features = vk::PhysicalDeviceFeatures::default()
-            .shader_clip_distance(true)
-            .sampler_anisotropy(true);
+        let mut features = vk::PhysicalDeviceFeatures::default();
+        features.sampler_anisotropy = available_features.sampler_anisotropy;
+        //        features.shader_clip_distance = available_features.shader_clip_distance;
 
         let priorities = [1.0];
 
@@ -556,7 +558,7 @@ impl VulkanInstance {
                 .unwrap();
         let present_mode = present_modes
             .iter()
-            .find(|&mode| *mode == vk::PresentModeKHR::MAILBOX)
+            .find(|&mode| *mode == vk::PresentModeKHR::IMMEDIATE)
             .unwrap_or(&vk::PresentModeKHR::FIFO);
 
         let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()

@@ -1,7 +1,6 @@
 use ash::vk::{self};
 use std::collections::HashMap;
 use vent_ecs::entity::Entity;
-use vent_math::scalar::{mat4::Mat4, quat::Quat};
 use vent_rendering::instance::VulkanInstance;
 
 use super::{d3::Camera3DData, model::Entity3D};

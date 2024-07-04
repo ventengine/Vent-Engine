@@ -4,7 +4,7 @@ use ash::vk;
 use vent_rendering::allocator::MemoryAllocator;
 use vent_rendering::buffer::VulkanBuffer;
 use vent_rendering::instance::VulkanInstance;
-use vent_rendering::{begin_single_time_command, end_single_time_command, Vertex3D};
+use vent_rendering::{begin_single_time_command, end_single_time_command, Indices, Vertex3D};
 use vent_sdk::utils::stopwatch::Stopwatch;
 
 use crate::{Material, Mesh3D, Model3D};
@@ -149,11 +149,11 @@ impl Mesh3D {
         instance: &VulkanInstance,
         allocator: &MemoryAllocator,
         vertices: &[Vertex3D],
-        indices: &[u32],
+        indices: Indices,
         name: Option<&str>,
     ) -> Self {
         let vertex_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-        let index_size = std::mem::size_of_val(indices) as vk::DeviceSize;
+        let index_size = std::mem::size_of_val(indices.get_slice()) as vk::DeviceSize;
 
         let vertex_buf = VulkanBuffer::new(
             instance,
@@ -187,13 +187,11 @@ impl Mesh3D {
         // copy vertex buffer
         unsafe { staging_buf.upload_data(memory, vertices, vertex_size) };
         // copy index buffer
-        unsafe {
-            staging_buf.upload_data(
-                memory.wrapping_add(vertex_size as usize),
-                indices,
-                index_size,
-            )
-        };
+        indices.upload(
+            &staging_buf,
+            memory.wrapping_add(vertex_size as usize),
+            index_size,
+        );
 
         let command_buffer = begin_single_time_command(&instance.device, instance.command_pool);
 
@@ -231,6 +229,7 @@ impl Mesh3D {
         Self {
             vertex_buf,
             index_buf,
+            index_type: indices.vk_type(),
             index_count: indices.len() as u32,
         }
     }
@@ -245,7 +244,7 @@ impl Mesh3D {
                 None,
                 None,
             );
-            device.cmd_bind_index_buffer(command_buffer, *self.index_buf, 0, vk::IndexType::UINT32);
+            device.cmd_bind_index_buffer(command_buffer, *self.index_buf, 0, self.index_type);
         }
     }
 

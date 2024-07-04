@@ -14,7 +14,7 @@ vent-window = { path = "../vent-window"}
 vent-logging = { path = "../vent-logging"}
 vent-math = { path = "../vent-math"}
 
-ash = { version= "0.38", default-features = false, features = ["linked", "debug"] }
+ash = { version= "0.38", default-features = false, features = ["linked"] }
 
 glam = "0.28"
 

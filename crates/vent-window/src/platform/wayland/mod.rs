@@ -361,6 +361,7 @@ impl PointerHandler for WaylandWindow {
             let (x, y) = event.position;
             match event.kind {
                 PointerEventKind::Enter { serial } => {
+                    self.set_cursor = true;
                     self.decorations_cursor = self.window_frame.as_mut().and_then(|frame| {
                         frame.click_point_moved(Duration::ZERO, &event.surface.id(), x, y)
                     });
