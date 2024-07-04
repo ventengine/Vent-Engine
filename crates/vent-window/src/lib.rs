@@ -43,6 +43,7 @@ pub struct WindowAttribs {
     mode: WindowMode,
     min_size: Option<(u32, u32)>,
     max_size: Option<(u32, u32)>,
+    resizable: bool,
 }
 
 impl WindowAttribs {
@@ -66,6 +67,7 @@ impl Default for WindowAttribs {
             mode: WindowMode::Default,
             max_size: None,
             min_size: None,
+            resizable: false,
         }
     }
 }

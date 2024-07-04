@@ -116,7 +116,12 @@ impl WaylandWindow {
         let window = &self.window;
         let attribs = &self.attribs;
         window.set_title(attribs.title.clone());
-        // TODO WindowMode
+        match attribs.mode {
+            crate::WindowMode::Default => {}
+            crate::WindowMode::FullScreen => window.set_fullscreen(None),
+            crate::WindowMode::Maximized => window.set_maximized(),
+            crate::WindowMode::Minimized => window.set_minimized(),
+        }
         window.set_app_id(attribs.app_id.clone());
         window.set_max_size(attribs.max_size);
         window.set_min_size(attribs.min_size);
@@ -145,7 +150,9 @@ impl WaylandWindow {
                     ResizeEdge::BottomRight => XdgResizeEdge::BottomRight,
                     _ => return,
                 };
-                self.window.resize(seat, serial, edge);
+                if self.attribs.resizable {
+                    self.window.resize(seat, serial, edge);
+                }
             }
             FrameAction::Move => self.window.move_(seat, serial),
             _ => (),
