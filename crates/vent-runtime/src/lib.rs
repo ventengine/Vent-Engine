@@ -2,14 +2,16 @@ use std::process::exit;
 
 use crate::render::Dimension;
 
+use project::{RenderSettings, VentApplicationProject};
 use render::{camera::camera_controller3d::CameraController3D, DefaultRuntimeRenderer};
-use vent_common::project::VentApplicationProject;
 
-use vent_common::util::crash::init_panic_hook;
+use util::{crash::init_panic_hook, version::Version};
 use vent_logging::Logger;
 use vent_window::{EventLoop, Window, WindowAttribs, WindowEvent};
 
+pub mod project;
 pub mod render;
+pub mod util;
 
 pub struct VentApplication {
     project: VentApplicationProject,
@@ -22,7 +24,12 @@ impl VentApplication {
 
         let project = VentApplicationProject {
             name: "Placeholder".to_string(),
-            version: "1.0.0".to_string(),
+            version: Version::new(1, 0, 0),
+            window_settings: WindowAttribs::default().with_title("Placeholder".to_string()),
+            render_settings: RenderSettings {
+                dimension: Dimension::D3,
+                vsync: false,
+            },
         };
         let app = VentApplication::new(project);
         app.start();
@@ -33,18 +40,17 @@ impl VentApplication {
     }
 
     pub fn start(self) {
-        let window_size = (800, 600);
+        let project = self.project;
         let mut event_loop = EventLoop::new();
-        let attribs = WindowAttribs::default().with_title(self.project.name);
-        let vent_window = Window::new(attribs);
+        let app_window = Window::new(project.window_settings.clone());
 
         // TODO
-        let mut renderer = DefaultRuntimeRenderer::new(Dimension::D3, &vent_window);
+        let mut renderer = DefaultRuntimeRenderer::new(&project, &app_window);
 
         let mut controller = CameraController3D::new(1000.0, 10.0);
         let mut delta_time = 0.0;
 
-        event_loop.add_window(vent_window);
+        event_loop.add_window(app_window);
 
         event_loop.poll(move |event| {
             match event {
@@ -66,7 +72,7 @@ impl VentApplication {
                 } => {
                     renderer.resize((new_width, new_height));
                 }
-                WindowEvent::Draw => delta_time = renderer.render(window_size), // Default,
+                WindowEvent::Draw => delta_time = renderer.render(), // Default,
             }
         });
 

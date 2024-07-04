@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 vent-runtime = { path = "../vent-runtime"}
-vent-common = { path = "../vent-common"}
 
 vent-rendering = { path = "../vent-rendering"}
 

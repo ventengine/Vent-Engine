@@ -58,6 +58,8 @@ pub struct VulkanInstance {
     pub in_flight_fences: Vec<vk::Fence>,
     pub images_in_flight: Vec<vk::Fence>,
 
+    pub vsync: bool,
+
     frame: usize,
 
     #[cfg(debug_assertions)]
@@ -69,17 +71,27 @@ pub struct VulkanInstance {
 }
 
 impl VulkanInstance {
-    pub fn new(application_name: &str, window: &vent_window::Window) -> Self {
+    pub fn new(
+        application_name: &String,
+        application_version: u32,
+        vsync: bool,
+        window: &vent_window::Window,
+    ) -> Self {
         let entry = Entry::linked();
 
-        let engine_version: u32 = env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap();
+        let engine_version = vk::make_api_version(
+            0,
+            env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap(),
+            env!("CARGO_PKG_VERSION_MINOR").parse().unwrap(),
+            env!("CARGO_PKG_VERSION_PATCH").parse().unwrap(),
+        );
 
         let app_info = unsafe {
             vk::ApplicationInfo::default()
                 .application_name(CStr::from_bytes_with_nul_unchecked(
                     application_name.as_bytes(),
                 ))
-                .application_version(0) // TODO
+                .application_version(application_version) // TODO
                 .engine_name(CStr::from_bytes_with_nul_unchecked(b"Vent-Engine\0"))
                 .engine_version(engine_version)
                 .api_version(vk::API_VERSION_1_3)
@@ -162,6 +174,7 @@ impl VulkanInstance {
             surface_format,
             &surface_loader,
             pdevice,
+            vsync,
             surface,
             (
                 window.width().try_into().unwrap(),
@@ -236,6 +249,7 @@ impl VulkanInstance {
             image_available_semaphores,
             render_finished_semaphores,
             in_flight_fences,
+            vsync,
             images_in_flight,
             frame: 0,
         }
@@ -261,7 +275,11 @@ impl VulkanInstance {
         }
     }
 
-    pub fn recreate_swap_chain(&mut self, new_size: (u32, u32)) {
+    pub fn recreate_swap_chain(&mut self, new_size: Option<(u32, u32)>) {
+        let new_size = new_size.unwrap_or((
+            self.surface_resolution.width,
+            self.surface_resolution.height,
+        ));
         unsafe {
             self.device.device_wait_idle().unwrap();
 
@@ -270,6 +288,7 @@ impl VulkanInstance {
                 self.surface_format,
                 &self.surface_loader,
                 self.physical_device,
+                self.vsync,
                 self.surface,
                 new_size,
                 Some(self.swapchain),
@@ -515,6 +534,7 @@ impl VulkanInstance {
         surface_format: vk::SurfaceFormatKHR,
         surface_loader: &khr::surface::Instance,
         pdevice: vk::PhysicalDevice,
+        vsync: bool,
         surface: vk::SurfaceKHR,
         size: (u32, u32),
         old_swapchain: Option<vk::SwapchainKHR>,
@@ -556,10 +576,20 @@ impl VulkanInstance {
         let present_modes =
             unsafe { surface_loader.get_physical_device_surface_present_modes(pdevice, surface) }
                 .unwrap();
+
+        let wanted_mode = if vsync {
+            vk::PresentModeKHR::FIFO
+        } else {
+            vk::PresentModeKHR::IMMEDIATE
+        };
+
         let present_mode = present_modes
             .iter()
-            .find(|&mode| *mode == vk::PresentModeKHR::IMMEDIATE)
-            .unwrap_or(&vk::PresentModeKHR::FIFO);
+            .find(|&mode| *mode == wanted_mode)
+            .unwrap_or({
+                log::warn!("Swapchain: Wanted mode is not supported, Using FIFO");
+                &vk::PresentModeKHR::FIFO
+            });
 
         let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
             .surface(surface)

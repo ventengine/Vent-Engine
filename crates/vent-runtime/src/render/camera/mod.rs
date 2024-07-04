@@ -83,7 +83,7 @@ impl Camera for Camera3D {
     fn recreate_projection(&mut self, aspect_ratio: f32) {
         self.ubo.projection =
             Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
-        // Flip the cameras prospective upside down as glam assumes that the renderer we are using renders top to bottom, vulkan is the opposite
+        // Flip the cameras prospective upside down
         self.ubo.projection.y_axis.y *= -1.0;
     }
 }

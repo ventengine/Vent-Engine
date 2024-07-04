@@ -4,6 +4,8 @@ use std::io::Write;
 use std::panic::{self, PanicInfo};
 use sysinfo::System;
 
+// Crash Handler
+
 #[inline]
 pub fn init_panic_hook() {
     panic::set_hook(Box::new(panic_handler));
@@ -63,11 +65,3 @@ fn log_crash(pi: &PanicInfo) -> std::io::Result<()> {
     writeln!(&mut f, "Crash Info:              {:?}", format!("{:?}", pi))?;
     Ok(())
 }
-
-// fn show_error_dialog(pi: &PanicInfo) {
-//     rfd::MessageDialog::new()
-//         .set_level(MessageLevel::Error)
-//         .set_title("Application Error")
-//         .set_description(format!("{:?}", pi).as_str())
-//         .show();
-// }

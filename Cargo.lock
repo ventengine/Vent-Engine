@@ -621,12 +621,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glam"
-version = "0.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "779ae4bf7e8421cf91c0b3b64e7e8b40b862fba4d393f59150042de7c4965a94"
-
-[[package]]
 name = "gltf"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1416,7 +1410,6 @@ dependencies = [
 name = "runtime-sandbox"
 version = "0.1.0"
 dependencies = [
- "vent-common",
  "vent-runtime",
 ]
 
@@ -1802,18 +1795,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vent-common"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "image",
- "log",
- "serde",
- "serde_json",
- "sysinfo",
-]
-
-[[package]]
 name = "vent-ecs"
 version = "0.1.0"
 
@@ -1824,7 +1805,6 @@ dependencies = [
  "ash",
  "log",
  "pollster",
- "vent-common",
  "vent-rendering",
  "vent-runtime",
 ]
@@ -1865,14 +1845,16 @@ dependencies = [
  "android-activity",
  "android_logger",
  "ash",
+ "chrono",
  "downcast-rs",
  "fs_extra",
- "glam",
  "log",
  "ndk",
  "pollster",
+ "serde",
+ "serde_json",
+ "sysinfo",
  "vent-assets",
- "vent-common",
  "vent-ecs",
  "vent-logging",
  "vent-math",
@@ -1891,6 +1873,8 @@ dependencies = [
  "log",
  "raw-window-handle",
  "sctk-adwaita",
+ "serde",
+ "serde_json",
  "smithay-client-toolkit",
  "wayland-backend",
  "wayland-client",

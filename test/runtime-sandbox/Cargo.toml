@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 vent-runtime = { path = "../../crates/vent-runtime"}
-vent-common = { path = "../../crates/vent-common"}

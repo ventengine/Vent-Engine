@@ -2,7 +2,10 @@ use std::time::{Duration, Instant};
 
 use ash::vk;
 use gui::gui_renderer::GuiRenderer;
+use serde::{Deserialize, Serialize};
 use vent_rendering::instance::VulkanInstance;
+
+use crate::project::{RenderSettings, VentApplicationProject};
 
 use self::camera::{from_dimension, Camera};
 use self::d2::Renderer2D;
@@ -25,10 +28,16 @@ pub(crate) struct DefaultRuntimeRenderer {
 }
 
 impl DefaultRuntimeRenderer {
-    pub(crate) fn new(dimension: Dimension, window: &vent_window::Window) -> Self {
-        let instance = VulkanInstance::new("TODO", window);
+    pub(crate) fn new(settings: &VentApplicationProject, window: &vent_window::Window) -> Self {
+        let instance = VulkanInstance::new(
+            &settings.name,
+            settings.version.parse(),
+            settings.render_settings.vsync,
+            window,
+        );
+        let dimension = &settings.render_settings.dimension;
         let window_size = window.size();
-        let mut camera = from_dimension(window_size.0 as f32 / window_size.1 as f32, &dimension);
+        let mut camera = from_dimension(window_size.0 as f32 / window_size.1 as f32, dimension);
         let runtime_renderer = RawRuntimeRenderer::new(dimension, &instance, camera.as_mut());
         Self {
             instance,
@@ -41,9 +50,9 @@ impl DefaultRuntimeRenderer {
         self.runtime_renderer.progress_event(event);
     }
 
-    pub(crate) fn render(&mut self, window_size: (u32, u32)) -> f32 {
+    pub(crate) fn render(&mut self) -> f32 {
         self.runtime_renderer
-            .render(&mut self.instance, window_size, self.camera.as_mut())
+            .render(&mut self.instance, self.camera.as_mut())
     }
 
     pub(crate) fn resize(&mut self, new_size: (u32, u32)) {
@@ -66,6 +75,7 @@ impl Drop for DefaultRuntimeRenderer {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum Dimension {
     D2,
     D3,
@@ -100,7 +110,7 @@ pub struct RawRuntimeRenderer {
 }
 
 impl RawRuntimeRenderer {
-    pub fn new(dimension: Dimension, instance: &VulkanInstance, camera: &mut dyn Camera) -> Self {
+    pub fn new(dimension: &Dimension, instance: &VulkanInstance, camera: &mut dyn Camera) -> Self {
         let multi_renderer: Box<dyn Renderer> = match dimension {
             Dimension::D2 => Box::new(Renderer2D::init(instance, camera)),
             Dimension::D3 => Box::new(Renderer3D::init(instance, camera)),
@@ -123,12 +133,7 @@ impl RawRuntimeRenderer {
         }
     }
 
-    pub fn render(
-        &mut self,
-        instance: &mut VulkanInstance,
-        window_size: (u32, u32), // TODO
-        camera: &mut dyn Camera,
-    ) -> f32 {
+    pub fn render(&mut self, instance: &mut VulkanInstance, camera: &mut dyn Camera) -> f32 {
         let frame_start = Instant::now();
 
         let image = instance.next_image();
@@ -139,11 +144,11 @@ impl RawRuntimeRenderer {
                 let result = instance.submit(image_index);
                 if let Err(vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR) = result
                 {
-                    instance.recreate_swap_chain(window_size);
+                    instance.recreate_swap_chain(None);
                 }
             }
             Err(vk::Result::ERROR_OUT_OF_DATE_KHR) => {
-                instance.recreate_swap_chain(window_size);
+                instance.recreate_swap_chain(None);
             }
             Err(_) => {}
         }
@@ -207,7 +212,7 @@ impl RawRuntimeRenderer {
         camera: &mut dyn Camera,
     ) {
         // Uses the NEW Resized config
-        instance.recreate_swap_chain(new_size);
+        instance.recreate_swap_chain(Some(new_size));
         self.multi_renderer.resize(instance, new_size, camera)
     }
 

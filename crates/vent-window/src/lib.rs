@@ -1,6 +1,7 @@
 use std::num::NonZeroU32;
 
 use raw_window_handle::{DisplayHandle, HasDisplayHandle, HasWindowHandle};
+use serde::{Deserialize, Serialize};
 pub mod keyboard;
 pub mod mouse;
 pub mod platform;
@@ -25,7 +26,7 @@ pub enum WindowEvent {
 
 enum WindowError {}
 
-#[derive(PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub enum WindowMode {
     Default,
     FullScreen,
@@ -33,6 +34,7 @@ pub enum WindowMode {
     Minimized,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct WindowAttribs {
     title: String,
     app_id: String,
