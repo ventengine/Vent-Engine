@@ -5,7 +5,7 @@ use gui::gui_renderer::GuiRenderer;
 use serde::{Deserialize, Serialize};
 use vent_rendering::instance::VulkanInstance;
 
-use crate::project::{RenderSettings, VentApplicationProject};
+use crate::project::VentApplicationProject;
 
 use self::camera::{from_dimension, Camera};
 use self::d2::Renderer2D;

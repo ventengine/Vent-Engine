@@ -1,4 +1,4 @@
-#version 460 core
+#version 450 core
 
 layout(binding = 0) uniform Camera {
     mat4 projection;

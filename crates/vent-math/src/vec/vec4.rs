@@ -1,6 +1,6 @@
 use std::{
-    arch::x86_64::{__m128, _mm_loadu_ps, _mm_mul_ps, _mm_set1_ps, _mm_store_ps},
-    ops::{Deref, DerefMut, Mul, MulAssign},
+    arch::x86_64::{__m128, _mm_add_ps, _mm_loadu_ps, _mm_mul_ps, _mm_set1_ps, _mm_store_ps},
+    ops::{Add, AddAssign, Deref, DerefMut, Mul, MulAssign},
 };
 
 use crate::align16::Align16;
@@ -68,6 +68,44 @@ impl Vec4 {
     #[must_use]
     pub const fn splat(v: f32) -> Self {
         unsafe { UnionCast { a: [v; 4] }.v }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn xxxx(self) -> Self {
+        Self::new(self.x, self.x, self.x, self.x)
+    }
+    #[inline]
+    #[must_use]
+    pub fn yyyy(self) -> Self {
+        Self::new(self.y, self.y, self.y, self.y)
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn zzzz(self) -> Self {
+        Self::new(self.z, self.z, self.z, self.z)
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn wwww(self) -> Self {
+        Self::new(self.w, self.w, self.w, self.w)
+    }
+}
+
+impl Add<Vec4> for Vec4 {
+    type Output = Self;
+    #[inline]
+    fn add(self, rhs: Self) -> Self {
+        Self(unsafe { _mm_add_ps(self.0, rhs.0) })
+    }
+}
+
+impl AddAssign<Vec4> for Vec4 {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 = unsafe { _mm_add_ps(self.0, rhs.0) };
     }
 }
 

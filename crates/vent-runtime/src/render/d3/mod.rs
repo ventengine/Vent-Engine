@@ -11,7 +11,7 @@ use vent_math::{
 };
 use vent_rendering::{any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex3D};
 
-use self::light_renderer::{LightRenderer, LightUBO};
+use self::light_renderer::LightUBO;
 
 use super::{
     camera::{Camera, Camera3D},
@@ -30,27 +30,24 @@ pub struct MaterialUBO {
 }
 
 #[repr(C)] // This fixed everthing... #[repr(C)]
+/// We calculate all values on the CPU, This will save us alot of memory, Push constants only guarante us 128 bytes
 pub struct Camera3DData {
     pub view_position: Vec3,
-    pub projection: Mat4,
-    pub view: Mat4,
-    pub transformation: Mat4,
+    pub proj_view_trans: Mat4,
 }
 
 impl Default for Camera3DData {
     fn default() -> Self {
         Self {
             view_position: Vec3::ZERO,
-            projection: Mat4::IDENTITY,
-            view: Mat4::IDENTITY,
-            transformation: Mat4::IDENTITY,
+            proj_view_trans: Mat4::IDENTITY,
         }
     }
 }
 
 pub struct Renderer3D {
     mesh_renderer: ModelRenderer3D,
-    light_renderer: LightRenderer,
+    //light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
     pipeline_layout: vk::PipelineLayout,
 
@@ -64,7 +61,6 @@ impl Renderer for Renderer3D {
         Self: Sized,
     {
         let _camera: &Camera3D = camera.downcast_ref().unwrap();
-
         let push_constant_range = vk::PushConstantRange::default()
             .size(size_of::<Camera3DData>() as u32)
             .stage_flags(vk::ShaderStageFlags::VERTEX);
@@ -199,11 +195,11 @@ impl Renderer for Renderer3D {
         mesh_renderer.insert(world.create_entity(), mesh);
 
         let tmp_light_mesh = create_tmp_cube(instance);
-        let light_renderer = LightRenderer::new(instance);
+        //  let light_renderer = LightRenderer::new(instance);
 
         Self {
             mesh_renderer,
-            light_renderer,
+            //   light_renderer,
             tmp_light_mesh,
             pipeline_layout,
             material_ubos,
@@ -295,10 +291,10 @@ impl Renderer for Renderer3D {
                 command_buffer,
                 image_index,
                 self.pipeline_layout,
-                &mut camera.ubo,
+                camera,
             );
 
-            camera.write(instance, self.pipeline_layout, command_buffer);
+            //  camera.write(instance, self.pipeline_layout, command_buffer);
 
             // END
             let subpass_end_info = vk::SubpassEndInfo::default();
@@ -312,7 +308,7 @@ impl Renderer for Renderer3D {
     fn destroy(&mut self, instance: &VulkanInstance) {
         unsafe { instance.device.device_wait_idle().unwrap() };
         self.mesh_renderer.destroy_all(&instance.device);
-        self.light_renderer.destroy(&instance.device);
+        //self.light_renderer.destroy(&instance.device);
         self.material_ubos
             .drain(..)
             .for_each(|mut ubo| ubo.destroy(&instance.device));

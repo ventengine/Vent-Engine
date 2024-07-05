@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // This disables the Windows Console in release mode
+
 use vent_runtime::VentApplication;
 
 fn main() {

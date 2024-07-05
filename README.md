@@ -45,13 +45,14 @@ Vent-Engine Platform Support:
 
 | Platform | Runtime | Editor |
 | -------- | ------- | ------ |
-| Windows  | **❓**  | **❓** |
-| MacOS    | **❓**  | **❓** |
-| Linux    | ✅️     | ✅️    |
-| Redox    | **❓**  | **❓** |
-| Android  | **❓**  | ❌     |
-| IOS      | **❓**  | ❌     |
-| WASM     | **❓**  | ❌     |
+| Windows  | ✅️       | **❓**  |
+| MacOS    | **❓**   | **❓**  |
+| Linux    | ✅️       | **❓**  |
+| Redox    | **❓**   | **❓**  |
+| VR       | **❓**   | ❌      |
+| Android  | **❓**   | ❌      |
+| IOS      | **❓**   | ❌      |
+| WASM     | **❓**   | ❌      |
 
 - ✅: Works as intended
 - ❌ Will not be Supported

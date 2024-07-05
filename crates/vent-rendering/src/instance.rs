@@ -151,9 +151,13 @@ impl VulkanInstance {
             Self::create_physical_device(&instance, &surface_loader, surface);
 
         let info = unsafe { instance.get_physical_device_properties(pdevice) };
-        log::info!("Selected graphics device (`{}`).", unsafe {
-            CStr::from_ptr(info.device_name.as_ptr()).to_string_lossy()
-        });
+        unsafe {
+            log::info!(
+                "Vulkan {}, Selected graphics device (`{}`)",
+                info.api_version,
+                CStr::from_ptr(info.device_name.as_ptr()).to_string_lossy()
+            );
+        }
 
         let surface_format =
             unsafe { surface_loader.get_physical_device_surface_formats(pdevice, surface) }

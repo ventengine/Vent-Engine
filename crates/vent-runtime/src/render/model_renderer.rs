@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use vent_ecs::entity::Entity;
 use vent_rendering::instance::VulkanInstance;
 
-use super::{d3::Camera3DData, model::Entity3D};
+use super::{camera::Camera3D, model::Entity3D};
 
 #[derive(Default)]
 pub struct ModelRenderer3D {
@@ -52,10 +52,13 @@ impl ModelRenderer3D {
         command_buffer: vk::CommandBuffer,
         buffer_index: usize,
         pipeline_layout: vk::PipelineLayout,
-        ubo: &mut Camera3DData,
+        camera: &mut Camera3D,
     ) {
         for model in self.map.values() {
-            ubo.transformation = Entity3D::calc_trans_matrix(&model.model);
+            camera.transformation = Entity3D::calc_trans_matrix(&model.model);
+            camera.calc_matrix();
+            camera.write(instance, pipeline_layout, command_buffer);
+
             model.model.draw(
                 &instance.device,
                 pipeline_layout,

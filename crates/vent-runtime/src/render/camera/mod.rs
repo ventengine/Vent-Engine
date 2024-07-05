@@ -53,6 +53,9 @@ pub struct Camera3D {
     znear: f32,
     zfar: f32,
     pub ubo: Camera3DData,
+    pub projection: Mat4,
+    pub view: Mat4,
+    pub transformation: Mat4,
 
     pub position: Vec3,
     pub rotation: Quat,
@@ -72,19 +75,23 @@ impl Camera for Camera3D {
             rotation: Quat::IDENTITY,
             position: Vec3::ZERO,
             ubo: Default::default(),
+            projection: Mat4::IDENTITY,
+            view: Mat4::IDENTITY,
+            transformation: Mat4::IDENTITY,
         };
         // we should configure
         cam.recreate_projection(aspect_ratio);
         cam.recreate_view();
+        cam.calc_matrix();
 
         cam
     }
 
     fn recreate_projection(&mut self, aspect_ratio: f32) {
-        self.ubo.projection =
+        self.projection =
             Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
         // Flip the cameras prospective upside down
-        self.ubo.projection.y_axis.y *= -1.0;
+        self.projection.y_axis.y *= -1.0;
     }
 }
 
@@ -94,7 +101,11 @@ impl Camera3D {
     pub fn recreate_view(&mut self) {
         let view = Mat4::look_at_rh(self.position, self.position + self.direction(), Vec3::Y);
         self.ubo.view_position = self.position;
-        self.ubo.view = view;
+        self.view = view;
+    }
+
+    pub fn calc_matrix(&mut self) {
+        self.ubo.proj_view_trans = self.projection * self.view * self.transformation;
     }
 
     pub fn write(

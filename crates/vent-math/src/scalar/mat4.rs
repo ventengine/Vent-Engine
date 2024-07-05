@@ -1,4 +1,4 @@
-use std::ops::{Mul, Sub};
+use std::ops::{Add, Mul, MulAssign, Sub};
 
 use crate::vec::{vec3::Vec3, vec4::Vec4};
 
@@ -121,5 +121,49 @@ impl Mat4 {
             Vec4::new(0.0, 0.0, r, -1.0),
             Vec4::new(0.0, 0.0, r * z_near, 0.0),
         )
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn mul_mat4(&self, rhs: &Self) -> Self {
+        Self::from_cols(
+            self.mul(rhs.x_axis),
+            self.mul(rhs.y_axis),
+            self.mul(rhs.z_axis),
+            self.mul(rhs.w_axis),
+        )
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn mul_vec4(&self, rhs: Vec4) -> Vec4 {
+        let mut res = self.x_axis.mul(rhs.xxxx());
+        res = res.add(self.y_axis.mul(rhs.yyyy()));
+        res = res.add(self.z_axis.mul(rhs.zzzz()));
+        res = res.add(self.w_axis.mul(rhs.wwww()));
+        res
+    }
+}
+
+impl Mul<Mat4> for Mat4 {
+    type Output = Self;
+    #[inline]
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.mul_mat4(&rhs)
+    }
+}
+
+impl MulAssign<Mat4> for Mat4 {
+    #[inline]
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = self.mul_mat4(&rhs);
+    }
+}
+
+impl Mul<Vec4> for Mat4 {
+    type Output = Vec4;
+    #[inline]
+    fn mul(self, rhs: Vec4) -> Self::Output {
+        self.mul_vec4(rhs)
     }
 }
