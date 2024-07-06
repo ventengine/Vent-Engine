@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚜️ Vent-Engine ⚜️
+# Vent-Engine
 
 **A game engine written in Rust with the goal to be very fast & user-friendly**
 
@@ -28,16 +28,9 @@ For the current Development, look at [GitHub Projects](https://github.com/Snowii
 **(24.03.2024)**
 
 
-#### How to contribute?
+### How to contribute?
 
-Contributions are welcome in any way, shape, or form. Here's how you can get started:
-
-- Fork the repository and clone it to your local machine.
-- Run `cargo run --release --bin vent-runtime` to start the runtime.
-- Make your changes and submit a pull request.
-
-Use [GitHub Issues](https://github.com/Snowiiii/Vent-Engine/issues) to report bugs, request
-features.
+Contributions are welcome in any way, shape, or form. See [Contributing](CONTRIBUTING) to know how you can get started:
 
 ### 🎮 Platforms
 
