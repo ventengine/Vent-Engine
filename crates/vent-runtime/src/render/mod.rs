@@ -1,7 +1,6 @@
 use std::time::{Duration, Instant};
 
 use ash::vk;
-use gui::gui_renderer::GuiRenderer;
 use serde::{Deserialize, Serialize};
 use vent_rendering::instance::VulkanInstance;
 
@@ -99,7 +98,7 @@ pub trait Renderer {
 }
 
 pub struct RawRuntimeRenderer {
-    gui_renderer: GuiRenderer,
+    //  gui_renderer: GuiRenderer,
     multi_renderer: Box<dyn Renderer>,
 
     current_data: RenderData,
@@ -115,17 +114,17 @@ impl RawRuntimeRenderer {
             Dimension::D2 => Box::new(Renderer2D::init(instance, camera)),
             Dimension::D3 => Box::new(Renderer3D::init(instance, camera)),
         };
-        let gui_renderer = GuiRenderer::new()
-            // TODO
-            .add_gui(Box::new(DebugGUI::new(unsafe {
-                instance
-                    .instance
-                    .get_physical_device_properties(instance.physical_device)
-            })));
+        // let gui_renderer = GuiRenderer::new()
+        //     // TODO
+        //     .add_gui(Box::new(DebugGUI::new(unsafe {
+        //         instance
+        //             .instance
+        //             .get_physical_device_properties(instance.physical_device)
+        //     })));
 
         Self {
             multi_renderer,
-            gui_renderer,
+            //    gui_renderer,
             current_frames: 0,
             current_data: RenderData::default(),
             last_fps: Instant::now(),

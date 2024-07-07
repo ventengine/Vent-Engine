@@ -45,11 +45,7 @@ use sctk::{
 use sctk_adwaita::{AdwaitaFrame, FrameConfig};
 use wayland_client::{
     globals::registry_queue_init,
-    protocol::{
-        wl_keyboard, wl_output,
-        wl_pointer::{self},
-        wl_seat, wl_surface,
-    },
+    protocol::{wl_keyboard, wl_output, wl_pointer, wl_region::WlRegion, wl_seat, wl_surface},
     Connection, Proxy, QueueHandle,
 };
 use wayland_csd_frame::{CursorIcon, DecorationsFrame, FrameAction, FrameClick, ResizeEdge};
@@ -67,7 +63,6 @@ pub struct PlatformWindow {
 }
 
 struct WaylandWindow {
-    running: bool,
     pub attribs: WindowAttribs,
 
     registry_state: RegistryState,
@@ -95,6 +90,7 @@ struct WaylandWindow {
 
     event_sender: Sender<WindowEvent>,
     event_receiver: Receiver<WindowEvent>,
+    running: bool,
 }
 
 delegate_compositor!(WaylandWindow);
@@ -132,7 +128,11 @@ impl WaylandWindow {
         let pointer_data = pointer.data::<PointerData>().unwrap();
         let seat = pointer_data.seat();
         match action {
-            FrameAction::Close => self.event_sender.send(WindowEvent::Close).unwrap(),
+            FrameAction::Close => {
+                if self.attribs.closeable {
+                    self.close()
+                }
+            }
             FrameAction::Minimize => self.window.set_minimized(),
             FrameAction::Maximize => self.window.set_maximized(),
             FrameAction::UnMaximize => self.window.unset_maximized(),
@@ -160,6 +160,10 @@ impl WaylandWindow {
     }
 
     fn draw(&mut self, conn: &Connection, qh: &QueueHandle<WaylandWindow>) {
+        self.window
+            .wl_surface()
+            .frame(qh, self.window.wl_surface().clone());
+
         // Draw cursor
         if self.set_cursor {
             if let Some(icon) = self.decorations_cursor {
@@ -175,16 +179,18 @@ impl WaylandWindow {
             }
         }
         self.event_sender.send(WindowEvent::Draw).unwrap();
-        self.window.wl_surface().damage_buffer(
-            0,
-            0,
-            self.attribs.width.get() as i32,
-            self.attribs.height.get() as i32,
-        );
+        // wl_surface.damage_buffer is the preferred method of setting the damage region
+        // on compositor version 4 and above.
         self.window
             .wl_surface()
-            .frame(qh, self.window.wl_surface().clone());
+            .damage_buffer(0, 0, i32::MAX, i32::MAX);
         self.window.commit();
+    }
+
+    pub fn close(&mut self) {
+        log::warn!("Closing wayland window...");
+        self.event_sender.send(WindowEvent::Close).unwrap();
+        self.running = false;
     }
 }
 
@@ -552,9 +558,9 @@ impl ShmHandler for WaylandWindow {
 }
 impl WindowHandler for WaylandWindow {
     fn request_close(&mut self, conn: &Connection, qh: &QueueHandle<Self>, window: &Window) {
-        self.event_sender
-            .send(WindowEvent::Close)
-            .expect("Failed to send Close Event");
+        if self.attribs.closeable {
+            self.close()
+        }
     }
 
     fn configure(
@@ -686,7 +692,6 @@ impl PlatformWindow {
         );
 
         let mut state = WaylandWindow {
-            running: true,
             attribs,
             configured: true,
             output_state,
@@ -705,6 +710,7 @@ impl PlatformWindow {
             decorations_cursor: None,
             set_cursor: false,
             themed_pointer: None,
+            running: true,
         };
 
         state.setup_attribs();
@@ -716,7 +722,7 @@ impl PlatformWindow {
         }
     }
 
-    pub fn poll<F>(mut self, mut event_handler: F)
+    pub fn poll<F>(&mut self, mut event_handler: F)
     where
         F: FnMut(WindowEvent),
     {
@@ -729,7 +735,6 @@ impl PlatformWindow {
             while let Ok(event) = self.state.event_receiver.try_recv() {
                 event_handler(event);
             }
-            //   self.state.draw();
         }
     }
 
@@ -754,7 +759,9 @@ impl PlatformWindow {
         ))
     }
 
-    pub fn close(&mut self) {}
+    pub fn close(&mut self) {
+        self.state.close()
+    }
 }
 
 impl Drop for PlatformWindow {

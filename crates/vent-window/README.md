@@ -21,12 +21,12 @@ A Window creation & management Library
 | ------------------- | ------ |
 | Window Creation     | ✅️    |
 | Window Decorations  | ✅️    |
-| Event Handling      | ❌     |
+| Event Handling      | ✅️     |
 | Full-Screen         | ❌     |
-| Window Minimization | ❌     |
-| Window Maximization | ❌     |
-| Window Resizing     | ❌     |
-| Vulkan Rendering    | ❌     |
+| Window Minimization | ✅️     |
+| Window Maximization | ✅️     |
+| Window Resizing     | ✅️     |
+| Vulkan Rendering    | ✅️     |
 | Keyboard Support    | ❌     |
 | Mouse Support       | ❌     |
 | GamePad Support     | ❌     |
@@ -128,8 +128,7 @@ X11 is not planned
 
 ## Contributing
 
-If you're interested in contributing to Vent-Window, please fork the repository and submit a pull request. We welcome
-contributions of all kinds, including bug fixes, new features, and documentation improvements.
+See [Contributing](../../CONTRIBUTING.md)
 
 ## License
 

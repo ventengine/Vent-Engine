@@ -25,16 +25,18 @@ pub struct MaterialPipelineInfo {
     pub double_sided: bool,
 }
 
-pub trait Vertex {
-    fn binding_description() -> vk::VertexInputBindingDescription;
-    fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3];
-}
-
 #[derive(Clone, Copy, PartialEq)]
 pub struct Vertex3D {
     pub position: [f32; 3],
     pub tex_coord: [f32; 2],
     pub normal: [f32; 3],
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub struct Vertex2D {
+    pub position: [f32; 2],
+    pub tex_coord: [f32; 2],
+    pub color: u32,
 }
 
 pub enum Indices {
@@ -87,14 +89,14 @@ impl Indices {
     }
 }
 
-impl Vertex for Vertex3D {
-    fn binding_description() -> vk::VertexInputBindingDescription {
+impl Vertex3D {
+    pub fn binding_description() -> vk::VertexInputBindingDescription {
         vk::VertexInputBindingDescription::default()
             .binding(0)
             .stride(mem::size_of::<Self>() as u32)
             .input_rate(vk::VertexInputRate::VERTEX)
     }
-    fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
+    pub fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
         [
             // offset_of macro got stabilized in rust 1.77
             vk::VertexInputAttributeDescription::default()
@@ -112,6 +114,30 @@ impl Vertex for Vertex3D {
                 .binding(0)
                 .format(vk::Format::R32G32B32A32_SFLOAT)
                 .offset(offset_of!(Self, normal) as u32),
+        ]
+    }
+}
+
+impl Vertex2D {
+    pub fn binding_description() -> vk::VertexInputBindingDescription {
+        vk::VertexInputBindingDescription::default()
+            .binding(0)
+            .stride(mem::size_of::<Self>() as u32)
+            .input_rate(vk::VertexInputRate::VERTEX)
+    }
+    pub fn input_descriptions() -> [vk::VertexInputAttributeDescription; 2] {
+        [
+            // offset_of macro got stabilized in rust 1.77
+            vk::VertexInputAttributeDescription::default()
+                .location(0)
+                .binding(0)
+                .format(vk::Format::R32G32_SFLOAT)
+                .offset(offset_of!(Self, position) as u32),
+            vk::VertexInputAttributeDescription::default()
+                .location(1)
+                .binding(0)
+                .format(vk::Format::R32G32_SFLOAT)
+                .offset(offset_of!(Self, tex_coord) as u32),
         ]
     }
 }

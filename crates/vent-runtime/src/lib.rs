@@ -1,5 +1,3 @@
-use std::process::exit;
-
 use crate::render::Dimension;
 
 use project::{RenderSettings, VentApplicationProject};
@@ -7,7 +5,7 @@ use render::{camera::camera_controller3d::CameraController3D, DefaultRuntimeRend
 
 use util::{crash::init_panic_hook, version::Version};
 use vent_logging::Logger;
-use vent_window::{EventLoop, Window, WindowAttribs, WindowEvent};
+use vent_window::{Window, WindowAttribs, WindowEvent};
 
 pub mod project;
 pub mod render;
@@ -41,7 +39,6 @@ impl VentApplication {
 
     pub fn start(self) {
         let project = self.project;
-        let mut event_loop = EventLoop::new();
         let app_window = Window::new(project.window_settings.clone());
 
         // TODO
@@ -50,11 +47,10 @@ impl VentApplication {
         let mut controller = CameraController3D::new(1000.0, 10.0);
         let mut delta_time = 0.0;
 
-        event_loop.add_window(app_window);
-
-        event_loop.poll(move |event| {
+        // TODO, Handle scale factor change
+        app_window.poll(move |event| {
             match event {
-                WindowEvent::Close => exit(0), // maybe not so pretty,
+                WindowEvent::Close => {} // Closes automaticly
                 WindowEvent::Key { key, state } => {
                     controller.process_keyboard(
                         renderer.camera.downcast_mut().expect("TODO"),
@@ -75,56 +71,5 @@ impl VentApplication {
                 WindowEvent::Draw => delta_time = renderer.render(), // Default,
             }
         });
-
-        //     match event {
-        //         Event::WindowEvent {
-        //             ref event,
-        //             window_id: _,
-        //         } => {
-        //             renderer.progress_event(event);
-
-        //             match event {
-        //                 WindowEvent::CloseRequested => elwt.exit(),
-        //                 WindowEvent::MouseInput { button, state, .. } => {
-        //                     controller.process_mouse_input(&vent_window.window, button, state);
-        //                 }
-        //                 WindowEvent::KeyboardInput { event, .. } => {
-        // controller.process_keyboard(
-        //     renderer.camera.downcast_mut().expect("TODO"),
-        //     event,
-        //     delta_time,
-        //                     );
-        //                 }
-        //                 WindowEvent::Resized(physical_size) => {
-        //                     renderer.resize(physical_size);
-        //                 }
-        //                 // WindowEvent::ScaleFactorChanged {
-        //                 //     inner_size_writer, ..
-        //                 // } => {
-        //                 //     // new_inner_size is &mut so w have to dereference it twice
-        //                 //     renderer.resize(new_inner_size, &mut cam);
-        //                 // }
-        //                 WindowEvent::RedrawRequested => {
-        //                     delta_time = renderer.render(&vent_window.window);
-        //                 }
-        //                 _ => {}
-        //             }
-        //         }
-        //         Event::AboutToWait {} => vent_window.window.request_redraw(),
-        //         Event::DeviceEvent {
-        //             event: DeviceEvent::MouseMotion { delta },
-        //             ..
-        //         } => controller.process_mouse_movement(
-        //             renderer.camera.downcast_mut().expect("TODO"),
-        //             delta.0,
-        //             delta.1,
-        //             delta_time,
-        //         ),
-
-        //         // ...
-        //         _ => {}
-        //     }
-        // })
-        // .expect("Window Event Loop Error");
     }
 }

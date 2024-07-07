@@ -44,6 +44,7 @@ pub struct WindowAttribs {
     min_size: Option<(u32, u32)>,
     max_size: Option<(u32, u32)>,
     resizable: bool,
+    closeable: bool,
 }
 
 impl WindowAttribs {
@@ -67,34 +68,8 @@ impl Default for WindowAttribs {
             mode: WindowMode::Default,
             max_size: None,
             min_size: None,
-            resizable: false,
-        }
-    }
-}
-
-pub struct EventLoop {
-    windows: Vec<Window>,
-}
-
-impl Default for EventLoop {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl EventLoop {
-    pub fn new() -> Self {
-        Self { windows: vec![] }
-    }
-    pub fn add_window(&mut self, window: Window) {
-        self.windows.push(window);
-    }
-    pub fn poll<F>(self, mut event_handler: F)
-    where
-        F: FnMut(WindowEvent),
-    {
-        for window in self.windows {
-            window.poll(&mut event_handler)
+            resizable: true,
+            closeable: true,
         }
     }
 }
@@ -113,7 +88,7 @@ impl Window {
         }
     }
 
-    pub fn poll<F>(self, event_handler: F)
+    pub fn poll<F>(mut self, event_handler: F)
     where
         F: FnMut(WindowEvent),
     {

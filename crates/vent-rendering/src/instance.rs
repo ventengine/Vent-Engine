@@ -584,16 +584,14 @@ impl VulkanInstance {
         let wanted_mode = if vsync {
             vk::PresentModeKHR::FIFO
         } else {
-            vk::PresentModeKHR::IMMEDIATE
+            vk::PresentModeKHR::MAILBOX
         };
-
-        let present_mode = present_modes
-            .iter()
-            .find(|&mode| *mode == wanted_mode)
-            .unwrap_or({
-                log::warn!("Swapchain: Wanted mode is not supported, Using FIFO");
-                &vk::PresentModeKHR::FIFO
-            });
+        let mut present_mode = vk::PresentModeKHR::FIFO; // Vsync, Always supported
+        if present_modes.contains(&wanted_mode) {
+            present_mode = wanted_mode;
+        } else {
+            log::warn!("Swapchain: wanted mode is not supported, Using FIFO");
+        }
 
         let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
             .surface(surface)
@@ -605,7 +603,7 @@ impl VulkanInstance {
             .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
             .pre_transform(pre_transform)
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-            .present_mode(*present_mode)
+            .present_mode(present_mode)
             .clipped(true)
             .image_array_layers(1)
             .old_swapchain(old_swapchain.unwrap_or_default());

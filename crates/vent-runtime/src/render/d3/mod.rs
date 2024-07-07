@@ -73,7 +73,7 @@ impl Renderer for Renderer3D {
 
         let model = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/res/models/test/Sponza-GLTF/Sponza.gltf"
+            "/assets/models/test/Sponza-GLTF/Sponza.gltf"
         );
 
         let mut material_ubos = vec![];
@@ -81,11 +81,11 @@ impl Renderer for Renderer3D {
 
         let vertex_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/shader.vert.spv"
+            "/assets/shaders/app/3D/shader.vert.spv"
         );
         let fragment_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/shader.frag.spv"
+            "/assets/shaders/app/3D/shader.frag.spv"
         );
 
         let mut mesh = Entity3D::new(

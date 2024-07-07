@@ -1,7 +1,6 @@
 use ash::vk;
 use vent_assets::Mesh3D;
 use vent_math::vec::vec3::Vec3;
-use vent_rendering::Vertex;
 use vent_rendering::{instance::VulkanInstance, Vertex3D};
 
 #[repr(C)]
@@ -20,11 +19,11 @@ impl LightRenderer {
     pub fn new(instance: &VulkanInstance) -> Self {
         let vertex_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/light.vert.spv"
+            "/assets/shaders/app/3D/light.vert.spv"
         );
         let fragment_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/res/shaders/app/3D/light.frag.spv"
+            "/assets/shaders/app/3D/light.frag.spv"
         );
 
         let pipeline_layout = instance.create_pipeline_layout(&[]);

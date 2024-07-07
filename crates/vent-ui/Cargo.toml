@@ -1,0 +1,15 @@
+[package]
+name = "vent-ui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+vent-rendering = { path = "../vent-rendering"}
+vent-math = { path = "../vent-math"}
+ash = { version= "0.38", default-features = false, features = ["linked"] }
+
+freetype-rs = { version = "*", features = ["bundled"] }
+image = "0.25"
+
+[build-dependencies]
+fs_extra = "1.3.0"

@@ -1,9 +1,7 @@
 use std::{
     ffi::c_uint,
     mem::{self},
-    sync::{
-        mpsc::{sync_channel, Receiver, SyncSender},
-    },
+    sync::mpsc::{sync_channel, Receiver, SyncSender},
 };
 
 use raw_window_handle::{
@@ -15,7 +13,11 @@ use windows::{
         Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM},
         System::LibraryLoader::GetModuleHandleW,
         UI::WindowsAndMessaging::{
-            AdjustWindowRect, CreateWindowExW, DefWindowProcW, DispatchMessageW, GetClientRect, LoadCursorW, PeekMessageW, PostQuitMessage, RegisterClassExW, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GWLP_HINSTANCE, IDC_ARROW, MSG, PM_REMOVE, SW_SHOW, WINDOW_EX_STYLE, WM_DESTROY, WM_PAINT, WM_QUIT, WM_SIZE, WNDCLASSEXW, WS_OVERLAPPEDWINDOW
+            AdjustWindowRect, CreateWindowExW, DefWindowProcW, DispatchMessageW, GetClientRect,
+            LoadCursorW, PeekMessageW, PostQuitMessage, RegisterClassExW, ShowWindow,
+            TranslateMessage, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GWLP_HINSTANCE, IDC_ARROW,
+            MSG, PM_REMOVE, SW_SHOW, WINDOW_EX_STYLE, WM_DESTROY, WM_PAINT, WM_QUIT, WM_SIZE,
+            WNDCLASSEXW, WS_OVERLAPPEDWINDOW,
         },
     },
 };
@@ -93,7 +95,7 @@ impl PlatformWindow {
                 None, // Parent
                 None, // Menu
                 h_instance,
-         None,
+                None,
             )
         }
         .expect("Failed to create window.");
@@ -126,9 +128,10 @@ impl PlatformWindow {
                 if msg.message == WM_QUIT {
                     break;
                 } else {
-                    self.data.progress_message(msg.hwnd,msg. message,msg.wParam, msg.lParam)
+                    self.data
+                        .progress_message(msg.hwnd, msg.message, msg.wParam, msg.lParam)
                 }
-              //  self.data.event_sender.send(WindowEvent::Draw).unwrap();
+                //  self.data.event_sender.send(WindowEvent::Draw).unwrap();
             }
         }
     }
@@ -170,7 +173,6 @@ pub unsafe extern "system" fn window_proc(
     unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) }
 }
 
-
 impl WindowsWindow {
     pub fn progress_message(
         &mut self,
@@ -197,9 +199,7 @@ impl WindowsWindow {
                     })
                     .unwrap();
             }
-            _ =>  {
-            },
+            _ => {}
         }
     }
 }
-

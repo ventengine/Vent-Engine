@@ -2,11 +2,11 @@ use ash::vk;
 use gltf::material::AlphaMode;
 use vent_rendering::{buffer::VulkanBuffer, image::VulkanImage};
 
+mod image;
+pub mod io;
 pub mod model;
-pub mod pool;
-pub mod shader;
 
-pub trait Asset {}
+pub trait Asset: Send + Sync + 'static {}
 
 /// A Full Model/Scene that can be Loaded from a 3D Model File
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More

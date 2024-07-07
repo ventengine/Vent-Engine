@@ -30,7 +30,7 @@ For the current Development, look at [GitHub Projects](https://github.com/Snowii
 
 ### How to contribute?
 
-Contributions are welcome in any way, shape, or form. See [Contributing](CONTRIBUTING) to know how you can get started:
+Contributions are welcome in any way, shape, or form. See [Contributing](CONTRIBUTING) to know how you can get started.
 
 ### 🎮 Platforms
 

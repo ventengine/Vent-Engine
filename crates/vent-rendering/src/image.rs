@@ -1,3 +1,5 @@
+use std::mem::size_of_val;
+
 use ash::vk::{self, Extent2D};
 
 use crate::{
@@ -30,6 +32,64 @@ pub struct VulkanImage {
 
 impl VulkanImage {
     pub const DEFAULT_TEXTURE_FILTER: vk::Filter = vk::Filter::LINEAR;
+
+    pub fn new(
+        instance: &VulkanInstance,
+        data: &[u8],
+        image_size: Extent2D,
+        format: vk::Format,
+        command_pool: vk::CommandPool,
+        allocator: &MemoryAllocator,
+        submit_queue: vk::Queue,
+        sampler_info: Option<vk::SamplerCreateInfo>,
+    ) -> Self {
+        let mut staging_buffer = VulkanBuffer::new_init(
+            instance,
+            allocator,
+            data.len() as vk::DeviceSize,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            &data,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            None,
+        );
+
+        let image = Self::create_image(
+            &instance.device,
+            format,
+            image_size,
+            1,
+            vk::ImageUsageFlags::TRANSFER_DST
+                | vk::ImageUsageFlags::TRANSFER_SRC
+                | vk::ImageUsageFlags::SAMPLED,
+        );
+        let memory = VulkanBuffer::new_image(&instance.device, allocator, image);
+        Self::copy_buffer_to_image(
+            &instance.device,
+            image,
+            &staging_buffer,
+            command_pool,
+            submit_queue,
+            image_size,
+            1,
+        );
+        staging_buffer.destroy(&instance.device);
+        let image_view = Self::create_image_view(
+            image,
+            &instance.device,
+            format,
+            1,
+            vk::ImageAspectFlags::COLOR,
+        );
+
+        let sampler_info = sampler_info.unwrap_or(Self::default_sampler());
+        let sampler = unsafe { instance.device.create_sampler(&sampler_info, None) }.unwrap();
+        Self {
+            image,
+            image_view,
+            sampler,
+            memory,
+        }
+    }
 
     pub fn from_image(
         instance: &VulkanInstance,

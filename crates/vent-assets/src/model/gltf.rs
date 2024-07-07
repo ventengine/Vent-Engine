@@ -13,7 +13,7 @@ use ash::{
 use gltf::{material::AlphaMode, mesh::Mode, texture::Sampler};
 use image::DynamicImage;
 use vent_rendering::{
-    image::VulkanImage, instance::VulkanInstance, Indices, MaterialPipelineInfo, Vertex, Vertex3D,
+    image::VulkanImage, instance::VulkanInstance, Indices, MaterialPipelineInfo, Vertex3D,
 };
 
 use crate::{Material, Model3D, ModelPipeline};
@@ -399,6 +399,7 @@ impl GLTFLoader {
     }
 
     /// Converts an gltf Texture Sampler into Vulkan Sampler Info
+    /// TODO: Cache Samplers and reuse them
     fn convert_sampler<'a>(
         sampler: &'a gltf::texture::Sampler<'a>,
     ) -> vk::SamplerCreateInfo<'static> {
