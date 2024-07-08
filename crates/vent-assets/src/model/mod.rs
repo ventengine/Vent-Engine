@@ -26,7 +26,7 @@ pub enum ModelError {
 impl Model3D {
     #[inline]
     pub async fn load<P: AsRef<Path>>(
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         vertex_shader: P,
         fragment_shader: P,
         pipeline_layout: vk::PipelineLayout,
@@ -117,7 +117,7 @@ impl Model3D {
 }
 
 async fn load_model_from_path(
-    instance: &VulkanInstance,
+    instance: &mut VulkanInstance,
     vertex_shader: &Path,
     fragment_shader: &Path,
     pipline_layout: vk::PipelineLayout,
@@ -157,7 +157,6 @@ impl Mesh3D {
 
         let vertex_buf = VulkanBuffer::new(
             instance,
-            allocator,
             vertex_size,
             vk::BufferUsageFlags::VERTEX_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
@@ -166,7 +165,6 @@ impl Mesh3D {
 
         let index_buf = VulkanBuffer::new(
             instance,
-            allocator,
             index_size,
             vk::BufferUsageFlags::INDEX_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
@@ -175,7 +173,6 @@ impl Mesh3D {
 
         let mut staging_buf = VulkanBuffer::new(
             instance,
-            allocator,
             vertex_size + index_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,

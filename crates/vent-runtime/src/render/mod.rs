@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 use ash::vk;
 use serde::{Deserialize, Serialize};
 use vent_rendering::instance::VulkanInstance;
+use vent_ui::renderer::GuiRenderer;
 
 use crate::project::VentApplicationProject;
 
@@ -28,7 +29,7 @@ pub(crate) struct DefaultRuntimeRenderer {
 
 impl DefaultRuntimeRenderer {
     pub(crate) fn new(settings: &VentApplicationProject, window: &vent_window::Window) -> Self {
-        let instance = VulkanInstance::new(
+        let mut instance = VulkanInstance::new(
             &settings.name,
             settings.version.parse(),
             settings.render_settings.vsync,
@@ -37,7 +38,7 @@ impl DefaultRuntimeRenderer {
         let dimension = &settings.render_settings.dimension;
         let window_size = window.size();
         let mut camera = from_dimension(window_size.0 as f32 / window_size.1 as f32, dimension);
-        let runtime_renderer = RawRuntimeRenderer::new(dimension, &instance, camera.as_mut());
+        let runtime_renderer = RawRuntimeRenderer::new(dimension, &mut instance, camera.as_mut());
         Self {
             instance,
             runtime_renderer,
@@ -81,7 +82,7 @@ pub enum Dimension {
 }
 
 pub trait Renderer {
-    fn init(instance: &VulkanInstance, camera: &mut dyn Camera) -> Self
+    fn init(instance: &mut VulkanInstance, camera: &mut dyn Camera) -> Self
     where
         Self: Sized;
 
@@ -97,10 +98,11 @@ pub trait Renderer {
     fn destroy(&mut self, instance: &VulkanInstance);
 }
 
+/// So the idea to split RawRuntimeRenderer and DefaultRuntimeRenderer is, that we can later integrate RawRuntimeRenderer into the Editor view, Just passing VulkanInstance and more
 pub struct RawRuntimeRenderer {
     //  gui_renderer: GuiRenderer,
     multi_renderer: Box<dyn Renderer>,
-
+    gui_renderer: GuiRenderer,
     current_data: RenderData,
 
     current_frames: u32,
@@ -109,7 +111,12 @@ pub struct RawRuntimeRenderer {
 }
 
 impl RawRuntimeRenderer {
-    pub fn new(dimension: &Dimension, instance: &VulkanInstance, camera: &mut dyn Camera) -> Self {
+    pub fn new(
+        dimension: &Dimension,
+        instance: &mut VulkanInstance,
+        camera: &mut dyn Camera,
+    ) -> Self {
+        let gui_renderer = GuiRenderer::new(instance);
         let multi_renderer: Box<dyn Renderer> = match dimension {
             Dimension::D2 => Box::new(Renderer2D::init(instance, camera)),
             Dimension::D3 => Box::new(Renderer3D::init(instance, camera)),
@@ -124,7 +131,7 @@ impl RawRuntimeRenderer {
 
         Self {
             multi_renderer,
-            //    gui_renderer,
+            gui_renderer,
             current_frames: 0,
             current_data: RenderData::default(),
             last_fps: Instant::now(),
@@ -217,6 +224,7 @@ impl RawRuntimeRenderer {
 
     pub fn destroy(&mut self, instance: &VulkanInstance) {
         self.multi_renderer.destroy(instance);
+        self.gui_renderer.destroy(instance);
         // TODO Egui destroy
     }
 }

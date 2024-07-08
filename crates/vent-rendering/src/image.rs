@@ -1,10 +1,10 @@
-use std::mem::size_of_val;
+use std::borrow::BorrowMut;
 
 use ash::vk::{self, Extent2D};
 
 use crate::{
     allocator::MemoryAllocator, begin_single_time_command, buffer::VulkanBuffer,
-    end_single_time_command, instance::VulkanInstance,
+    cache::VulkanCache, end_single_time_command, instance::VulkanInstance, SamplerInfo,
 };
 
 pub struct DepthImage {
@@ -31,22 +31,18 @@ pub struct VulkanImage {
 }
 
 impl VulkanImage {
-    pub const DEFAULT_TEXTURE_FILTER: vk::Filter = vk::Filter::LINEAR;
-
     pub fn new(
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         data: &[u8],
         image_size: Extent2D,
         format: vk::Format,
-        command_pool: vk::CommandPool,
-        allocator: &MemoryAllocator,
-        submit_queue: vk::Queue,
-        sampler_info: Option<vk::SamplerCreateInfo>,
+        sampler_info: Option<SamplerInfo>,
     ) -> Self {
+        let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
+
         let mut staging_buffer = VulkanBuffer::new_init(
             instance,
-            allocator,
-            data.len() as vk::DeviceSize,
+            image_data_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             &data,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
@@ -62,13 +58,12 @@ impl VulkanImage {
                 | vk::ImageUsageFlags::TRANSFER_SRC
                 | vk::ImageUsageFlags::SAMPLED,
         );
-        let memory = VulkanBuffer::new_image(&instance.device, allocator, image);
+        let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
         Self::copy_buffer_to_image(
-            &instance.device,
+            &instance,
             image,
             &staging_buffer,
-            command_pool,
-            submit_queue,
+            instance.command_pool,
             image_size,
             1,
         );
@@ -81,8 +76,9 @@ impl VulkanImage {
             vk::ImageAspectFlags::COLOR,
         );
 
-        let sampler_info = sampler_info.unwrap_or(Self::default_sampler());
-        let sampler = unsafe { instance.device.create_sampler(&sampler_info, None) }.unwrap();
+        let sampler_info = sampler_info.unwrap_or_default();
+        let sampler = instance.vulkan_cache.get_sampler(&instance.device, sampler_info);
+
         Self {
             image,
             image_view,
@@ -92,12 +88,9 @@ impl VulkanImage {
     }
 
     pub fn from_image(
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         image: image::DynamicImage,
-        command_pool: vk::CommandPool,
-        allocator: &MemoryAllocator,
-        submit_queue: vk::Queue,
-        sampler_info: Option<vk::SamplerCreateInfo>,
+        sampler_info: Option<SamplerInfo>,
     ) -> Self {
         let image_size = Extent2D {
             width: image.width(),
@@ -116,7 +109,6 @@ impl VulkanImage {
 
         let mut staging_buffer = VulkanBuffer::new_init(
             instance,
-            allocator,
             image_data_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             &image_data,
@@ -140,24 +132,22 @@ impl VulkanImage {
                 | vk::ImageUsageFlags::TRANSFER_SRC
                 | vk::ImageUsageFlags::SAMPLED,
         );
-        let memory = VulkanBuffer::new_image(&instance.device, allocator, image);
+        let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
 
         Self::copy_buffer_to_image(
-            &instance.device,
+            &instance,
             image,
             &staging_buffer,
-            command_pool,
-            submit_queue,
+            instance.command_pool,
             image_size,
             mip_level,
         );
         staging_buffer.destroy(&instance.device);
 
         Self::generate_mipmaps(
-            &instance.device,
+            &instance,
             image,
-            command_pool,
-            submit_queue,
+            instance.command_pool,
             image_size.width,
             image_size.height,
             mip_level,
@@ -171,11 +161,10 @@ impl VulkanImage {
             vk::ImageAspectFlags::COLOR,
         );
 
-        let sampler_info = sampler_info
-            .unwrap_or(Self::default_sampler())
-            .max_lod(mip_level as f32);
-
-        let sampler = unsafe { instance.device.create_sampler(&sampler_info, None) }.unwrap();
+        let sampler_info = sampler_info.unwrap_or_default();
+        let sampler = instance
+            .vulkan_cache
+            .get_sampler(&instance.device, sampler_info);
 
         Self {
             image,
@@ -209,34 +198,21 @@ impl VulkanImage {
         }
     }
 
-    pub fn from_color(
-        instance: &VulkanInstance,
-        command_pool: vk::CommandPool,
-        allocator: &MemoryAllocator,
-        submit_queue: vk::Queue,
-        color: [u8; 4],
-        size: Extent2D,
-    ) -> Self {
+    pub fn from_color(instance: &mut VulkanInstance, color: [u8; 4], size: Extent2D) -> Self {
         let color_img = image::RgbaImage::from_pixel(size.width, size.height, image::Rgba(color));
-        Self::from_image(
-            instance,
-            image::DynamicImage::ImageRgba8(color_img),
-            command_pool,
-            allocator,
-            submit_queue,
-            None,
-        )
+        Self::from_image(instance, image::DynamicImage::ImageRgba8(color_img), None)
     }
 
     pub fn copy_buffer_to_image(
-        device: &ash::Device,
+        instance: &VulkanInstance,
         image: vk::Image,
         staging_buffer: &VulkanBuffer,
         command_pool: vk::CommandPool,
-        submit_queue: vk::Queue,
         size: Extent2D,
         mip_level: u32,
     ) {
+        let device = &instance.device;
+
         let command_buffer = begin_single_time_command(device, command_pool);
 
         let image_barrier = vk::ImageMemoryBarrier2::default()
@@ -284,18 +260,24 @@ impl VulkanImage {
 
         unsafe { device.cmd_copy_buffer_to_image2(command_buffer, &copy_image_info) };
 
-        end_single_time_command(device, command_pool, submit_queue, command_buffer);
+        end_single_time_command(
+            device,
+            command_pool,
+            instance.graphics_queue,
+            command_buffer,
+        );
     }
 
     pub fn generate_mipmaps(
-        device: &ash::Device,
+        instance: &VulkanInstance,
         image: vk::Image,
         command_pool: vk::CommandPool,
-        submit_queue: vk::Queue,
         width: u32,
         height: u32,
         mip_level: u32,
     ) {
+        let device = &instance.device;
+
         let command_buffer = begin_single_time_command(device, command_pool);
 
         let subresource = vk::ImageSubresourceRange::default()
@@ -411,21 +393,12 @@ impl VulkanImage {
 
         unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
 
-        end_single_time_command(device, command_pool, submit_queue, command_buffer);
-    }
-
-    pub fn default_sampler() -> vk::SamplerCreateInfo<'static> {
-        vk::SamplerCreateInfo::default()
-            .mag_filter(Self::DEFAULT_TEXTURE_FILTER)
-            .min_filter(Self::DEFAULT_TEXTURE_FILTER)
-            .address_mode_u(vk::SamplerAddressMode::REPEAT)
-            .address_mode_v(vk::SamplerAddressMode::REPEAT)
-            .address_mode_w(vk::SamplerAddressMode::REPEAT)
-            .border_color(vk::BorderColor::INT_OPAQUE_BLACK)
-            .unnormalized_coordinates(false)
-            .compare_enable(false)
-            .compare_op(vk::CompareOp::ALWAYS)
-            .mipmap_mode(vk::SamplerMipmapMode::LINEAR)
+        end_single_time_command(
+            device,
+            command_pool,
+            instance.graphics_queue,
+            command_buffer,
+        );
     }
 
     fn create_image_view(
@@ -449,6 +422,7 @@ impl VulkanImage {
         unsafe { device.create_image_view(&image_view_info, None) }.unwrap()
     }
 
+    // Do not cache, Every image mostly unique memory
     fn create_image(
         device: &ash::Device,
         format: vk::Format,

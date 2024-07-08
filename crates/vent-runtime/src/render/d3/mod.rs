@@ -56,7 +56,7 @@ pub struct Renderer3D {
 }
 
 impl Renderer for Renderer3D {
-    fn init(instance: &VulkanInstance, camera: &mut dyn Camera) -> Self
+    fn init(instance: &mut VulkanInstance, camera: &mut dyn Camera) -> Self
     where
         Self: Sized,
     {
@@ -113,7 +113,6 @@ impl Renderer for Renderer3D {
 
                     let matieral_buffer = VulkanBuffer::new_init(
                         instance,
-                        &instance.memory_allocator,
                         size_of::<MaterialUBO>() as vk::DeviceSize,
                         vk::BufferUsageFlags::UNIFORM_BUFFER,
                         any_as_u8_slice(&MaterialUBO {
@@ -127,7 +126,6 @@ impl Renderer for Renderer3D {
                     );
                     let light_buffer = VulkanBuffer::new_init(
                         instance,
-                        &instance.memory_allocator,
                         size_of::<LightUBO>() as vk::DeviceSize,
                         vk::BufferUsageFlags::UNIFORM_BUFFER,
                         any_as_u8_slice(&LightUBO {

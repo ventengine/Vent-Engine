@@ -29,7 +29,7 @@ impl Log for Logger {
                 Level::Debug => format!("{:<5}", record.level().to_string().purple()),
                 Level::Trace => format!("{:<5}", record.level().to_string().normal()),
             };
-            println!("{} {}", level, record.args())
+            println!("{} {} {}", level, record.target(), record.args())
         }
         // Wasm
         #[cfg(target_family = "wasm")]
@@ -41,6 +41,7 @@ impl Log for Logger {
                 Level::Debug => web_sys::console::debug_1(&format!("{}", record.args()).into()),
                 Level::Trace => web_sys::console::trace_1(&format!("{}", record.args()).into()),
             }
+            // TODO
         }
         // Android
         #[cfg(target_os = "android")]

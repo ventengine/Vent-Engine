@@ -10,19 +10,87 @@ use ordered_float::OrderedFloat;
 
 pub mod allocator;
 pub mod buffer;
+mod cache;
 mod debug;
 pub mod image;
 pub mod instance;
 pub mod pipeline;
 mod surface;
 
+pub const DEFAULT_TEXTURE_FILTER: vk::Filter = vk::Filter::LINEAR;
+pub const DEFAULT_MIPMAP_MODE: vk::SamplerMipmapMode = vk::SamplerMipmapMode::LINEAR;
+
 const DEFAULT_FENCE_TIMEOUT: u64 = 100000000000;
 
+// Used for caching
 #[derive(PartialEq, Eq, Hash)]
 pub struct MaterialPipelineInfo {
     pub mode: vk::PrimitiveTopology,
     pub alpha_cut: Option<OrderedFloat<f32>>, // Default 0.5
     pub double_sided: bool,
+}
+
+// Used for caching
+#[derive(PartialEq, Eq, Hash)]
+pub struct SamplerInfo {
+    pub mag_filter: vk::Filter,
+    pub min_filter: vk::Filter,
+    pub mipmap_mode: vk::SamplerMipmapMode,
+    pub address_mode_u: vk::SamplerAddressMode,
+    pub address_mode_v: vk::SamplerAddressMode,
+    pub address_mode_w: vk::SamplerAddressMode,
+    pub mip_lod_bias: OrderedFloat<f32>,
+    pub anisotropy_enable: bool,
+    pub max_anisotropy: OrderedFloat<f32>,
+    pub compare_enable: bool,
+    pub compare_op: vk::CompareOp,
+    pub min_lod: OrderedFloat<f32>,
+    pub max_lod: OrderedFloat<f32>,
+    pub border_color: vk::BorderColor,
+    pub unnormalized_coordinates: bool,
+}
+
+impl SamplerInfo {
+    pub fn to_vk(&self) -> vk::SamplerCreateInfo<'static> {
+        vk::SamplerCreateInfo::default()
+            .mag_filter(self.mag_filter)
+            .min_filter(self.min_filter)
+            .mipmap_mode(self.mipmap_mode)
+            .address_mode_u(self.address_mode_u)
+            .address_mode_v(self.address_mode_v)
+            .address_mode_w(self.address_mode_w)
+            .mip_lod_bias(*self.mip_lod_bias)
+            .anisotropy_enable(self.anisotropy_enable)
+            .max_anisotropy(*self.max_anisotropy)
+            .compare_enable(self.compare_enable)
+            .compare_op(self.compare_op)
+            .min_lod(*self.min_lod)
+            .max_lod(*self.max_lod)
+            .border_color(self.border_color)
+            .unnormalized_coordinates(self.unnormalized_coordinates)
+    }
+}
+
+impl Default for SamplerInfo {
+    fn default() -> Self {
+        Self {
+            mag_filter: DEFAULT_TEXTURE_FILTER,
+            min_filter: DEFAULT_TEXTURE_FILTER,
+            mipmap_mode: DEFAULT_MIPMAP_MODE,
+            address_mode_u: vk::SamplerAddressMode::REPEAT,
+            address_mode_v: vk::SamplerAddressMode::REPEAT,
+            address_mode_w: vk::SamplerAddressMode::REPEAT,
+            mip_lod_bias: Default::default(),
+            anisotropy_enable: Default::default(),
+            max_anisotropy: Default::default(),
+            compare_enable: false,
+            compare_op: Default::default(),
+            min_lod: Default::default(),
+            max_lod: Default::default(),
+            border_color: vk::BorderColor::INT_OPAQUE_BLACK,
+            unnormalized_coordinates: false,
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -125,7 +193,7 @@ impl Vertex2D {
             .stride(mem::size_of::<Self>() as u32)
             .input_rate(vk::VertexInputRate::VERTEX)
     }
-    pub fn input_descriptions() -> [vk::VertexInputAttributeDescription; 2] {
+    pub fn input_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
         [
             // offset_of macro got stabilized in rust 1.77
             vk::VertexInputAttributeDescription::default()
@@ -138,6 +206,11 @@ impl Vertex2D {
                 .binding(0)
                 .format(vk::Format::R32G32_SFLOAT)
                 .offset(offset_of!(Self, tex_coord) as u32),
+            vk::VertexInputAttributeDescription::default()
+                .location(1)
+                .binding(0)
+                .format(vk::Format::R8G8B8A8_UNORM)
+                .offset(offset_of!(Self, color) as u32),
         ]
     }
 }

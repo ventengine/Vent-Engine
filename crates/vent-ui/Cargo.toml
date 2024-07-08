@@ -8,7 +8,10 @@ vent-rendering = { path = "../vent-rendering"}
 vent-math = { path = "../vent-math"}
 ash = { version= "0.38", default-features = false, features = ["linked"] }
 
+log = "0.4"
+
 freetype-rs = { version = "*", features = ["bundled"] }
+cosmic-text = "0.12"
 image = "0.25"
 
 [build-dependencies]

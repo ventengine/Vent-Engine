@@ -138,19 +138,19 @@ impl WaylandWindow {
             FrameAction::UnMaximize => self.window.unset_maximized(),
             FrameAction::ShowMenu(x, y) => self.window.show_window_menu(seat, serial, (x, y)),
             FrameAction::Resize(edge) => {
-                let edge = match edge {
-                    ResizeEdge::None => XdgResizeEdge::None,
-                    ResizeEdge::Top => XdgResizeEdge::Top,
-                    ResizeEdge::Bottom => XdgResizeEdge::Bottom,
-                    ResizeEdge::Left => XdgResizeEdge::Left,
-                    ResizeEdge::TopLeft => XdgResizeEdge::TopLeft,
-                    ResizeEdge::BottomLeft => XdgResizeEdge::BottomLeft,
-                    ResizeEdge::Right => XdgResizeEdge::Right,
-                    ResizeEdge::TopRight => XdgResizeEdge::TopRight,
-                    ResizeEdge::BottomRight => XdgResizeEdge::BottomRight,
-                    _ => return,
-                };
                 if self.attribs.resizable {
+                    let edge = match edge {
+                        ResizeEdge::None => XdgResizeEdge::None,
+                        ResizeEdge::Top => XdgResizeEdge::Top,
+                        ResizeEdge::Bottom => XdgResizeEdge::Bottom,
+                        ResizeEdge::Left => XdgResizeEdge::Left,
+                        ResizeEdge::TopLeft => XdgResizeEdge::TopLeft,
+                        ResizeEdge::BottomLeft => XdgResizeEdge::BottomLeft,
+                        ResizeEdge::Right => XdgResizeEdge::Right,
+                        ResizeEdge::TopRight => XdgResizeEdge::TopRight,
+                        ResizeEdge::BottomRight => XdgResizeEdge::BottomRight,
+                        _ => return,
+                    };
                     self.window.resize(seat, serial, edge);
                 }
             }
@@ -160,9 +160,6 @@ impl WaylandWindow {
     }
 
     fn draw(&mut self, conn: &Connection, qh: &QueueHandle<WaylandWindow>) {
-        self.window
-            .wl_surface()
-            .frame(qh, self.window.wl_surface().clone());
 
         // Draw cursor
         if self.set_cursor {
@@ -184,6 +181,9 @@ impl WaylandWindow {
         self.window
             .wl_surface()
             .damage_buffer(0, 0, i32::MAX, i32::MAX);
+        self.window
+        .wl_surface()
+        .frame(qh, self.window.wl_surface().clone());
         self.window.commit();
     }
 

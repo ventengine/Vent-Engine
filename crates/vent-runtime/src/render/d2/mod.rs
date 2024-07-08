@@ -6,7 +6,7 @@ pub struct UBO2D {}
 pub struct Renderer2D {}
 
 impl Renderer for Renderer2D {
-    fn init(_instance: &vent_rendering::instance::VulkanInstance, _camera: &mut dyn Camera) -> Self
+    fn init(_instance: &mut vent_rendering::instance::VulkanInstance, _camera: &mut dyn Camera) -> Self
     where
         Self: Sized,
     {

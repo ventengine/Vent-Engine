@@ -1,50 +1,148 @@
+use std::collections::HashMap;
+
 use ash::vk;
 use vent_math::vec::{i32::ivec2::IVec2, vec3::Vec3};
-use vent_rendering::{image::VulkanImage, instance::VulkanInstance};
+use vent_rendering::{
+    buffer::VulkanBuffer, image::VulkanImage, instance::VulkanInstance, Vertex2D,
+};
 
-mod freetype;
+pub mod cosmic;
+pub mod freetype;
 
 pub struct Character {
-    texture: VulkanImage,
+    descriptor_sets: Vec<vk::DescriptorSet>, // Image
     size: IVec2,
     bearing: IVec2,
     advance: u32,
 }
 
 pub struct Font {
+    buffer_cache: HashMap<usize, VulkanBuffer>,
     characters: Vec<Character>,
 }
 
 impl Font {
+    pub fn new() -> Self {
+        Self {
+            buffer_cache: HashMap::new(),
+            characters: Vec::new(),
+        }
+    }
+
+    // Bind Pipeline before
     pub fn render_text(
+        &mut self,
         instance: &VulkanInstance,
         command_buffer: vk::CommandBuffer,
         pipeline_layout: vk::PipelineLayout,
+        buffer_index: usize,
         text: &str,
-        x: i32,
-        y: i32,
-        scale: i32,
+        x: f32,
+        y: f32,
+        scale: f32,
         color: u32,
-        font: Font,
     ) {
-        // for char in text.chars().enumerate() {
-        //     let character = &font.characters[char.0];
+        let mut offset_x = x;
+        let characters = &self.characters;
 
-        //     let xpos = x + character.bearing.x * scale;
-        //     let ypos = y - (character.size.y - character.bearing.y) * scale;
+        // Loop through each character in the text
+        for character in text.chars() {
+            let character_index = character as usize;
 
-        //     let w = character.size.x * scale;
-        //     let h = character.size.y * scale;
+            // Check if the character is within the loaded characters
+            if character_index < characters.len() {
+                let character = &characters[character_index];
 
-        //     let vertices: [Vertex; 6] = [
-        //         Vertex { x: xpos, y: ypos + h, u: 0.0, v: 0.0 },
-        //         Vertex { x: xpos, y: ypos, u: 0.0, v: 1.0 },
-        //         Vertex { x: xpos + w, y: ypos, u: 1.0, v: 1.0 },
-        //         Vertex { x: xpos, y: ypos + h, u: 0.0, v: 0.0 },
-        //         Vertex { x: xpos + w, y: ypos, u: 1.0, v: 1.0 },
-        //         Vertex { x: xpos + w, y: ypos + h, u: 1.0, v: 0.0 },
-        //     ];
-    
-        // }
+                // Calculate vertex positions and texture coordinates based on scale
+                let xpos = offset_x + character.bearing.x as f32 * scale;
+                let ypos = y - (character.size.y - character.bearing.y) as f32 * scale;
+                let width = character.size.x as f32 * scale;
+                let height = character.size.y as f32 * scale;
+
+                // Check if buffer contains in the cache, When not create a new vertex buffer
+                if !self.buffer_cache.contains_key(&character_index) {
+                    let vertices: [Vertex2D; 6] = [
+                        Vertex2D {
+                            position: [xpos, ypos + height],
+                            tex_coord: [0.0, 0.0],
+                            color,
+                        },
+                        Vertex2D {
+                            position: [xpos, ypos],
+                            tex_coord: [0.0, 1.0],
+                            color,
+                        },
+                        Vertex2D {
+                            position: [xpos + width, ypos],
+                            tex_coord: [1.0, 1.0],
+                            color,
+                        },
+                        Vertex2D {
+                            position: [xpos, ypos + height],
+                            tex_coord: [0.0, 0.0],
+                            color,
+                        },
+                        Vertex2D {
+                            position: [xpos + width, ypos],
+                            tex_coord: [1.0, 1.0],
+                            color,
+                        },
+                        Vertex2D {
+                            position: [xpos + width, ypos + height],
+                            tex_coord: [1.0, 0.0],
+                            color,
+                        },
+                    ];
+                    Self::create_buffer(
+                        &mut self.buffer_cache,
+                        instance,
+                        character_index,
+                        &vertices,
+                    );
+                }
+                let buffer = &self.buffer_cache[&character_index];
+
+                unsafe {
+                    instance.device.cmd_bind_descriptor_sets(
+                        command_buffer,
+                        vk::PipelineBindPoint::GRAPHICS,
+                        pipeline_layout,
+                        0,
+                        &character.descriptor_sets[buffer_index..=buffer_index],
+                        &[],
+                    );
+                    instance.device.cmd_bind_vertex_buffers2(
+                        command_buffer,
+                        0,
+                        &[**buffer],
+                        &[0],
+                        None,
+                        None,
+                    );
+                    instance.device.cmd_draw(command_buffer, 6, 0, 0, 0)
+                }
+
+                // Update offset for the next character
+                offset_x += character.advance as f32 * scale;
+            }
+        }
+    }
+
+    fn create_buffer(
+        buffer_cache: &mut HashMap<usize, VulkanBuffer>,
+        instance: &VulkanInstance,
+        index: usize,
+        vertices: &[Vertex2D],
+    ) {
+        let vertex_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
+
+        let vulkan_buffer = VulkanBuffer::cpu_to_gpu(
+            instance,
+            vertices,
+            vertex_size,
+            vk::BufferUsageFlags::VERTEX_BUFFER,
+            Some("Font Buffer"),
+        );
+        buffer_cache.insert(index, vulkan_buffer).unwrap();
     }
 }

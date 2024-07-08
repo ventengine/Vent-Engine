@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 vent-rendering = { path = "../vent-rendering"}
+vent-ui = { path = "../vent-ui"}
 vent-assets = { path = "../vent-assets" }
 vent-ecs = { path = "../vent-ecs"}
 vent-window = { path = "../vent-window"}

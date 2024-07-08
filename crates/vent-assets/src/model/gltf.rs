@@ -13,7 +13,8 @@ use ash::{
 use gltf::{material::AlphaMode, mesh::Mode, texture::Sampler};
 use image::DynamicImage;
 use vent_rendering::{
-    image::VulkanImage, instance::VulkanInstance, Indices, MaterialPipelineInfo, Vertex3D,
+    image::VulkanImage, instance::VulkanInstance, Indices, MaterialPipelineInfo, SamplerInfo,
+    Vertex3D, DEFAULT_TEXTURE_FILTER,
 };
 
 use crate::{Material, Model3D, ModelPipeline};
@@ -34,7 +35,7 @@ struct MaterialData<'a> {
 
 impl GLTFLoader {
     pub async fn load(
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         vertex_shader: &Path,
         fragment_shader: &Path,
         pipeline_layout: vk::PipelineLayout,
@@ -78,7 +79,7 @@ impl GLTFLoader {
 
     #[allow(clippy::too_many_arguments)]
     fn load_node(
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         vertex_shader: &Path,
         fragment_shader: &Path,
         pipeline_layout: vk::PipelineLayout,
@@ -118,7 +119,7 @@ impl GLTFLoader {
 
     #[allow(clippy::too_many_arguments)]
     fn load_mesh_multithreaded(
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         model_dir: &Path,
         vertex_shader: &Path,
         fragment_shader: &Path,
@@ -379,13 +380,10 @@ impl GLTFLoader {
      *  Creates an VulkanImage from Material Data, We want to do this Single threaded
      *  RAM -> VRAM
      */
-    fn load_material(instance: &VulkanInstance, data: MaterialData) -> Material {
+    fn load_material(instance: &mut VulkanInstance, data: MaterialData) -> Material {
         let diffuse_texture = VulkanImage::from_image(
             instance,
             data.image,
-            instance.command_pool,
-            &instance.memory_allocator,
-            instance.graphics_queue,
             data.sampler.map(|s| Self::convert_sampler(&s)),
         );
 
@@ -400,22 +398,17 @@ impl GLTFLoader {
 
     /// Converts an gltf Texture Sampler into Vulkan Sampler Info
     /// TODO: Cache Samplers and reuse them
-    fn convert_sampler<'a>(
-        sampler: &'a gltf::texture::Sampler<'a>,
-    ) -> vk::SamplerCreateInfo<'static> {
-        let mag_filter = sampler.mag_filter().map_or(
-            VulkanImage::DEFAULT_TEXTURE_FILTER,
-            |filter| match filter {
-                gltf::texture::MagFilter::Nearest => vk::Filter::NEAREST,
-                gltf::texture::MagFilter::Linear => vk::Filter::LINEAR,
-            },
-        );
+    fn convert_sampler<'a>(sampler: &'a gltf::texture::Sampler<'a>) -> SamplerInfo {
+        let mag_filter =
+            sampler
+                .mag_filter()
+                .map_or(DEFAULT_TEXTURE_FILTER, |filter| match filter {
+                    gltf::texture::MagFilter::Nearest => vk::Filter::NEAREST,
+                    gltf::texture::MagFilter::Linear => vk::Filter::LINEAR,
+                });
 
         let (min_filter, mipmap_filter) = sampler.min_filter().map_or(
-            (
-                VulkanImage::DEFAULT_TEXTURE_FILTER,
-                vk::SamplerMipmapMode::LINEAR,
-            ),
+            (DEFAULT_TEXTURE_FILTER, vk::SamplerMipmapMode::LINEAR),
             |filter| match filter {
                 gltf::texture::MinFilter::Nearest => {
                     (vk::Filter::NEAREST, vk::SamplerMipmapMode::NEAREST)
@@ -441,12 +434,14 @@ impl GLTFLoader {
         let address_mode_u = Self::conv_wrapping_mode(sampler.wrap_s());
         let address_mode_v = Self::conv_wrapping_mode(sampler.wrap_t());
 
-        vk::SamplerCreateInfo::default()
-            .mag_filter(mag_filter)
-            .min_filter(min_filter)
-            .mipmap_mode(mipmap_filter)
-            .address_mode_u(address_mode_u)
-            .address_mode_v(address_mode_v)
+        SamplerInfo {
+            mag_filter,
+            min_filter,
+            mipmap_mode: mipmap_filter,
+            address_mode_u,
+            address_mode_v,
+            ..Default::default()
+        }
     }
 
     #[must_use]

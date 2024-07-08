@@ -13,6 +13,7 @@ use ash::vk::{
 };
 
 use crate::allocator::MemoryAllocator;
+use crate::cache::VulkanCache;
 use crate::debug::{
     check_validation_layer_support, get_layer_names_and_pointers, get_validation_features,
     setup_debug_messenger, ENABLE_VALIDATION_LAYERS,
@@ -57,6 +58,8 @@ pub struct VulkanInstance {
 
     pub in_flight_fences: Vec<vk::Fence>,
     pub images_in_flight: Vec<vk::Fence>,
+
+    pub vulkan_cache: VulkanCache,
 
     pub vsync: bool,
 
@@ -220,6 +223,7 @@ impl VulkanInstance {
 
         let descriptor_pool = Self::create_descriptor_pool(&device);
         let descriptor_set_layout = Self::create_descriptor_set_layout(&device);
+        let vulkan_cache = VulkanCache::new();
 
         Self {
             memory_allocator,
@@ -237,6 +241,7 @@ impl VulkanInstance {
             graphics_queue,
             present_queue,
             render_pass,
+            vulkan_cache,
             #[cfg(debug_assertions)]
             debug_utils,
             #[cfg(debug_assertions)]
@@ -708,17 +713,17 @@ impl VulkanInstance {
         let pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 300,
+                descriptor_count: 1000,
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 300,
+                descriptor_count: 1000,
             },
         ];
 
         let create_info = vk::DescriptorPoolCreateInfo::default()
             .pool_sizes(&pool_sizes)
-            .max_sets(128);
+            .max_sets(512);
 
         unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
     }
@@ -873,6 +878,7 @@ impl Drop for VulkanInstance {
                 .for_each(|s| self.device.destroy_semaphore(s, None));
 
             self.device.destroy_render_pass(self.render_pass, None);
+            self.vulkan_cache.destroy(&self.device);
 
             self.depth_image.destroy(&self.device);
 

@@ -2,7 +2,9 @@ use std::mem::size_of;
 
 use ash::vk::{self, Pipeline};
 use vent_math::vec::vec2::Vec2;
-use vent_rendering::{instance::VulkanInstance, Vertex2D};
+use vent_rendering::{ instance::VulkanInstance, SamplerInfo, Vertex2D};
+
+use crate::font::{freetype::FreeTypeLoader, Font};
 
 use super::GUI;
 
@@ -12,7 +14,9 @@ pub struct GuiRenderer {
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
 
-    sampler: vk::Sampler,
+    // Font
+    font_loader: FreeTypeLoader,
+    font: Option<Font>,
 
     guis: Vec<Box<dyn GUI>>,
 }
@@ -26,20 +30,8 @@ pub struct PushConstant {
 impl GuiRenderer {
     pub const DEFAULT_TEXTURE_FILTER: vk::Filter = vk::Filter::LINEAR;
 
-    fn new(&mut self, instance: &VulkanInstance) -> Self {
-        // Create sampler
-        let sampler_info = vk::SamplerCreateInfo::default()
-            .mag_filter(Self::DEFAULT_TEXTURE_FILTER)
-            .min_filter(Self::DEFAULT_TEXTURE_FILTER)
-            .address_mode_u(vk::SamplerAddressMode::REPEAT)
-            .address_mode_v(vk::SamplerAddressMode::REPEAT)
-            .address_mode_w(vk::SamplerAddressMode::REPEAT)
-            .border_color(vk::BorderColor::INT_OPAQUE_BLACK)
-            .unnormalized_coordinates(false)
-            .compare_enable(false)
-            .compare_op(vk::CompareOp::ALWAYS)
-            .mipmap_mode(vk::SamplerMipmapMode::LINEAR);
-        let sampler = unsafe { instance.device.create_sampler(&sampler_info, None) }.unwrap();
+    pub fn new(instance: &mut VulkanInstance) -> Self {
+        log::debug!(target: "ui", "initialising UI Renderer");
 
         // Create descripotr set layout
         let desc_layout_bindings = [
@@ -70,13 +62,20 @@ impl GuiRenderer {
             unsafe { instance.device.create_pipeline_layout(&create_info, None) }.unwrap();
         let pipeline = Self::create_pipeline(pipeline_layout, instance);
 
-        Self {
+        let font_loader = FreeTypeLoader::new();
+
+        let mut renderer = Self {
             descriptor_set_layout,
             pipeline_layout,
             pipeline,
-            sampler,
+            font_loader,
+            font: None,
             guis: Vec::new(),
-        }
+        };
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Arial.ttf");
+        // Load default font
+       // renderer.load_font(instance, path);
+        renderer
     }
 
     fn create_pipeline(pipeline_layout: vk::PipelineLayout, instance: &VulkanInstance) -> Pipeline {
@@ -100,6 +99,44 @@ impl GuiRenderer {
         )
     }
 
+    pub fn render_text(
+        &mut self,
+        instance: &VulkanInstance,
+        command_buffer: vk::CommandBuffer,
+        buffer_index: usize,
+        text: &str,
+        x: f32,
+        y: f32,
+        scale: f32,
+        color: u32,
+    ) {
+        // TODO PushConstatns
+        if let Some(font) = &mut self.font {
+            unsafe {
+                instance.device.cmd_bind_pipeline(
+                    command_buffer,
+                    vk::PipelineBindPoint::GRAPHICS,
+                    self.pipeline,
+                )
+            };
+            font.render_text(
+                instance,
+                command_buffer,
+                self.pipeline_layout,
+                buffer_index,
+                text,
+                x,
+                y,
+                scale,
+                color,
+            );
+        }
+    }
+
+    pub fn load_font(&mut self, instance: &mut VulkanInstance, path: &str) {
+        self.font = Some(self.font_loader.load(path, instance));
+    }
+
     pub fn render(&mut self) {
         for gui in self.guis.iter_mut() {
             gui.update()
@@ -114,4 +151,16 @@ impl GuiRenderer {
     #[inline]
     #[allow(dead_code)]
     pub fn register_texture(&mut self) {}
+
+    pub fn destroy(&mut self, instance: &VulkanInstance) {
+        unsafe {
+            instance.device.destroy_pipeline(self.pipeline, None);
+            instance
+                .device
+                .destroy_pipeline_layout(self.pipeline_layout, None);
+            instance
+                .device
+                .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+        }
+    }
 }

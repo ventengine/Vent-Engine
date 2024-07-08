@@ -10,7 +10,7 @@ use super::{Material, Mesh3D, ModelError};
 pub(crate) struct OBJLoader {}
 
 impl OBJLoader {
-    pub async fn load(instance: &VulkanInstance, path: &Path) -> Result<Model3D, ModelError> {
+    pub async fn load(instance: &mut VulkanInstance, path: &Path) -> Result<Model3D, ModelError> {
         let (models, materials) = match tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS) {
             Ok(r) => r,
             Err(e) => return Err(ModelError::LoadingError(format!("{}", e))),
@@ -55,7 +55,7 @@ impl OBJLoader {
     }
 
     fn load_material(
-        instance: &VulkanInstance,
+        instance: &mut VulkanInstance,
         model_dir: &Path,
         material: &tobj::Material,
     ) -> Material {
@@ -63,17 +63,11 @@ impl OBJLoader {
             VulkanImage::from_image(
                 instance,
                 image::open(model_dir.join(texture)).unwrap(),
-                instance.command_pool,
-                &instance.memory_allocator,
-                instance.graphics_queue,
                 None,
             )
         } else {
             VulkanImage::from_color(
                 instance,
-                instance.command_pool,
-                &instance.memory_allocator,
-                instance.graphics_queue,
                 [255, 255, 255, 255],
                 vk::Extent2D {
                     width: 128,
