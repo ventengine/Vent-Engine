@@ -1,20 +1,22 @@
-use std::{
-    collections::HashMap,
-    ffi::{CStr, CString, OsStr},
-};
+use std::{collections::HashMap, ffi::OsStr};
 
-use ash::vk::{self, Extent2D};
-use cosmic_text::{Attrs, Buffer, FontSystem, Metrics, Shaping};
-use vent_math::vec::{i32::ivec2::IVec2, vec2::Vec2};
-use vent_rendering::{image::VulkanImage, instance::VulkanInstance};
+use ash::vk::{self};
+use cosmic_text::{Attrs, FontSystem, Metrics};
+use vent_rendering::instance::VulkanInstance;
 
-use super::{Character, Font};
+use super::Font;
 
 pub struct CosmicLoader {
     font_system: cosmic_text::FontSystem,
 }
 
 const CHARACTERS_SIZE: usize = 128;
+
+impl Default for CosmicLoader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl CosmicLoader {
     pub fn new() -> Self {
@@ -43,7 +45,7 @@ impl CosmicLoader {
 
         let attrs = Attrs::new();
 
-        let mut characters = Vec::with_capacity(CHARACTERS_SIZE);
+        let characters = Vec::with_capacity(CHARACTERS_SIZE);
         // for charr in 0..CHARACTERS_SIZE {
         //     let char = char::from_u32(charr as u32).unwrap();
         //     buffer.set_text(&char.to_string(), attrs, Shaping::Advanced);

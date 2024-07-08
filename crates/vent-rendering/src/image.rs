@@ -1,10 +1,8 @@
-use std::borrow::BorrowMut;
-
 use ash::vk::{self, Extent2D};
 
 use crate::{
     allocator::MemoryAllocator, begin_single_time_command, buffer::VulkanBuffer,
-    cache::VulkanCache, end_single_time_command, instance::VulkanInstance, SamplerInfo,
+    end_single_time_command, instance::VulkanInstance, SamplerInfo,
 };
 
 pub struct DepthImage {
@@ -44,7 +42,7 @@ impl VulkanImage {
             instance,
             image_data_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
-            &data,
+            data,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
             None,
         );
@@ -60,7 +58,7 @@ impl VulkanImage {
         );
         let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
         Self::copy_buffer_to_image(
-            &instance,
+            instance,
             image,
             &staging_buffer,
             instance.command_pool,
@@ -77,7 +75,9 @@ impl VulkanImage {
         );
 
         let sampler_info = sampler_info.unwrap_or_default();
-        let sampler = instance.vulkan_cache.get_sampler(&instance.device, sampler_info);
+        let sampler = instance
+            .vulkan_cache
+            .get_sampler(&instance.device, sampler_info);
 
         Self {
             image,
@@ -135,7 +135,7 @@ impl VulkanImage {
         let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
 
         Self::copy_buffer_to_image(
-            &instance,
+            instance,
             image,
             &staging_buffer,
             instance.command_pool,
@@ -145,7 +145,7 @@ impl VulkanImage {
         staging_buffer.destroy(&instance.device);
 
         Self::generate_mipmaps(
-            &instance,
+            instance,
             image,
             instance.command_pool,
             image_size.width,
@@ -448,7 +448,7 @@ impl VulkanImage {
         unsafe {
             device.destroy_image_view(self.image_view, None);
             device.destroy_image(self.image, None);
-            device.destroy_sampler(self.sampler, None);
+          //  device.destroy_sampler(self.sampler, None); Will be destroyed by the cache
             device.free_memory(self.memory, None);
         }
     }

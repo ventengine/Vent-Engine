@@ -2,16 +2,15 @@ use std::mem::size_of;
 
 use ash::vk;
 use pollster::FutureExt;
-use vent_assets::Mesh3D;
 
 use vent_ecs::world::World;
 use vent_math::{
     scalar::mat4::Mat4,
     vec::{vec3::Vec3, vec4::Vec4},
 };
-use vent_rendering::{any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, Vertex3D};
-
-use self::light_renderer::LightUBO;
+use vent_rendering::{
+    any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, mesh::Mesh3D, Vertex3D,
+};
 
 use super::{
     camera::{Camera, Camera3D},
@@ -77,7 +76,7 @@ impl Renderer for Renderer3D {
         );
 
         let mut material_ubos = vec![];
-        let mut light_ubos = vec![];
+        let light_ubos = vec![];
 
         let vertex_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -124,18 +123,18 @@ impl Renderer for Renderer3D {
                             | vk::MemoryPropertyFlags::DEVICE_LOCAL,
                         None,
                     );
-                    let light_buffer = VulkanBuffer::new_init(
-                        instance,
-                        size_of::<LightUBO>() as vk::DeviceSize,
-                        vk::BufferUsageFlags::UNIFORM_BUFFER,
-                        any_as_u8_slice(&LightUBO {
-                            position: Vec3::new(2.0, 100.0, 2.0),
-                            color: Vec3::new(1.0, 1.0, 1.0),
-                        }),
-                        vk::MemoryPropertyFlags::HOST_VISIBLE
-                            | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                        None,
-                    );
+                    // let light_buffer = VulkanBuffer::new_init(
+                    //     instance,
+                    //     size_of::<LightUBO>() as vk::DeviceSize,
+                    //     vk::BufferUsageFlags::UNIFORM_BUFFER,
+                    //     any_as_u8_slice(&LightUBO {
+                    //         position: Vec3::new(2.0, 100.0, 2.0),
+                    //         color: Vec3::new(1.0, 1.0, 1.0),
+                    //     }),
+                    //     vk::MemoryPropertyFlags::HOST_VISIBLE
+                    //         | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                    //     None,
+                    // );
 
                     let image_info = vk::DescriptorImageInfo::default()
                         .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
@@ -147,10 +146,10 @@ impl Renderer for Renderer3D {
                         .offset(0)
                         .range(size_of::<MaterialUBO>() as vk::DeviceSize);
 
-                    let light_buffer_info = vk::DescriptorBufferInfo::default()
-                        .buffer(*light_buffer)
-                        .offset(0)
-                        .range(size_of::<LightUBO>() as vk::DeviceSize);
+                    // let light_buffer_info = vk::DescriptorBufferInfo::default()
+                    //     .buffer(*light_buffer)
+                    //     .offset(0)
+                    //     .range(size_of::<LightUBO>() as vk::DeviceSize);
 
                     let desc_sets = [
                         vk::WriteDescriptorSet {
@@ -169,14 +168,14 @@ impl Renderer for Renderer3D {
                             p_buffer_info: &material_buffer_info,
                             ..Default::default()
                         },
-                        vk::WriteDescriptorSet {
-                            dst_set: descriptor_set,
-                            dst_binding: 2,
-                            descriptor_count: 1,
-                            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                            p_buffer_info: &light_buffer_info,
-                            ..Default::default()
-                        },
+                        // vk::WriteDescriptorSet {
+                        //     dst_set: descriptor_set,
+                        //     dst_binding: 2,
+                        //     descriptor_count: 1,
+                        //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                        //     p_buffer_info: &light_buffer_info,
+                        //     ..Default::default()
+                        // },
                     ];
 
                     unsafe {
@@ -184,7 +183,7 @@ impl Renderer for Renderer3D {
                     }
 
                     material_ubos.push(matieral_buffer);
-                    light_ubos.push(light_buffer);
+                    //  light_ubos.push(light_buffer);
                 }
                 material.descriptor_set = Some(descriptor_sets);
             }
@@ -214,14 +213,18 @@ impl Renderer for Renderer3D {
     ) {
     }
 
-    fn render(&mut self, instance: &VulkanInstance, image_index: u32, camera: &mut dyn Camera) {
+    fn render(
+        &mut self,
+        instance: &VulkanInstance,
+        image_index: u32,
+        command_buffer: vk::CommandBuffer,
+        camera: &mut dyn Camera,
+    ) {
         let camera: &mut Camera3D = camera.downcast_mut().unwrap();
 
         camera.recreate_view();
 
         let image_index = image_index as usize;
-
-        let command_buffer = instance.command_buffers[image_index];
 
         let render_area = vk::Rect2D::default()
             .offset(vk::Offset2D::default())
@@ -323,7 +326,7 @@ impl Renderer for Renderer3D {
     }
 }
 
-fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
+fn create_tmp_cube(instance: &VulkanInstance) -> Mesh3D {
     let indices = [
         //Top
         2, 6, 7, 2, 3, 7, //Bottom
@@ -377,9 +380,8 @@ fn create_tmp_cube(instance: &VulkanInstance) -> vent_assets::Mesh3D {
         }, //7
     ];
 
-    vent_assets::Mesh3D::new(
+    Mesh3D::new(
         instance,
-        &instance.memory_allocator,
         &vertices,
         vent_rendering::Indices::U8(indices.to_vec()),
         None,

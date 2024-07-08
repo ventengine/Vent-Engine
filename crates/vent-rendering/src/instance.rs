@@ -2,7 +2,7 @@ use ash::ext::{debug_utils, validation_features};
 use ash::khr::swapchain;
 use ash::prelude::VkResult;
 use ash::vk::{Extent2D, PushConstantRange, SwapchainKHR};
-use ash::{khr, vk, Entry};
+use ash::{amdx, khr, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use std::{default::Default, ffi::CStr};
@@ -24,8 +24,6 @@ use crate::surface;
 pub const MAX_FRAMES_IN_FLIGHT: u8 = 2;
 
 pub struct VulkanInstance {
-    pub memory_allocator: MemoryAllocator,
-
     pub instance: ash::Instance,
     pub physical_device: vk::PhysicalDevice,
     pub device: ash::Device,
@@ -59,6 +57,7 @@ pub struct VulkanInstance {
     pub in_flight_fences: Vec<vk::Fence>,
     pub images_in_flight: Vec<vk::Fence>,
 
+    pub memory_allocator: MemoryAllocator,
     pub vulkan_cache: VulkanCache,
 
     pub vsync: bool,
@@ -759,13 +758,13 @@ impl VulkanInstance {
                 stage_flags: vk::ShaderStageFlags::FRAGMENT,
                 ..Default::default()
             },
-            vk::DescriptorSetLayoutBinding {
-                binding: 2,
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::FRAGMENT,
-                ..Default::default()
-            },
+            // vk::DescriptorSetLayoutBinding {
+            //     binding: 2,
+            //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            //     descriptor_count: 1,
+            //     stage_flags: vk::ShaderStageFlags::FRAGMENT,
+            //     ..Default::default()
+            // },
         ];
 
         let info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&desc_layout_bindings);

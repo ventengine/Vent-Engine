@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use ash::vk::{self, Pipeline};
 use vent_math::vec::vec2::Vec2;
-use vent_rendering::{ instance::VulkanInstance, SamplerInfo, Vertex2D};
+use vent_rendering::{any_as_u8_slice, instance::VulkanInstance, Vertex2D};
 
 use crate::font::{freetype::FreeTypeLoader, Font};
 
@@ -16,6 +16,7 @@ pub struct GuiRenderer {
 
     // Font
     font_loader: FreeTypeLoader,
+    push_constant: PushConstant,
     font: Option<Font>,
 
     guis: Vec<Box<dyn GUI>>,
@@ -64,17 +65,20 @@ impl GuiRenderer {
 
         let font_loader = FreeTypeLoader::new();
 
+        let push_constant = PushConstant { scale: Vec2::ONE, translate: Vec2::ZERO };
+
         let mut renderer = Self {
             descriptor_set_layout,
             pipeline_layout,
             pipeline,
             font_loader,
+            push_constant,
             font: None,
             guis: Vec::new(),
         };
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Arial.ttf");
         // Load default font
-       // renderer.load_font(instance, path);
+        renderer.load_font(instance, path);
         renderer
     }
 
@@ -110,8 +114,11 @@ impl GuiRenderer {
         scale: f32,
         color: u32,
     ) {
-        // TODO PushConstatns
+        log::debug!("aa");
+        dbg!("fffff");
+
         if let Some(font) = &mut self.font {
+            dbg!("aaf");
             unsafe {
                 instance.device.cmd_bind_pipeline(
                     command_buffer,
@@ -119,6 +126,15 @@ impl GuiRenderer {
                     self.pipeline,
                 )
             };
+            unsafe {
+                instance.device.cmd_push_constants(
+                    command_buffer,
+                    self.pipeline_layout,
+                    vk::ShaderStageFlags::VERTEX,
+                    0,
+                    any_as_u8_slice(&self.push_constant),
+                )
+            }
             font.render_text(
                 instance,
                 command_buffer,

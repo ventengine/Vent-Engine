@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 
 use ash::vk;
-use vent_math::vec::{i32::ivec2::IVec2, vec3::Vec3};
-use vent_rendering::{
-    buffer::VulkanBuffer, image::VulkanImage, instance::VulkanInstance, Vertex2D,
-};
+use vent_math::vec::i32::ivec2::IVec2;
+use vent_rendering::{buffer::VulkanBuffer, instance::VulkanInstance, Vertex2D};
 
 pub mod cosmic;
 pub mod freetype;
@@ -19,6 +17,12 @@ pub struct Character {
 pub struct Font {
     buffer_cache: HashMap<usize, VulkanBuffer>,
     characters: Vec<Character>,
+}
+
+impl Default for Font {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Font {
@@ -119,6 +123,7 @@ impl Font {
                         None,
                         None,
                     );
+                    dbg!("font draw");
                     instance.device.cmd_draw(command_buffer, 6, 0, 0, 0)
                 }
 

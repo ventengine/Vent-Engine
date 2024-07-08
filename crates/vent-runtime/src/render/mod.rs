@@ -10,7 +10,7 @@ use crate::project::VentApplicationProject;
 use self::camera::{from_dimension, Camera};
 use self::d2::Renderer2D;
 use self::d3::Renderer3D;
-use self::gui::debug_gui::{DebugGUI, RenderData};
+use self::gui::debug_gui::RenderData;
 
 pub mod camera;
 pub mod gui;
@@ -93,7 +93,13 @@ pub trait Renderer {
         camera: &mut dyn Camera,
     );
 
-    fn render(&mut self, instance: &VulkanInstance, image_index: u32, camera: &mut dyn Camera);
+    fn render(
+        &mut self,
+        instance: &VulkanInstance,
+        image_index: u32,
+        command_buffer: vk::CommandBuffer,
+        camera: &mut dyn Camera,
+    );
 
     fn destroy(&mut self, instance: &VulkanInstance);
 }
@@ -146,7 +152,10 @@ impl RawRuntimeRenderer {
 
         match image {
             Ok((image_index, _)) => {
-                self.multi_renderer.render(instance, image_index, camera);
+                let command_buffer = instance.command_buffers[image_index as usize];
+
+                self.multi_renderer
+                    .render(instance, image_index, command_buffer, camera);
                 let result = instance.submit(image_index);
                 if let Err(vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR) = result
                 {

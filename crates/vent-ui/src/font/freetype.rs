@@ -1,10 +1,7 @@
-use std::{
-    collections::HashMap,
-    ffi::{CStr, CString, OsStr},
-};
+use std::{collections::HashMap, ffi::OsStr};
 
 use ash::vk::{self, Extent2D};
-use vent_math::vec::{i32::ivec2::IVec2, vec2::Vec2};
+use vent_math::vec::i32::ivec2::IVec2;
 use vent_rendering::{image::VulkanImage, instance::VulkanInstance, SamplerInfo};
 
 use super::{Character, Font};
@@ -13,7 +10,13 @@ pub struct FreeTypeLoader {
     library: freetype::Library,
 }
 
-const CHARACTERS_SIZE: usize = 128;
+const CHARACTERS_SIZE: usize = 30;
+
+impl Default for FreeTypeLoader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl FreeTypeLoader {
     pub fn new() -> Self {
@@ -43,7 +46,6 @@ impl FreeTypeLoader {
                 height: bitmap.rows() as u32,
             };
 
-            dbg!(bitmap.buffer());
             // Reusing the sampler
             let texture = VulkanImage::new(
                 instance,

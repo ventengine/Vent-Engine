@@ -207,13 +207,8 @@ impl GLTFLoader {
             // Maybe there are an better way, we just need the index that the premitive already has
             {
                 let final_primitive = Self::load_primitive(buffer_data, primitive);
-                let loaded_mesh = Mesh3D::new(
-                    instance,
-                    &instance.memory_allocator,
-                    &final_primitive.0,
-                    final_primitive.1,
-                    mesh.name(),
-                );
+                let loaded_mesh =
+                    Mesh3D::new(instance, &final_primitive.0, final_primitive.1, mesh.name());
                 all_meshes.push(loaded_mesh);
             }
             let pipeline_info = MaterialPipelineInfo {

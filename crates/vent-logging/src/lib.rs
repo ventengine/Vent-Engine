@@ -23,11 +23,11 @@ impl Log for Logger {
         #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
         {
             let level = match record.level() {
-                Level::Error => format!("{:<5}", record.level().to_string().red()),
-                Level::Warn => format!("{:<5}", record.level().to_string().yellow()),
-                Level::Info => format!("{:<5}", record.level().to_string().cyan()),
-                Level::Debug => format!("{:<5}", record.level().to_string().purple()),
-                Level::Trace => format!("{:<5}", record.level().to_string().normal()),
+                Level::Error => format!("{:<5}", record.level().as_str().red()),
+                Level::Warn => format!("{:<5}", record.level().as_str().yellow()),
+                Level::Info => format!("{:<5}", record.level().as_str().cyan()),
+                Level::Debug => format!("{:<5}", record.level().as_str().purple()),
+                Level::Trace => format!("{:<5}", record.level().as_str().normal()),
             };
             println!("{} {} {}", level, record.target(), record.args())
         }

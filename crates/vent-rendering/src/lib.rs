@@ -14,6 +14,7 @@ mod cache;
 mod debug;
 pub mod image;
 pub mod instance;
+pub mod mesh;
 pub mod pipeline;
 mod surface;
 

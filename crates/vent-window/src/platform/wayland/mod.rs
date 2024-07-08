@@ -45,7 +45,7 @@ use sctk::{
 use sctk_adwaita::{AdwaitaFrame, FrameConfig};
 use wayland_client::{
     globals::registry_queue_init,
-    protocol::{wl_keyboard, wl_output, wl_pointer, wl_region::WlRegion, wl_seat, wl_surface},
+    protocol::{wl_keyboard, wl_output, wl_pointer, wl_seat, wl_surface},
     Connection, Proxy, QueueHandle,
 };
 use wayland_csd_frame::{CursorIcon, DecorationsFrame, FrameAction, FrameClick, ResizeEdge};
@@ -160,7 +160,6 @@ impl WaylandWindow {
     }
 
     fn draw(&mut self, conn: &Connection, qh: &QueueHandle<WaylandWindow>) {
-
         // Draw cursor
         if self.set_cursor {
             if let Some(icon) = self.decorations_cursor {
@@ -182,8 +181,8 @@ impl WaylandWindow {
             .wl_surface()
             .damage_buffer(0, 0, i32::MAX, i32::MAX);
         self.window
-        .wl_surface()
-        .frame(qh, self.window.wl_surface().clone());
+            .wl_surface()
+            .frame(qh, self.window.wl_surface().clone());
         self.window.commit();
     }
 

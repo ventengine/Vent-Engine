@@ -1,7 +1,6 @@
 use ash::vk;
-use vent_assets::Mesh3D;
 use vent_math::vec::vec3::Vec3;
-use vent_rendering::{instance::VulkanInstance, Vertex3D};
+use vent_rendering::{instance::VulkanInstance, mesh::Mesh3D, Vertex3D};
 
 #[repr(C)]
 pub struct LightUBO {

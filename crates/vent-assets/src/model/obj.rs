@@ -38,7 +38,6 @@ impl OBJLoader {
 
             meshes.push(Mesh3D::new(
                 instance,
-                &instance.memory_allocator,
                 &vertices,
                 vent_rendering::Indices::U32(model.mesh.indices),
                 Some(&model.name),

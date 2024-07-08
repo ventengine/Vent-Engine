@@ -3,8 +3,7 @@ use std::{mem::align_of, os::raw::c_void};
 use ash::vk;
 
 use crate::{
-    allocator::{self, MemoryAllocator},
-    begin_single_time_command, debug, end_single_time_command,
+    allocator::MemoryAllocator, begin_single_time_command, debug, end_single_time_command,
     instance::VulkanInstance,
 };
 

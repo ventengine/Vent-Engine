@@ -1,11 +1,17 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use ash::vk;
 
-use crate::SamplerInfo;
+use crate::{MaterialPipelineInfo, SamplerInfo};
 
 pub struct VulkanCache {
     sampler_cache: HashMap<SamplerInfo, vk::Sampler>,
+}
+
+impl Default for VulkanCache {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl VulkanCache {
@@ -17,10 +23,10 @@ impl VulkanCache {
 
     pub fn get_sampler(&mut self, device: &ash::Device, info: SamplerInfo) -> vk::Sampler {
         let vk = info.to_vk();
-        *self.sampler_cache.entry(info).or_insert({
-            let sampler = unsafe { device.create_sampler(&vk, None) }.unwrap();
-            sampler
-        })
+        *self
+            .sampler_cache
+            .entry(info)
+            .or_insert(unsafe { device.create_sampler(&vk, None) }.unwrap())
     }
 
     pub fn destroy(&mut self, device: &ash::Device) {

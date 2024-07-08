@@ -9,10 +9,10 @@ layout (binding = 1) uniform Material {
 } material;
 
 
-layout (binding = 2) uniform Light {
-    vec3 position;
-    vec3 color;
-} light;
+// layout (binding = 2) uniform Light {
+//     vec3 position;
+//     vec3 color;
+// } light;
 
 layout (location = 0) in vec2 tex_coord;
 layout (location = 1) in vec2 normal;
