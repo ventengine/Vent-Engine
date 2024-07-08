@@ -78,7 +78,7 @@ impl GuiRenderer {
         };
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Arial.ttf");
         // Load default font
-        renderer.load_font(instance, path);
+       // renderer.load_font(instance, path);
         renderer
     }
 

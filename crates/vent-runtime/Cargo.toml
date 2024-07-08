@@ -15,7 +15,7 @@ vent-logging = { path = "../vent-logging"}
 vent-math = { path = "../vent-math"}
 
 # Rendering
-ash = { version= "0.38", default-features = false, features = ["linked"] }
+ash = { version= "0.38", default-features = false, features = ["loaded"] }
 
 pollster = "0.3.0"
 log = "0.4"

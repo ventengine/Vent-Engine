@@ -79,7 +79,7 @@ impl VulkanInstance {
         vsync: bool,
         window: &vent_window::Window,
     ) -> Self {
-        let entry = Entry::linked();
+        let entry = unsafe { Entry::load().expect("Failed to load Vulkan") };
 
         let engine_version = vk::make_api_version(
             0,

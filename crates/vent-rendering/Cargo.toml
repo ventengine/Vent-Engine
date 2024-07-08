@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 vent-window = { path= "../vent-window"}
-ash = { version= "0.38", default-features = false, features = ["linked", "debug", "std"] }
+ash = { version= "0.38", default-features = false, features = ["loaded", "debug", "std"] }
 spirv = "0.3.0"
 
 ordered-float = "4.2.0"

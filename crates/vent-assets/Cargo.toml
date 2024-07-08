@@ -15,7 +15,7 @@ image = "0.25"
 
 log = "0.4"
 
-ash = { version= "0.38", default-features = false, features = ["linked"] }
+ash = { version= "0.38", default-features = false, features = ["loaded"] }
 
 # model
 tobj = { version = "4.0.0", features = ["async"] }

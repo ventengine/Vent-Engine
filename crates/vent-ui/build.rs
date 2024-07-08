@@ -11,8 +11,8 @@ use std::{
 };
 
 fn main() {
-    // This tells cargo to rerun this script if something in /res/ changes.
-    println!("cargo:rerun-if-changed=res/*");
+    // This tells cargo to rerun this script if something in /assets/ changes.
+    println!("cargo:rerun-if-changed=assets/*");
 
     let out_dir = env::var("OUT_DIR").expect("Var: OUT_DIR Not found!");
     let copy_options = CopyOptions::new().overwrite(true);
