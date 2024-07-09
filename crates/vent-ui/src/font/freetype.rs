@@ -10,7 +10,7 @@ pub struct FreeTypeLoader {
     library: freetype::Library,
 }
 
-const CHARACTERS_SIZE: usize = 30;
+const CHARACTERS_SIZE: usize = 128;
 
 impl Default for FreeTypeLoader {
     fn default() -> Self {
@@ -26,7 +26,7 @@ impl FreeTypeLoader {
     }
 
     // Loads an new Font
-    pub fn load<P>(&self, path: P, instance: &mut VulkanInstance) -> Font
+    pub fn load<P>(&self, path: P, descriptor_set_layout: vk::DescriptorSetLayout, instance: &mut VulkanInstance) -> Font
     where
         P: AsRef<OsStr>,
     {
@@ -35,7 +35,7 @@ impl FreeTypeLoader {
         face.set_pixel_sizes(0, 48).unwrap();
         // unsafe { FT_Set_Pixel_Sizes(face, 0, 48) };
         let mut characters = Vec::with_capacity(CHARACTERS_SIZE);
-        for char in 0..CHARACTERS_SIZE {
+        for char in 33..CHARACTERS_SIZE {
             face.load_char(char, freetype::face::LoadFlag::RENDER)
                 .unwrap();
             let glyph = face.glyph();
@@ -57,8 +57,8 @@ impl FreeTypeLoader {
 
             let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
                 &instance.device,
-                instance.descriptor_pool,
-                instance.descriptor_set_layout,
+                instance.descriptor_pool, // TODO: use own descriptor_pool
+                descriptor_set_layout,
                 instance.swapchain_images.len(),
             );
 

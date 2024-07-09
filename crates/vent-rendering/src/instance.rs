@@ -15,8 +15,7 @@ use ash::vk::{
 use crate::allocator::MemoryAllocator;
 use crate::cache::VulkanCache;
 use crate::debug::{
-    self, check_validation_layer_support,
-    setup_debug_messenger, ENABLE_VALIDATION_LAYERS,
+    self, check_validation_layer_support, setup_debug_messenger, ENABLE_VALIDATION_LAYERS,
 };
 use crate::image::{DepthImage, VulkanImage};
 use crate::surface;
@@ -731,7 +730,7 @@ impl VulkanInstance {
 
         let create_info = vk::DescriptorPoolCreateInfo::default()
             .pool_sizes(&pool_sizes)
-            .max_sets(512);
+            .max_sets(1028);
 
         unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
     }

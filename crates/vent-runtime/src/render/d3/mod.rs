@@ -235,43 +235,7 @@ impl Renderer for Renderer3D {
             .height(instance.surface_resolution.height as f32)
             .max_depth(1.0);
 
-        let color_clear_value = vk::ClearValue {
-            color: vk::ClearColorValue {
-                float32: [0.2, 0.9, 1.0, 1.0],
-            },
-        };
-
-        let depth_clear_value = vk::ClearValue {
-            depth_stencil: vk::ClearDepthStencilValue {
-                depth: 1.0,
-                stencil: 0,
-            },
-        };
-
-        let clear_values = &[color_clear_value, depth_clear_value];
-
         unsafe {
-            instance
-                .device
-                .reset_command_buffer(
-                    command_buffer,
-                    vk::CommandBufferResetFlags::RELEASE_RESOURCES,
-                )
-                .unwrap();
-
-            let info = vk::CommandBufferBeginInfo::default();
-
-            instance
-                .device
-                .begin_command_buffer(command_buffer, &info)
-                .unwrap();
-
-            let info = vk::RenderPassBeginInfo::default()
-                .render_pass(instance.render_pass)
-                .framebuffer(instance.frame_buffers[image_index])
-                .render_area(render_area)
-                .clear_values(clear_values);
-
             instance
                 .device
                 .cmd_set_scissor(command_buffer, 0, &[render_area]);
@@ -279,12 +243,6 @@ impl Renderer for Renderer3D {
                 .device
                 .cmd_set_viewport(command_buffer, 0, &[viewport]);
 
-            let subpass_info =
-                vk::SubpassBeginInfo::default().contents(vk::SubpassContents::INLINE);
-
-            instance
-                .device
-                .cmd_begin_render_pass2(command_buffer, &info, &subpass_info);
             //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
 
             self.mesh_renderer.record_buffer(
@@ -298,11 +256,6 @@ impl Renderer for Renderer3D {
             //  camera.write(instance, self.pipeline_layout, command_buffer);
 
             // END
-            let subpass_end_info = vk::SubpassEndInfo::default();
-            instance
-                .device
-                .cmd_end_render_pass2(command_buffer, &subpass_end_info);
-            instance.device.end_command_buffer(command_buffer).unwrap();
         }
     }
 

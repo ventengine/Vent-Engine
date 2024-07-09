@@ -60,7 +60,7 @@ impl VulkanBuffer {
         let buffer = VulkanBuffer::new(
             instance,
             size,
-            usage,
+            usage | vk::BufferUsageFlags::TRANSFER_DST,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
             name,
         );

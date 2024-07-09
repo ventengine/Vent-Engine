@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use ash::vk;
+use ash::vk::{self, CommandBuffer};
 use serde::{Deserialize, Serialize};
 use vent_rendering::instance::VulkanInstance;
 use vent_ui::renderer::GuiRenderer;
@@ -152,19 +152,43 @@ impl RawRuntimeRenderer {
         match image {
             Ok((image_index, _)) => {
                 let command_buffer = instance.command_buffers[image_index as usize];
+                unsafe {
+                    instance
+                        .device
+                        .reset_command_buffer(
+                            command_buffer,
+                            vk::CommandBufferResetFlags::RELEASE_RESOURCES,
+                        )
+                        .unwrap();
+
+                    let info = vk::CommandBufferBeginInfo::default();
+
+                    instance
+                        .device
+                        .begin_command_buffer(command_buffer, &info)
+                        .unwrap();
+                }
+                self.cmd_renderpass(instance, command_buffer, image_index as usize);
+
+                self.multi_renderer
+                    .render(instance, image_index, command_buffer, camera);
                 self.gui_renderer.render_text(
                     instance,
                     command_buffer,
                     image_index as usize,
-                    "Yay Text",
+                    "Abc",
                     10.0,
                     10.0,
                     10.0,
                     50,
                 );
-
-                self.multi_renderer
-                    .render(instance, image_index, command_buffer, camera);
+                let subpass_end_info = vk::SubpassEndInfo::default();
+                unsafe {
+                    instance
+                        .device
+                        .cmd_end_render_pass2(command_buffer, &subpass_end_info)
+                };
+                unsafe { instance.device.end_command_buffer(command_buffer).unwrap() };
                 let result = instance.submit(image_index);
                 if let Err(vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR) = result
                 {
@@ -205,6 +229,44 @@ impl RawRuntimeRenderer {
         self.current_data = self.calc_render_data(frame_start);
 
         self.delta_time
+    }
+
+    fn cmd_renderpass(
+        &self,
+        instance: &VulkanInstance,
+        command_buffer: vk::CommandBuffer,
+        image_index: usize,
+    ) {
+        let render_area = vk::Rect2D::default()
+            .offset(vk::Offset2D::default())
+            .extent(instance.surface_resolution);
+        let color_clear_value = vk::ClearValue {
+            color: vk::ClearColorValue {
+                float32: [0.2, 0.9, 1.0, 1.0],
+            },
+        };
+
+        let depth_clear_value = vk::ClearValue {
+            depth_stencil: vk::ClearDepthStencilValue {
+                depth: 1.0,
+                stencil: 0,
+            },
+        };
+
+        let clear_values = &[color_clear_value, depth_clear_value];
+
+        let info = vk::RenderPassBeginInfo::default()
+            .render_pass(instance.render_pass)
+            .framebuffer(instance.frame_buffers[image_index])
+            .render_area(render_area)
+            .clear_values(clear_values);
+        let subpass_info = vk::SubpassBeginInfo::default().contents(vk::SubpassContents::INLINE);
+
+        unsafe {
+            instance
+                .device
+                .cmd_begin_render_pass2(command_buffer, &info, &subpass_info)
+        };
     }
 
     fn calc_render_data(&mut self, frame_start: Instant) -> RenderData {

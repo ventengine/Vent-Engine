@@ -52,6 +52,7 @@ impl Font {
         // Loop through each character in the text
         for character in text.chars() {
             let character_index = character as usize;
+            dbg!(character_index);
 
             // Check if the character is within the loaded characters
             if character_index < characters.len() {
@@ -107,7 +108,14 @@ impl Font {
                 }
                 let buffer = &self.buffer_cache[&character_index];
 
+                let render_area = vk::Rect2D::default()
+                    .offset(vk::Offset2D::default())
+                    .extent(instance.surface_resolution);
+
                 unsafe {
+                    instance
+                        .device
+                        .cmd_set_scissor(command_buffer, 0, &[render_area]);
                     instance.device.cmd_bind_descriptor_sets(
                         command_buffer,
                         vk::PipelineBindPoint::GRAPHICS,
@@ -149,6 +157,6 @@ impl Font {
             vk::BufferUsageFlags::VERTEX_BUFFER,
             Some("Font Buffer"),
         );
-        buffer_cache.insert(index, vulkan_buffer).unwrap();
+        buffer_cache.insert(index, vulkan_buffer);
     }
 }

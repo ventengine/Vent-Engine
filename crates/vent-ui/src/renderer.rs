@@ -70,7 +70,7 @@ impl GuiRenderer {
             translate: Vec2::ZERO,
         };
 
-        let renderer = Self {
+        let mut renderer = Self {
             descriptor_set_layout,
             pipeline_layout,
             pipeline,
@@ -81,7 +81,7 @@ impl GuiRenderer {
         };
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Arial.ttf");
         // Load default font
-        // renderer.load_font(instance, path);
+        renderer.load_font(instance, path);
         renderer
     }
 
@@ -117,11 +117,7 @@ impl GuiRenderer {
         scale: f32,
         color: u32,
     ) {
-        log::debug!("aa");
-        dbg!("fffff");
-
         if let Some(font) = &mut self.font {
-            dbg!("aaf");
             unsafe {
                 instance.device.cmd_bind_pipeline(
                     command_buffer,
@@ -129,6 +125,23 @@ impl GuiRenderer {
                     self.pipeline,
                 )
             };
+            let viewport = vk::Viewport::default()
+                .width(instance.surface_resolution.width as f32)
+                .height(instance.surface_resolution.height as f32)
+                .max_depth(1.0);
+            unsafe {
+                instance
+                    .device
+                    .cmd_set_viewport(command_buffer, 0, &[viewport]);
+            }
+            let p_scale = Vec2::new(2.0 / x, 2.0 / y);
+            let translate = Vec2::new(-1.0 - x * p_scale.x, -1.0 - y * p_scale.y);
+
+            self.push_constant = PushConstant {
+                scale: p_scale,
+                translate,
+            };
+
             unsafe {
                 instance.device.cmd_push_constants(
                     command_buffer,
@@ -153,7 +166,7 @@ impl GuiRenderer {
     }
 
     pub fn load_font(&mut self, instance: &mut VulkanInstance, path: &str) {
-        self.font = Some(self.font_loader.load(path, instance));
+        self.font = Some(self.font_loader.load(path, self.descriptor_set_layout, instance));
     }
 
     pub fn render(&mut self) {
