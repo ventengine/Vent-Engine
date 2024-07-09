@@ -65,6 +65,7 @@ impl Font {
 
                 // Check if buffer contains in the cache, When not create a new vertex buffer
                 if !self.buffer_cache.contains_key(&character_index) {
+                    let color = [color as f32, color as f32, color as f32, 1.0];
                     let vertices: [Vertex2D; 6] = [
                         Vertex2D {
                             position: [xpos, ypos + height],

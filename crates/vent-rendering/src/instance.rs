@@ -2,7 +2,7 @@ use ash::ext::{debug_utils, validation_features};
 use ash::khr::swapchain;
 use ash::prelude::VkResult;
 use ash::vk::{Extent2D, PushConstantRange, SwapchainKHR};
-use ash::{amdx, khr, vk, Entry};
+use ash::{khr, vk, Entry};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use std::{default::Default, ffi::CStr};
@@ -15,7 +15,7 @@ use ash::vk::{
 use crate::allocator::MemoryAllocator;
 use crate::cache::VulkanCache;
 use crate::debug::{
-    check_validation_layer_support, get_layer_names_and_pointers, get_validation_features,
+    self, check_validation_layer_support,
     setup_debug_messenger, ENABLE_VALIDATION_LAYERS,
 };
 use crate::image::{DepthImage, VulkanImage};
@@ -24,6 +24,8 @@ use crate::surface;
 pub const MAX_FRAMES_IN_FLIGHT: u8 = 2;
 
 pub struct VulkanInstance {
+    // Important: Do not drop entry, As it drops all functions pointers
+    pub entry: ash::Entry,
     pub instance: ash::Instance,
     pub physical_device: vk::PhysicalDevice,
     pub device: ash::Device,
@@ -59,6 +61,7 @@ pub struct VulkanInstance {
 
     pub memory_allocator: MemoryAllocator,
     pub vulkan_cache: VulkanCache,
+    pub vulkan_version: u32,
 
     pub vsync: bool,
 
@@ -79,7 +82,7 @@ impl VulkanInstance {
         vsync: bool,
         window: &vent_window::Window,
     ) -> Self {
-        let entry = unsafe { Entry::load().expect("Failed to load Vulkan") };
+        let entry = unsafe { Entry::load().expect("Failed to load Vulkan Library") };
 
         let engine_version = vk::make_api_version(
             0,
@@ -87,13 +90,20 @@ impl VulkanInstance {
             env!("CARGO_PKG_VERSION_MINOR").parse().unwrap(),
             env!("CARGO_PKG_VERSION_PATCH").parse().unwrap(),
         );
+        let vulkan_version = match unsafe { entry.try_enumerate_instance_version().unwrap() } {
+            Some(version) => version,
+            None => {
+                log::warn!("Failed to get vulkan instance version, Probably using Vulkan 1.0");
+                vk::API_VERSION_1_0
+            }
+        };
 
         let app_info = unsafe {
             vk::ApplicationInfo::default()
                 .application_name(CStr::from_bytes_with_nul_unchecked(
                     application_name.as_bytes(),
                 ))
-                .application_version(application_version) // TODO
+                .application_version(application_version)
                 .engine_name(CStr::from_bytes_with_nul_unchecked(b"Vent-Engine\0"))
                 .engine_version(engine_version)
                 .api_version(vk::API_VERSION_1_3)
@@ -126,9 +136,9 @@ impl VulkanInstance {
         if ENABLE_VALIDATION_LAYERS {
             check_validation_layer_support(&entry);
         }
-        let layer_names_ptrs = get_layer_names_and_pointers();
+        let layer_names_ptrs = debug::get_layer_names_and_pointers();
 
-        let mut validation_features = get_validation_features();
+        let mut validation_features = debug::get_validation_features();
 
         let create_info = vk::InstanceCreateInfo::default()
             .application_info(&app_info)
@@ -182,10 +192,7 @@ impl VulkanInstance {
             pdevice,
             vsync,
             surface,
-            (
-                window.width().try_into().unwrap(),
-                window.height().try_into().unwrap(),
-            ),
+            (window.width(), window.height()),
             None,
         );
 
@@ -225,6 +232,7 @@ impl VulkanInstance {
         let vulkan_cache = VulkanCache::new();
 
         Self {
+            entry,
             memory_allocator,
             instance,
             physical_device: pdevice,
@@ -239,6 +247,7 @@ impl VulkanInstance {
             swapchain_image_views,
             graphics_queue,
             present_queue,
+            vulkan_version,
             render_pass,
             vulkan_cache,
             #[cfg(debug_assertions)]

@@ -65,9 +65,12 @@ impl GuiRenderer {
 
         let font_loader = FreeTypeLoader::new();
 
-        let push_constant = PushConstant { scale: Vec2::ONE, translate: Vec2::ZERO };
+        let push_constant = PushConstant {
+            scale: Vec2::ONE,
+            translate: Vec2::ZERO,
+        };
 
-        let mut renderer = Self {
+        let renderer = Self {
             descriptor_set_layout,
             pipeline_layout,
             pipeline,
@@ -78,7 +81,7 @@ impl GuiRenderer {
         };
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Arial.ttf");
         // Load default font
-       // renderer.load_font(instance, path);
+        // renderer.load_font(instance, path);
         renderer
     }
 

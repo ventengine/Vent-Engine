@@ -448,7 +448,7 @@ impl VulkanImage {
         unsafe {
             device.destroy_image_view(self.image_view, None);
             device.destroy_image(self.image, None);
-          //  device.destroy_sampler(self.sampler, None); Will be destroyed by the cache
+            //  device.destroy_sampler(self.sampler, None); Will be destroyed by the cache
             device.free_memory(self.memory, None);
         }
     }

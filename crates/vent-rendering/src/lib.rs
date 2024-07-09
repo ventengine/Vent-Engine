@@ -105,7 +105,7 @@ pub struct Vertex3D {
 pub struct Vertex2D {
     pub position: [f32; 2],
     pub tex_coord: [f32; 2],
-    pub color: u32,
+    pub color: [f32; 4],
 }
 
 pub enum Indices {
@@ -210,7 +210,7 @@ impl Vertex2D {
             vk::VertexInputAttributeDescription::default()
                 .location(1)
                 .binding(0)
-                .format(vk::Format::R8G8B8A8_UNORM)
+                .format(vk::Format::R32G32B32A32_SFLOAT)
                 .offset(offset_of!(Self, color) as u32),
         ]
     }

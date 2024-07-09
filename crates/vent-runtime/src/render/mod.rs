@@ -127,7 +127,6 @@ impl RawRuntimeRenderer {
             Dimension::D2 => Box::new(Renderer2D::init(instance, camera)),
             Dimension::D3 => Box::new(Renderer3D::init(instance, camera)),
         };
-        // let gui_renderer = GuiRenderer::new()
         //     // TODO
         //     .add_gui(Box::new(DebugGUI::new(unsafe {
         //         instance
@@ -153,6 +152,16 @@ impl RawRuntimeRenderer {
         match image {
             Ok((image_index, _)) => {
                 let command_buffer = instance.command_buffers[image_index as usize];
+                self.gui_renderer.render_text(
+                    instance,
+                    command_buffer,
+                    image_index as usize,
+                    "Yay Text",
+                    10.0,
+                    10.0,
+                    10.0,
+                    50,
+                );
 
                 self.multi_renderer
                     .render(instance, image_index, command_buffer, camera);

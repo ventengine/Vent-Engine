@@ -1,8 +1,8 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap};
 
 use ash::vk;
 
-use crate::{MaterialPipelineInfo, SamplerInfo};
+use crate::{SamplerInfo};
 
 pub struct VulkanCache {
     sampler_cache: HashMap<SamplerInfo, vk::Sampler>,
