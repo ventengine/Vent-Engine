@@ -50,88 +50,8 @@ impl GLTFLoader {
 
         let mut pipelines = Vec::new();
         let mut matrix = None;
-        for scene in gltf.document.scenes() {
-            for node in scene.nodes() {
-                matrix = Some(node.transform().decomposed());
-                Self::load_node(
-                    instance,
-                    vertex_shader,
-                    fragment_shader,
-                    pipeline_layout,
-                    path,
-                    node,
-                    &buffer_data,
-                    &gltf.document,
-                    &mut pipelines,
-                );
-            }
-        }
 
-        let matrix = matrix.unwrap_or_default();
-
-        Ok(Model3D {
-            pipelines,
-            position: matrix.0,
-            rotation: matrix.1,
-            scale: matrix.2,
-        })
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn load_node(
-        instance: &mut VulkanInstance,
-        vertex_shader: &Path,
-        fragment_shader: &Path,
-        pipeline_layout: vk::PipelineLayout,
-        model_dir: &Path,
-        node: gltf::Node<'_>,
-        buffer_data: &[gltf::buffer::Data],
-        document: &gltf::Document,
-        pipelines: &mut Vec<ModelPipeline>,
-    ) {
-        if let Some(mesh) = node.mesh() {
-            Self::load_mesh_multithreaded(
-                instance,
-                model_dir,
-                vertex_shader,
-                fragment_shader,
-                pipeline_layout,
-                mesh,
-                buffer_data,
-                document,
-                pipelines,
-            );
-        }
-        node.children().for_each(|child| {
-            Self::load_node(
-                instance,
-                vertex_shader,
-                fragment_shader,
-                pipeline_layout,
-                model_dir,
-                child,
-                buffer_data,
-                document,
-                pipelines,
-            )
-        });
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn load_mesh_multithreaded(
-        instance: &mut VulkanInstance,
-        model_dir: &Path,
-        vertex_shader: &Path,
-        fragment_shader: &Path,
-        pipeline_layout: vk::PipelineLayout,
-        mesh: gltf::Mesh,
-        buffer_data: &[gltf::buffer::Data],
-        document: &gltf::Document,
-        pipelines: &mut Vec<ModelPipeline>,
-    ) {
-        let materials = document.materials();
-
-        //  This is very ugly i know, I originally had the idea to put this into vent_rendering::pipeline but then i had no good idea how to cache the vertex and fragment shader modules outside the for loop
+        // Do not load for every node, So we load it here
         let vertex_code =
             read_spv(&mut File::open(vertex_shader).expect("Failed to open Vertex File")).unwrap();
         let vertex_module_info = vk::ShaderModuleCreateInfo::default().code(&vertex_code);
@@ -152,6 +72,108 @@ impl GLTFLoader {
                 .create_shader_module(&fragment_module_info, None)
         }
         .unwrap();
+
+        // So First we load all Materials our glTF file has
+        let materials = Self::load_materials(instance, &gltf.document, path, &buffer_data);
+
+        for scene in gltf.document.scenes() {
+            for node in scene.nodes() {
+                matrix = Some(node.transform().decomposed());
+                Self::load_node(
+                    instance,
+                    vertex_module,
+                    fragment_module,
+                    pipeline_layout,
+                    node,
+                    &buffer_data,
+                    &materials,
+                    &mut pipelines,
+                );
+            }
+        }
+
+        unsafe {
+            instance.device.destroy_shader_module(vertex_module, None);
+            instance.device.destroy_shader_module(fragment_module, None);
+        }
+
+        let matrix = matrix.unwrap_or_default();
+
+        Ok(Model3D {
+            materials,
+            pipelines,
+            position: matrix.0,
+            rotation: matrix.1,
+            scale: matrix.2,
+        })
+    }
+
+    fn load_materials(
+        instance: &mut VulkanInstance,
+        document: &gltf::Document,
+        model_dir: &Path,
+        buffer_data: &[gltf::buffer::Data],
+    ) -> Vec<Material> {
+        let materials = document.materials();
+
+        let mut loaded_materials = Vec::with_capacity(materials.len());
+        materials.for_each(|material| {
+            let material_data = Self::parse_material_data(model_dir, material, buffer_data);
+            let material = Self::load_material(instance, material_data);
+            loaded_materials.push(material);
+        });
+        loaded_materials
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn load_node(
+        instance: &mut VulkanInstance,
+        vertex_module: vk::ShaderModule,
+        fragment_module: vk::ShaderModule,
+        pipeline_layout: vk::PipelineLayout,
+        node: gltf::Node<'_>,
+        buffer_data: &[gltf::buffer::Data],
+        loaded_materials: &Vec<Material>,
+        pipelines: &mut Vec<ModelPipeline>,
+    ) {
+        if let Some(mesh) = node.mesh() {
+            Self::load_mesh_multithreaded(
+                instance,
+                vertex_module,
+                fragment_module,
+                pipeline_layout,
+                mesh,
+                buffer_data,
+                &loaded_materials,
+                pipelines,
+            );
+        }
+        node.children().for_each(|child| {
+            Self::load_node(
+                instance,
+                vertex_module,
+                fragment_module,
+                pipeline_layout,
+                child,
+                buffer_data,
+                loaded_materials,
+                pipelines,
+            )
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn load_mesh_multithreaded(
+        instance: &mut VulkanInstance,
+        vertex_module: vk::ShaderModule,
+        fragment_module: vk::ShaderModule,
+        pipeline_layout: vk::PipelineLayout,
+        mesh: gltf::Mesh,
+        buffer_data: &[gltf::buffer::Data],
+        loaded_materials: &Vec<Material>,
+        pipelines: &mut Vec<ModelPipeline>,
+    ) {
+        //  This is very ugly i know, I originally had the idea to put this into vent_rendering::pipeline but then i had no good idea how to cache the vertex and fragment shader modules outside the for loop
 
         let shader_entry_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"main\0") };
         let shader_stage_create_info = [
@@ -189,14 +211,6 @@ impl GLTFLoader {
             .scissors(&scissors)
             .viewports(&viewports);
 
-        // So First we load all Materials our glTF file has
-        let mut loaded_materials = Vec::with_capacity(materials.len());
-        materials.for_each(|material| {
-            let material_data = Self::parse_material_data(model_dir, material, buffer_data);
-            let material = Self::load_material(instance, material_data);
-            loaded_materials.push(material);
-        });
-
         let mut cached_pipeline = HashMap::new();
 
         for (i, material) in loaded_materials.into_iter().enumerate() {
@@ -218,8 +232,7 @@ impl GLTFLoader {
             };
 
             let model_material = crate::ModelMaterial {
-                material,
-                descriptor_set: None,
+                material_index: i,
                 meshes: all_meshes,
             };
 
@@ -298,11 +311,6 @@ impl GLTFLoader {
                     cached_pipeline.insert(pipeline_info, graphics_pipelines[0]);
                 }
             }
-        }
-
-        unsafe {
-            instance.device.destroy_shader_module(vertex_module, None);
-            instance.device.destroy_shader_module(fragment_module, None);
         }
     }
 
@@ -384,6 +392,7 @@ impl GLTFLoader {
 
         Material {
             diffuse_texture,
+            descriptor_set: None,
             alpha_mode: data.alpha_mode,
             alpha_cut: data.alpha_cut.unwrap_or(0.5),
             double_sided: data.double_sided,
@@ -490,7 +499,7 @@ impl GLTFLoader {
             }
         }
 
-        let vertices = optimizer::optimize_vertices(vertices);
+        // let vertices = optimizer::optimize_vertices(vertices);
 
         // TODO Handle where there are no indices
         let indices = match reader.read_indices().unwrap() {

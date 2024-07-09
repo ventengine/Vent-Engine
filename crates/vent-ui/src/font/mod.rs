@@ -46,13 +46,12 @@ impl Font {
         scale: f32,
         color: u32,
     ) {
-        let mut offset_x = x;
+        let offset_x = x;
         let characters = &self.characters;
 
         // Loop through each character in the text
         for character in text.chars() {
             let character_index = character as usize;
-            dbg!(character_index);
 
             // Check if the character is within the loaded characters
             if character_index < characters.len() {
@@ -132,12 +131,11 @@ impl Font {
                         None,
                         None,
                     );
-                    dbg!("font draw");
-                    instance.device.cmd_draw(command_buffer, 6, 0, 0, 0)
+                    instance.device.cmd_draw(command_buffer, 6, 1, 0, 0)
                 }
 
                 // Update offset for the next character
-                offset_x += character.advance as f32 * scale;
+                //  offset_x += character.advance as f32 * scale;
             }
         }
     }

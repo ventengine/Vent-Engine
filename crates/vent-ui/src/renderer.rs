@@ -1,8 +1,10 @@
 use std::mem::size_of;
 
-use ash::vk::{self, Pipeline};
+use ash::vk::{self};
 use vent_math::vec::vec2::Vec2;
-use vent_rendering::{any_as_u8_slice, instance::VulkanInstance, Vertex2D};
+use vent_rendering::{
+    any_as_u8_slice, instance::VulkanInstance, pipeline::VulkanPipeline, Vertex2D,
+};
 
 use crate::font::{freetype::FreeTypeLoader, Font};
 
@@ -12,7 +14,7 @@ use super::GUI;
 pub struct GuiRenderer {
     descriptor_set_layout: vk::DescriptorSetLayout,
     pipeline_layout: vk::PipelineLayout,
-    pipeline: vk::Pipeline,
+    pipeline: VulkanPipeline,
 
     // Font
     font_loader: FreeTypeLoader,
@@ -85,7 +87,10 @@ impl GuiRenderer {
         renderer
     }
 
-    fn create_pipeline(pipeline_layout: vk::PipelineLayout, instance: &VulkanInstance) -> Pipeline {
+    fn create_pipeline(
+        pipeline_layout: vk::PipelineLayout,
+        instance: &VulkanInstance,
+    ) -> VulkanPipeline {
         let vertex_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/assets/shaders/shader.vert.spv"
@@ -95,7 +100,7 @@ impl GuiRenderer {
             "/assets/shaders/shader.frag.spv"
         );
 
-        vent_rendering::pipeline::create_simple_pipeline(
+        VulkanPipeline::create_simple_pipeline(
             instance,
             vertex_shader.as_ref(),
             fragment_shader.as_ref(),
@@ -122,7 +127,7 @@ impl GuiRenderer {
                 instance.device.cmd_bind_pipeline(
                     command_buffer,
                     vk::PipelineBindPoint::GRAPHICS,
-                    self.pipeline,
+                    self.pipeline.pipeline,
                 )
             };
             let viewport = vk::Viewport::default()
@@ -166,7 +171,10 @@ impl GuiRenderer {
     }
 
     pub fn load_font(&mut self, instance: &mut VulkanInstance, path: &str) {
-        self.font = Some(self.font_loader.load(path, self.descriptor_set_layout, instance));
+        self.font = Some(
+            self.font_loader
+                .load(path, self.descriptor_set_layout, instance),
+        );
     }
 
     pub fn render(&mut self) {
@@ -186,7 +194,7 @@ impl GuiRenderer {
 
     pub fn destroy(&mut self, instance: &VulkanInstance) {
         unsafe {
-            instance.device.destroy_pipeline(self.pipeline, None);
+            self.pipeline.destroy(&instance.device);
             instance
                 .device
                 .destroy_pipeline_layout(self.pipeline_layout, None);

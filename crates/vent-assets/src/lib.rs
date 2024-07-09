@@ -12,6 +12,7 @@ pub trait Asset: Send + Sync + 'static {}
 /// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
 pub struct Model3D {
     pub pipelines: Vec<ModelPipeline>,
+    pub materials: Vec<Material>,
 
     pub position: [f32; 3], // Default: 0.0, 0.0, 0.0
     pub rotation: [f32; 4], // Default: 0.0, 0.0, 0.0, 1.0
@@ -25,15 +26,15 @@ pub struct ModelPipeline {
 }
 
 pub struct ModelMaterial {
-    pub material: Material,
+    pub material_index: usize,
     // So every App is Specfic and you will need to create your own DescriptorSet's out of this
     // We only binding them
-    pub descriptor_set: Option<Vec<vk::DescriptorSet>>,
     pub meshes: Vec<Mesh3D>,
 }
 
 pub struct Material {
     pub diffuse_texture: VulkanImage,
+    pub descriptor_set: Option<Vec<vk::DescriptorSet>>,
     pub base_color: [f32; 4],
     pub alpha_mode: AlphaMode,
     pub double_sided: bool,

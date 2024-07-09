@@ -75,6 +75,9 @@ impl Renderer for Renderer3D {
             "/assets/models/test/Sponza-GLTF/Sponza.gltf"
         );
 
+        // Sponza-GLTF/Sponza.gltf
+        // bistro_outside.glb
+
         let mut material_ubos = vec![];
         let light_ubos = vec![];
 
@@ -97,96 +100,92 @@ impl Renderer for Renderer3D {
             )
             .block_on(),
         );
-        for pipeline in mesh.model.pipelines.iter_mut() {
-            for material in pipeline.materials.iter_mut() {
-                let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
-                    &instance.device,
-                    instance.descriptor_pool,
-                    instance.descriptor_set_layout,
-                    instance.swapchain_images.len(),
+        for material in mesh.model.materials.iter_mut() {
+            let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
+                &instance.device,
+                instance.descriptor_pool,
+                instance.descriptor_set_layout,
+                instance.swapchain_images.len(),
+            );
+
+            for &descriptor_set in descriptor_sets.iter() {
+                let diffuse_texture = &material.diffuse_texture;
+
+                let matieral_buffer = VulkanBuffer::new_init(
+                    instance,
+                    size_of::<MaterialUBO>() as vk::DeviceSize,
+                    vk::BufferUsageFlags::UNIFORM_BUFFER,
+                    any_as_u8_slice(&MaterialUBO {
+                        base_color: Vec4::from_array(material.base_color),
+                        alpha_mode: material.alpha_mode as u32,
+                        alpha_cutoff: material.alpha_cut,
+                    }),
+                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                    None,
                 );
+                // let light_buffer = VulkanBuffer::new_init(
+                //     instance,
+                //     size_of::<LightUBO>() as vk::DeviceSize,
+                //     vk::BufferUsageFlags::UNIFORM_BUFFER,
+                //     any_as_u8_slice(&LightUBO {
+                //         position: Vec3::new(2.0, 100.0, 2.0),
+                //         color: Vec3::new(1.0, 1.0, 1.0),
+                //     }),
+                //     vk::MemoryPropertyFlags::HOST_VISIBLE
+                //         | vk::MemoryPropertyFlags::DEVICE_LOCAL,
+                //     None,
+                // );
 
-                for &descriptor_set in descriptor_sets.iter() {
-                    let material = &material.material;
-                    let diffuse_texture = &material.diffuse_texture;
+                let image_info = vk::DescriptorImageInfo::default()
+                    .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+                    .image_view(diffuse_texture.image_view)
+                    .sampler(diffuse_texture.sampler);
 
-                    let matieral_buffer = VulkanBuffer::new_init(
-                        instance,
-                        size_of::<MaterialUBO>() as vk::DeviceSize,
-                        vk::BufferUsageFlags::UNIFORM_BUFFER,
-                        any_as_u8_slice(&MaterialUBO {
-                            base_color: Vec4::from_array(material.base_color),
-                            alpha_mode: material.alpha_mode as u32,
-                            alpha_cutoff: material.alpha_cut,
-                        }),
-                        vk::MemoryPropertyFlags::HOST_VISIBLE
-                            | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                        None,
-                    );
-                    // let light_buffer = VulkanBuffer::new_init(
-                    //     instance,
-                    //     size_of::<LightUBO>() as vk::DeviceSize,
-                    //     vk::BufferUsageFlags::UNIFORM_BUFFER,
-                    //     any_as_u8_slice(&LightUBO {
-                    //         position: Vec3::new(2.0, 100.0, 2.0),
-                    //         color: Vec3::new(1.0, 1.0, 1.0),
-                    //     }),
-                    //     vk::MemoryPropertyFlags::HOST_VISIBLE
-                    //         | vk::MemoryPropertyFlags::DEVICE_LOCAL,
-                    //     None,
-                    // );
+                let material_buffer_info = vk::DescriptorBufferInfo::default()
+                    .buffer(*matieral_buffer)
+                    .offset(0)
+                    .range(size_of::<MaterialUBO>() as vk::DeviceSize);
 
-                    let image_info = vk::DescriptorImageInfo::default()
-                        .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                        .image_view(diffuse_texture.image_view)
-                        .sampler(diffuse_texture.sampler);
+                // let light_buffer_info = vk::DescriptorBufferInfo::default()
+                //     .buffer(*light_buffer)
+                //     .offset(0)
+                //     .range(size_of::<LightUBO>() as vk::DeviceSize);
 
-                    let material_buffer_info = vk::DescriptorBufferInfo::default()
-                        .buffer(*matieral_buffer)
-                        .offset(0)
-                        .range(size_of::<MaterialUBO>() as vk::DeviceSize);
+                let desc_sets = [
+                    vk::WriteDescriptorSet {
+                        dst_set: descriptor_set,
+                        dst_binding: 0, // From DescriptorSetLayoutBinding
+                        descriptor_count: 1,
+                        descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                        p_image_info: &image_info,
+                        ..Default::default()
+                    },
+                    vk::WriteDescriptorSet {
+                        dst_set: descriptor_set,
+                        dst_binding: 1,
+                        descriptor_count: 1,
+                        descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                        p_buffer_info: &material_buffer_info,
+                        ..Default::default()
+                    },
+                    // vk::WriteDescriptorSet {
+                    //     dst_set: descriptor_set,
+                    //     dst_binding: 2,
+                    //     descriptor_count: 1,
+                    //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                    //     p_buffer_info: &light_buffer_info,
+                    //     ..Default::default()
+                    // },
+                ];
 
-                    // let light_buffer_info = vk::DescriptorBufferInfo::default()
-                    //     .buffer(*light_buffer)
-                    //     .offset(0)
-                    //     .range(size_of::<LightUBO>() as vk::DeviceSize);
-
-                    let desc_sets = [
-                        vk::WriteDescriptorSet {
-                            dst_set: descriptor_set,
-                            dst_binding: 0, // From DescriptorSetLayoutBinding
-                            descriptor_count: 1,
-                            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                            p_image_info: &image_info,
-                            ..Default::default()
-                        },
-                        vk::WriteDescriptorSet {
-                            dst_set: descriptor_set,
-                            dst_binding: 1,
-                            descriptor_count: 1,
-                            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                            p_buffer_info: &material_buffer_info,
-                            ..Default::default()
-                        },
-                        // vk::WriteDescriptorSet {
-                        //     dst_set: descriptor_set,
-                        //     dst_binding: 2,
-                        //     descriptor_count: 1,
-                        //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                        //     p_buffer_info: &light_buffer_info,
-                        //     ..Default::default()
-                        // },
-                    ];
-
-                    unsafe {
-                        instance.device.update_descriptor_sets(&desc_sets, &[]);
-                    }
-
-                    material_ubos.push(matieral_buffer);
-                    //  light_ubos.push(light_buffer);
+                unsafe {
+                    instance.device.update_descriptor_sets(&desc_sets, &[]);
                 }
-                material.descriptor_set = Some(descriptor_sets);
+
+                material_ubos.push(matieral_buffer);
+                //  light_ubos.push(light_buffer);
             }
+            material.descriptor_set = Some(descriptor_sets);
         }
 
         mesh_renderer.insert(world.create_entity(), mesh);

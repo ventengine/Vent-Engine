@@ -1,8 +1,6 @@
 use std::path::Path;
 
 use ash::vk;
-use vent_rendering::allocator::MemoryAllocator;
-use vent_rendering::buffer::VulkanBuffer;
 use vent_rendering::instance::VulkanInstance;
 use vent_rendering::{begin_single_time_command, end_single_time_command, Indices, Vertex3D};
 use vent_sdk::utils::stopwatch::Stopwatch;
@@ -78,6 +76,7 @@ impl Model3D {
             }
             pipeline.materials.iter().for_each(|material| {
                 if with_descriptor_set {
+                    let material = &self.materials[material.material_index];
                     if let Some(ds) = &material.descriptor_set {
                         unsafe {
                             device.cmd_bind_descriptor_sets(
@@ -103,10 +102,12 @@ impl Model3D {
     }
 
     pub fn destroy(&mut self, device: &ash::Device) {
-        self.pipelines.drain(..).for_each(|mut pipline| {
-            unsafe { device.destroy_pipeline(pipline.pipeline, None) };
-            pipline.materials.drain(..).for_each(|mut model_material| {
-                model_material.material.diffuse_texture.destroy(device);
+        self.materials.drain(..).for_each(|mut material| {
+            material.diffuse_texture.destroy(device);
+        });
+        self.pipelines.drain(..).for_each(|mut pipeline| {
+            unsafe { device.destroy_pipeline(pipeline.pipeline, None) };
+            pipeline.materials.drain(..).for_each(|mut model_material| {
                 model_material.meshes.drain(..).for_each(|mut mesh| {
                     mesh.destroy(device);
                 });

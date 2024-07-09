@@ -52,8 +52,7 @@ impl VulkanImage {
             format,
             image_size,
             1,
-            vk::ImageUsageFlags::TRANSFER_DST
-                | vk::ImageUsageFlags::SAMPLED,
+            vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
         );
         let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
         Self::copy_buffer_to_image(
@@ -264,29 +263,28 @@ impl VulkanImage {
 
         if make_ready {
             let image_barrier = vk::ImageMemoryBarrier2::default()
-           .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
-           .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-           .src_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
-           .dst_access_mask(vk::AccessFlags2::SHADER_READ)
-           .src_stage_mask(vk::PipelineStageFlags2::TRANSFER)
-           .dst_stage_mask(vk::PipelineStageFlags2::FRAGMENT_SHADER)
-            .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
-            .image(image)
-            .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
-            .subresource_range(vk::ImageSubresourceRange {
-                aspect_mask: vk::ImageAspectFlags::COLOR,
-                level_count: mip_level,
-                layer_count: 1,
-                ..Default::default()
-            });
+                .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
+                .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+                .src_access_mask(vk::AccessFlags2::TRANSFER_WRITE)
+                .dst_access_mask(vk::AccessFlags2::SHADER_READ)
+                .src_stage_mask(vk::PipelineStageFlags2::TRANSFER)
+                .dst_stage_mask(vk::PipelineStageFlags2::FRAGMENT_SHADER)
+                .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+                .image(image)
+                .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+                .subresource_range(vk::ImageSubresourceRange {
+                    aspect_mask: vk::ImageAspectFlags::COLOR,
+                    level_count: mip_level,
+                    layer_count: 1,
+                    ..Default::default()
+                });
 
+            let binding = [image_barrier];
+            let dep_info = vk::DependencyInfo::default()
+                .image_memory_barriers(&binding)
+                .dependency_flags(vk::DependencyFlags::BY_REGION);
 
-        let binding = [image_barrier];
-        let dep_info = vk::DependencyInfo::default()
-            .image_memory_barriers(&binding)
-            .dependency_flags(vk::DependencyFlags::BY_REGION);
-
-        unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
+            unsafe { device.cmd_pipeline_barrier2(command_buffer, &dep_info) };
         }
 
         end_single_time_command(

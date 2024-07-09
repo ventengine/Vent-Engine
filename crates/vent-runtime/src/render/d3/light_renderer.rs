@@ -1,6 +1,6 @@
 use ash::vk;
 use vent_math::vec::vec3::Vec3;
-use vent_rendering::{instance::VulkanInstance, mesh::Mesh3D, Vertex3D};
+use vent_rendering::{instance::VulkanInstance, mesh::Mesh3D, pipeline::VulkanPipeline, Vertex3D};
 
 #[repr(C)]
 pub struct LightUBO {
@@ -10,7 +10,7 @@ pub struct LightUBO {
 
 pub struct LightRenderer {
     pipeline_layout: vk::PipelineLayout,
-    pipeline: vk::Pipeline,
+    pipeline: VulkanPipeline,
 }
 
 #[allow(dead_code)]
@@ -27,7 +27,7 @@ impl LightRenderer {
 
         let pipeline_layout = instance.create_pipeline_layout(&[]);
 
-        let pipeline = vent_rendering::pipeline::create_simple_pipeline(
+        let pipeline = VulkanPipeline::create_simple_pipeline(
             instance,
             vertex_shader.as_ref(),
             fragment_shader.as_ref(),
@@ -54,7 +54,7 @@ impl LightRenderer {
             instance.device.cmd_bind_pipeline(
                 command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
-                self.pipeline,
+                self.pipeline.pipeline,
             )
         };
 
@@ -64,7 +64,7 @@ impl LightRenderer {
 
     pub fn destroy(&mut self, device: &ash::Device) {
         unsafe {
-            device.destroy_pipeline(self.pipeline, None);
+            self.pipeline.destroy(device);
             device.destroy_pipeline_layout(self.pipeline_layout, None);
         }
     }

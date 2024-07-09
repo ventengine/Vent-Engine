@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use ash::vk::{self, CommandBuffer};
+use ash::vk::{self};
 use serde::{Deserialize, Serialize};
 use vent_rendering::instance::VulkanInstance;
 use vent_ui::renderer::GuiRenderer;

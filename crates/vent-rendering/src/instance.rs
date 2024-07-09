@@ -720,17 +720,17 @@ impl VulkanInstance {
         let pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1000,
+                descriptor_count: 2000,
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 1000,
+                descriptor_count: 2000,
             },
         ];
 
         let create_info = vk::DescriptorPoolCreateInfo::default()
             .pool_sizes(&pool_sizes)
-            .max_sets(1028);
+            .max_sets(2000);
 
         unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
     }

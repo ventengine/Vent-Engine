@@ -80,6 +80,7 @@ impl OBJLoader {
 
         Material {
             diffuse_texture,
+            descriptor_set: None,
             alpha_mode: gltf::material::AlphaMode::Opaque,
             alpha_cut: 0.0,
             double_sided: false,

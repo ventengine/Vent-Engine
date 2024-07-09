@@ -26,7 +26,12 @@ impl FreeTypeLoader {
     }
 
     // Loads an new Font
-    pub fn load<P>(&self, path: P, descriptor_set_layout: vk::DescriptorSetLayout, instance: &mut VulkanInstance) -> Font
+    pub fn load<P>(
+        &self,
+        path: P,
+        descriptor_set_layout: vk::DescriptorSetLayout,
+        instance: &mut VulkanInstance,
+    ) -> Font
     where
         P: AsRef<OsStr>,
     {
@@ -55,6 +60,7 @@ impl FreeTypeLoader {
                 Some(SamplerInfo::default()),
             );
 
+            // TODO: store everything in an Texture Atlas
             let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
                 &instance.device,
                 instance.descriptor_pool, // TODO: use own descriptor_pool
