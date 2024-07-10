@@ -39,7 +39,7 @@ impl PlatformWindow {
     pub fn create_window(attribs: crate::WindowAttribs) -> Self {
         let width = attribs.width;
         let height = attribs.height;
-        let app_name = windows::core::w!("Placeholder");
+        let app_name = windows::core::w!("Placeholder"); // TODO use attribs
 
         let h_instance = unsafe { GetModuleHandleW(None) }.expect("failed to create module handle");
 
@@ -108,7 +108,8 @@ impl PlatformWindow {
         }
     }
 
-    pub fn poll<F>(mut self, mut event_handler: F)
+    #[allow(unused_mut)]
+    pub fn poll<F>(&mut self, mut event_handler: F)
     where
         F: FnMut(WindowEvent),
     {
@@ -121,17 +122,15 @@ impl PlatformWindow {
                     DispatchMessageW(&msg);
                 }
 
+                self.data.event_sender.send(WindowEvent::Draw).unwrap();
+
                 while let Ok(event) = self.data.event_receiver.try_recv() {
                     event_handler(event);
                 }
 
                 if msg.message == WM_QUIT {
                     break;
-                } else {
-                    self.data
-                        .progress_message(msg.hwnd, msg.message, msg.wParam, msg.lParam)
                 }
-                //  self.data.event_sender.send(WindowEvent::Draw).unwrap();
             }
         }
     }
@@ -164,13 +163,19 @@ impl PlatformWindow {
     }
 }
 
+/// # Safety
+///
+/// ---
 pub unsafe extern "system" fn window_proc(
     hwnd: HWND,
     msg: c_uint,
     w_param: WPARAM,
     l_param: LPARAM,
 ) -> LRESULT {
-    unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) }
+    match msg {
+        WM_PAINT => LRESULT::default(),
+        _ => unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) },
+    }
 }
 
 impl WindowsWindow {
@@ -178,8 +183,8 @@ impl WindowsWindow {
         &mut self,
         hwnd: HWND,
         message: c_uint,
-        wparam: WPARAM,
-        lparam: LPARAM,
+        _wparam: WPARAM,
+        _lparam: LPARAM,
     ) {
         match message {
             WM_DESTROY => {
