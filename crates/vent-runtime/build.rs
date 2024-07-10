@@ -102,11 +102,11 @@ fn handle_program_result(result: Result<Output>) {
                     String::from_utf8(output.stderr)
                         .unwrap_or("Failed to print program stderr".to_string())
                 );
-                panic!("Shader compilation failed. Status: {}", output.status);
+                eprintln!("Shader compilation failed. Status: {}", output.status);
             }
         }
         Err(error) => {
-            panic!("Failed to compile shader. Cause: {}", error);
+            eprintln!("Failed to compile shader. Cause: {}", error);
         }
     }
 }
