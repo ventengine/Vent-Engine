@@ -11,6 +11,7 @@ pub(crate) struct OBJLoader {}
 
 impl OBJLoader {
     pub async fn load(instance: &mut VulkanInstance, path: &Path) -> Result<Model3D, ModelError> {
+        log::info!("Loading Wavefront OBJ Model");
         let (models, materials) = match tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS) {
             Ok(r) => r,
             Err(e) => return Err(ModelError::LoadingError(format!("{}", e))),
@@ -89,7 +90,7 @@ impl OBJLoader {
     }
 
     fn load_mesh(mesh: &tobj::Mesh) -> Vec<Vertex3D> {
-        let vertices = (0..mesh.positions.len() / 3)
+        (0..mesh.positions.len() / 3)
             .map(|i| Vertex3D {
                 position: [
                     mesh.positions[i * 3],
@@ -103,7 +104,6 @@ impl OBJLoader {
                     mesh.normals[i * 3 + 2],
                 ],
             })
-            .collect::<Vec<_>>();
-        vertices
+            .collect::<Vec<_>>()
     }
 }

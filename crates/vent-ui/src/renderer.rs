@@ -111,6 +111,7 @@ impl GuiRenderer {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn render_text(
         &mut self,
         instance: &VulkanInstance,

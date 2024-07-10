@@ -58,11 +58,13 @@ impl Mesh3D {
         // copy vertex buffer
         unsafe { staging_buf.upload_data(memory, vertices, vertex_size) };
         // copy index buffer
-        indices.upload(
-            &staging_buf,
-            memory.wrapping_add(vertex_size as usize),
-            index_size,
-        );
+        unsafe {
+            indices.upload(
+                &staging_buf,
+                memory.wrapping_add(vertex_size as usize),
+                index_size,
+            )
+        };
 
         let command_buffer = begin_single_time_command(&instance.device, instance.command_pool);
 

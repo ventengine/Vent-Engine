@@ -16,10 +16,11 @@ pub(crate) fn get_base_path() -> PathBuf {
 /// I/O implementation for the local filesystem.
 ///
 /// This asset I/O is fully featured but it's not available on `android` and `wasm` targets.
+#[allow(dead_code)]
 pub struct FileAssetReader {
     root_path: PathBuf,
 }
-
+#[allow(dead_code)]
 impl FileAssetReader {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         let root_path = get_base_path().join(path.as_ref());

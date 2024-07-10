@@ -2,7 +2,6 @@ use std::path::Path;
 
 use ash::vk;
 use vent_rendering::instance::VulkanInstance;
-use vent_rendering::{begin_single_time_command, end_single_time_command, Indices, Vertex3D};
 use vent_sdk::utils::stopwatch::Stopwatch;
 
 use crate::{Material, Mesh3D, Model3D};
@@ -31,7 +30,6 @@ impl Model3D {
         path: P,
     ) -> Self {
         let sw = Stopwatch::new_and_start();
-        log::info!("Loading new Model...");
         let model = load_model_from_path(
             instance,
             vertex_shader.as_ref(),
@@ -42,10 +40,11 @@ impl Model3D {
         .await
         .expect("Failed to Load 3D Model");
         log::info!(
-            "Model {} took {}ms to Load, {} Pipelines",
+            "Model {} took {}ms to Load, {} Pipelines, {} Materials",
             path.as_ref().to_str().unwrap(),
             sw.elapsed_ms(),
-            model.pipelines.len(), // TODO
+            model.pipelines.len(),
+            model.materials.len(),
         );
         model
     }

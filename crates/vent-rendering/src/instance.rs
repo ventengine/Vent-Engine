@@ -277,7 +277,7 @@ impl VulkanInstance {
 
         unsafe {
             self.device
-                .wait_for_fences(&[in_flight_fence], true, u64::max_value())
+                .wait_for_fences(&[in_flight_fence], true, u64::MAX)
                 .unwrap();
             self.device.reset_fences(&[in_flight_fence]).unwrap();
         }
@@ -526,8 +526,10 @@ impl VulkanInstance {
             .synchronization2(true)
             .maintenance4(true);
 
-        let mut features = vk::PhysicalDeviceFeatures::default();
-        features.sampler_anisotropy = available_features.sampler_anisotropy;
+        let features = vk::PhysicalDeviceFeatures {
+            sampler_anisotropy: available_features.sampler_anisotropy,
+            ..Default::default()
+        };
         //        features.shader_clip_distance = available_features.shader_clip_distance;
 
         let priorities = [1.0];
@@ -545,6 +547,7 @@ impl VulkanInstance {
         unsafe { instance.create_device(pdevice, &device_create_info, None) }.unwrap()
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn create_swapchain(
         swapchain_loader: &khr::swapchain::Device,
         surface_format: vk::SurfaceFormatKHR,

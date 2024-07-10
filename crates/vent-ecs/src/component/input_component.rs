@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub trait InputComponent {
     // fn process_keyboard(&mut self, key: keyboard::Key, state: ElementState);
 

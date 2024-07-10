@@ -124,11 +124,14 @@ impl Indices {
         }
     }
 
-    pub fn upload(&self, buffer: &VulkanBuffer, memory: *mut c_void, size: vk::DeviceSize) {
+    /// # Safety
+    ///
+    /// Do not give an bad memory pointer
+    pub unsafe fn upload(&self, buffer: &VulkanBuffer, memory: *mut c_void, size: vk::DeviceSize) {
         match self {
-            Indices::U8(vec) => unsafe { buffer.upload_data(memory, vec, size) },
-            Indices::U16(vec) => unsafe { buffer.upload_data(memory, vec, size) },
-            Indices::U32(vec) => unsafe { buffer.upload_data(memory, vec, size) },
+            Indices::U8(vec) => buffer.upload_data(memory, vec, size),
+            Indices::U16(vec) => buffer.upload_data(memory, vec, size),
+            Indices::U32(vec) => buffer.upload_data(memory, vec, size),
         }
     }
 

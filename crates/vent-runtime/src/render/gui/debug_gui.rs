@@ -15,12 +15,12 @@ impl Default for RenderData {
 }
 
 pub struct DebugGUI {
-    properties: vk::PhysicalDeviceProperties,
+    _properties: vk::PhysicalDeviceProperties,
 }
 
 impl DebugGUI {
-    pub const fn new(properties: vk::PhysicalDeviceProperties) -> Self {
-        Self { properties }
+    pub const fn new(_properties: vk::PhysicalDeviceProperties) -> Self {
+        Self { _properties }
     }
 }
 

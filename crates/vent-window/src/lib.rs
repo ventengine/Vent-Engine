@@ -24,8 +24,6 @@ pub enum WindowEvent {
     Draw,
 }
 
-enum WindowError {}
-
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub enum WindowMode {
     Default,

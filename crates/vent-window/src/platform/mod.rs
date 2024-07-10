@@ -1,4 +1,4 @@
-#[cfg(target_os = "linux")]
+#[cfg(unix)]
 #[path = "wayland/mod.rs"]
 pub mod platform;
 

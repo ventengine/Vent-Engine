@@ -152,6 +152,7 @@ impl VulkanPipeline {
     }
 }
 
+#[allow(dead_code)]
 fn conv_shader_stage(model: spirv::ExecutionModel) -> vk::ShaderStageFlags {
     match model {
         spirv::ExecutionModel::Vertex => vk::ShaderStageFlags::VERTEX,

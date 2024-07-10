@@ -16,6 +16,8 @@ pub struct Mat4 {
 impl Mat4 {
     pub const IDENTITY: Self = Self::from_cols(Vec4::X, Vec4::Y, Vec4::Z, Vec4::W);
 
+    #[allow(clippy::too_many_arguments)]
+    #[allow(dead_code)]
     #[must_use]
     const fn new(
         m00: f32,

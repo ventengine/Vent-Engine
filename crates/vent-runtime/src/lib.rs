@@ -18,7 +18,7 @@ pub struct VentApplication {
 impl VentApplication {
     pub fn default() {
         init_panic_hook();
-        Logger::new();
+        Logger::init();
 
         let project = VentApplicationProject {
             name: "Placeholder".to_string(),
@@ -49,6 +49,7 @@ impl VentApplication {
 
         // TODO, Handle scale factor change
         app_window.poll(move |event| {
+            renderer.progress_event(&event);
             match event {
                 WindowEvent::Close => {} // Closes automaticly
                 WindowEvent::Key { key, state } => {

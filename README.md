@@ -12,21 +12,18 @@
 
 ### 🏆 Goals
 
-* **Built in Rust:** This engine leverages the power of Rust and avoids external language bindings as much as possible.
-* **Performance Optimization:** Vulkan is used for top-tier performance through native APIs.
-* **User-Friendly Design:** The engine prioritizes ease of use, allowing you to focus on creating games.
-* **Cross-Platform Support:** One goal of the engine is to support various platforms ([Platforms](#platforms)) to ensure your creations run smoothly across devices.
-
+- **Built in Rust:** This engine leverages the power of Rust and avoids external language bindings as much as possible.
+- **Performance Optimization:** Vulkan is used for top-tier performance through native APIs.
+- **User-Friendly Design:** The engine prioritizes ease of use, allowing you to focus on creating games.
+- **Cross-Platform Support:** One goal of the engine is to support various platforms ([Platforms](#platforms)) to ensure your creations run smoothly across devices.
 
 ### 🏗 Current Status
 
 For the current Development, look at [GitHub Projects](https://github.com/Snowiiii/Vent-Engine/projects?query=is%3Aopen)
 
-
 -- Vent-Engine is in development --
 ![image](https://github.com/Snowiiii/Vent-Engine/assets/71594357/5dd81844-9d01-4795-a0fc-4f9e5a5c1a4e)
 **(09.07.2024)**
-
 
 ### How to contribute?
 
@@ -38,14 +35,14 @@ Vent-Engine Platform Support:
 
 | Platform | Runtime | Editor |
 | -------- | ------- | ------ |
-| Windows  | ✅️       | **❓**  |
-| MacOS    | **❓**   | **❓**  |
-| Linux    | ✅️       | **❓**  |
-| Redox    | **❓**   | **❓**  |
-| VR       | **❓**   | ❌      |
-| Android  | **❓**   | ❌      |
-| IOS      | **❓**   | ❌      |
-| WASM     | **❓**   | ❌      |
+| Windows  | ✅️     | **❓** |
+| MacOS    | **❓**  | **❓** |
+| Unix     | ✅️     | **❓** |
+| Redox    | **❓**  | **❓** |
+| VR       | **❓**  | ❌     |
+| Android  | **❓**  | ❌     |
+| IOS      | **❓**  | ❌     |
+| WASM     | **❓**  | ❌     |
 
 - ✅: Works as intended
 - ❌ Will not be Supported

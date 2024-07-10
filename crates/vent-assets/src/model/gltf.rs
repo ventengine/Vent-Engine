@@ -19,7 +19,7 @@ use vent_rendering::{
 
 use crate::{Material, Model3D, ModelPipeline};
 
-use super::{optimizer, Mesh3D, ModelError};
+use super::{Mesh3D, ModelError};
 
 pub(crate) struct GLTFLoader {}
 
@@ -41,6 +41,7 @@ impl GLTFLoader {
         pipeline_layout: vk::PipelineLayout,
         path: &Path,
     ) -> Result<Model3D, ModelError> {
+        log::info!("Loading glTF 2.0 Model");
         let gltf = gltf::Gltf::from_reader(fs::File::open(path).unwrap()).unwrap();
 
         let path = path.parent().unwrap_or_else(|| Path::new("./"));
@@ -144,7 +145,7 @@ impl GLTFLoader {
                 pipeline_layout,
                 mesh,
                 buffer_data,
-                &loaded_materials,
+                loaded_materials,
                 pipelines,
             );
         }
@@ -170,7 +171,7 @@ impl GLTFLoader {
         pipeline_layout: vk::PipelineLayout,
         mesh: gltf::Mesh,
         buffer_data: &[gltf::buffer::Data],
-        loaded_materials: &Vec<Material>,
+        loaded_materials: &[Material],
         pipelines: &mut Vec<ModelPipeline>,
     ) {
         //  This is very ugly i know, I originally had the idea to put this into vent_rendering::pipeline but then i had no good idea how to cache the vertex and fragment shader modules outside the for loop
@@ -211,9 +212,9 @@ impl GLTFLoader {
             .scissors(&scissors)
             .viewports(&viewports);
 
-        let mut cached_pipeline = HashMap::new();
+        let mut cached_pipeline: HashMap<MaterialPipelineInfo, vk::Pipeline> = HashMap::new();
 
-        for (i, material) in loaded_materials.into_iter().enumerate() {
+        for (i, material) in loaded_materials.iter().enumerate() {
             let mut all_meshes = vec![];
             for primitive in mesh
                 .primitives()
@@ -236,9 +237,9 @@ impl GLTFLoader {
                 meshes: all_meshes,
             };
 
-            if cached_pipeline.contains_key(&pipeline_info) {
+            if let Some(pipeline) = cached_pipeline.get(&pipeline_info) {
                 pipelines.push(ModelPipeline {
-                    pipeline: *cached_pipeline.get(&pipeline_info).unwrap(),
+                    pipeline: *pipeline,
                     materials: vec![model_material], // TODO
                 });
             } else {
@@ -336,7 +337,7 @@ impl GLTFLoader {
 
                     let sampler = texture.texture().sampler();
                     let image = image::load_from_memory_with_format(
-                        &encoded_image,
+                        encoded_image,
                         image::ImageFormat::from_mime_type(mime_type)
                             .expect("TODO: Error Handling"),
                     )

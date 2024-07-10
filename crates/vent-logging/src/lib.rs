@@ -7,14 +7,14 @@ use log::{Level, LevelFilter, Log};
 pub struct Logger {}
 
 impl Logger {
-    pub fn new() {
+    pub fn init() {
         log::set_max_level(LevelFilter::Debug);
         log::set_boxed_logger(Box::new(Self {})).expect("failed to set boxed logger");
     }
 }
 
 impl Log for Logger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
         true // TODO
     }
 

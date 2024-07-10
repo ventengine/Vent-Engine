@@ -229,19 +229,19 @@ impl CompositorHandler for WaylandWindow {
 
     fn surface_enter(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        surface: &wl_surface::WlSurface,
-        output: &wl_output::WlOutput,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _surface: &wl_surface::WlSurface,
+        _output: &wl_output::WlOutput,
     ) {
     }
 
     fn surface_leave(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        surface: &wl_surface::WlSurface,
-        output: &wl_output::WlOutput,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _surface: &wl_surface::WlSurface,
+        _output: &wl_output::WlOutput,
     ) {
     }
 }
@@ -253,25 +253,25 @@ impl OutputHandler for WaylandWindow {
 
     fn new_output(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        output: wl_output::WlOutput,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wl_output::WlOutput,
     ) {
     }
 
     fn update_output(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        output: wl_output::WlOutput,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wl_output::WlOutput,
     ) {
     }
 
     fn output_destroyed(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        output: wl_output::WlOutput,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wl_output::WlOutput,
     ) {
     }
 }
@@ -286,34 +286,34 @@ impl ProvidesRegistryState for WaylandWindow {
 impl KeyboardHandler for WaylandWindow {
     fn enter(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        keyboard: &wl_keyboard::WlKeyboard,
-        surface: &wl_surface::WlSurface,
-        serial: u32,
-        raw: &[u32],
-        keysyms: &[xkb::Keysym],
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _keyboard: &wl_keyboard::WlKeyboard,
+        _surface: &wl_surface::WlSurface,
+        _serial: u32,
+        _raw: &[u32],
+        _keysyms: &[xkb::Keysym],
     ) {
         self.keyboard_focus = true;
     }
 
     fn leave(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        keyboard: &wl_keyboard::WlKeyboard,
-        surface: &wl_surface::WlSurface,
-        serial: u32,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _keyboard: &wl_keyboard::WlKeyboard,
+        _surface: &wl_surface::WlSurface,
+        _serial: u32,
     ) {
         self.keyboard_focus = false;
     }
 
     fn press_key(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        keyboard: &wl_keyboard::WlKeyboard,
-        serial: u32,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _keyboard: &wl_keyboard::WlKeyboard,
+        _serial: u32,
         event: sctk::seat::keyboard::KeyEvent,
     ) {
         self.event_sender
@@ -326,10 +326,10 @@ impl KeyboardHandler for WaylandWindow {
 
     fn release_key(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        keyboard: &wl_keyboard::WlKeyboard,
-        serial: u32,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _keyboard: &wl_keyboard::WlKeyboard,
+        _serial: u32,
         event: sctk::seat::keyboard::KeyEvent,
     ) {
         self.event_sender
@@ -342,12 +342,12 @@ impl KeyboardHandler for WaylandWindow {
 
     fn update_modifiers(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        keyboard: &wl_keyboard::WlKeyboard,
-        serial: u32,
-        modifiers: sctk::seat::keyboard::Modifiers,
-        layout: u32,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _keyboard: &wl_keyboard::WlKeyboard,
+        _serial: u32,
+        _modifiers: sctk::seat::keyboard::Modifiers,
+        _layout: u32,
     ) {
     }
 }
@@ -364,21 +364,21 @@ const BTN_BACK: u32 = 0x116;
 impl PointerHandler for WaylandWindow {
     fn pointer_frame(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
         pointer: &wl_pointer::WlPointer,
         events: &[sctk::seat::pointer::PointerEvent],
     ) {
         for event in events {
             let (x, y) = event.position;
             match event.kind {
-                PointerEventKind::Enter { serial } => {
+                PointerEventKind::Enter { .. } => {
                     self.set_cursor = true;
                     self.decorations_cursor = self.window_frame.as_mut().and_then(|frame| {
                         frame.click_point_moved(Duration::ZERO, &event.surface.id(), x, y)
                     });
                 }
-                PointerEventKind::Leave { serial } => {
+                PointerEventKind::Leave { .. } => {
                     if &event.surface != self.window.wl_surface() {
                         if let Some(window_frame) = self.window_frame.as_mut() {
                             window_frame.click_point_left();
@@ -495,11 +495,11 @@ impl SeatHandler for WaylandWindow {
         &mut self.seat_state
     }
 
-    fn new_seat(&mut self, conn: &Connection, qh: &QueueHandle<Self>, seat: wl_seat::WlSeat) {}
+    fn new_seat(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _seat: wl_seat::WlSeat) {}
 
     fn new_capability(
         &mut self,
-        conn: &Connection,
+        _conn: &Connection,
         qh: &QueueHandle<Self>,
         seat: wl_seat::WlSeat,
         capability: sctk::seat::Capability,
@@ -531,9 +531,9 @@ impl SeatHandler for WaylandWindow {
 
     fn remove_capability(
         &mut self,
-        conn: &Connection,
-        qh: &QueueHandle<Self>,
-        seat: wl_seat::WlSeat,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _seat: wl_seat::WlSeat,
         capability: sctk::seat::Capability,
     ) {
         if capability == Capability::Keyboard && self.keyboard.is_some() {
@@ -547,7 +547,8 @@ impl SeatHandler for WaylandWindow {
         }
     }
 
-    fn remove_seat(&mut self, conn: &Connection, qh: &QueueHandle<Self>, seat: wl_seat::WlSeat) {}
+    fn remove_seat(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _seat: wl_seat::WlSeat) {
+    }
 }
 
 impl ShmHandler for WaylandWindow {
@@ -556,7 +557,7 @@ impl ShmHandler for WaylandWindow {
     }
 }
 impl WindowHandler for WaylandWindow {
-    fn request_close(&mut self, conn: &Connection, qh: &QueueHandle<Self>, window: &Window) {
+    fn request_close(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, _window: &Window) {
         if self.attribs.closeable {
             self.close()
         }
@@ -568,7 +569,7 @@ impl WindowHandler for WaylandWindow {
         qh: &QueueHandle<Self>,
         window: &Window,
         configure: sctk::shell::xdg::window::WindowConfigure,
-        serial: u32,
+        _serial: u32,
     ) {
         let (width, height) = if configure.decoration_mode == DecorationMode::Client {
             let window_frame = self.window_frame.get_or_insert_with(|| {

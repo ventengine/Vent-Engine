@@ -16,6 +16,7 @@ union UnionCast {
 pub struct Quat(pub(crate) __m128);
 
 impl Quat {
+    #[allow(dead_code)]
     const ZERO: Self = Self::from_array([0.0; 4]);
 
     pub const IDENTITY: Self = Self::new(0.0, 0.0, 0.0, 1.0);

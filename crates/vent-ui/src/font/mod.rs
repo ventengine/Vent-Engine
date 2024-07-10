@@ -34,6 +34,7 @@ impl Font {
     }
 
     // Bind Pipeline before
+    #[allow(clippy::too_many_arguments)]
     pub fn render_text(
         &mut self,
         instance: &VulkanInstance,
@@ -46,7 +47,7 @@ impl Font {
         scale: f32,
         color: u32,
     ) {
-        let offset_x = x;
+        let mut offset_x = x;
         let characters = &self.characters;
 
         // Loop through each character in the text
@@ -135,7 +136,7 @@ impl Font {
                 }
 
                 // Update offset for the next character
-                //  offset_x += character.advance as f32 * scale;
+                offset_x += (character.advance >> 6) as f32 * scale;
             }
         }
     }

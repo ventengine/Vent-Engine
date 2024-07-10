@@ -31,7 +31,7 @@ impl Renderer for Renderer2D {
         &mut self,
         _instance: &vent_rendering::instance::VulkanInstance,
         _image_index: u32,
-        command_buffer: vk::CommandBuffer,
+        _command_buffer: vk::CommandBuffer,
         _camera: &mut dyn Camera,
     ) {
         todo!()

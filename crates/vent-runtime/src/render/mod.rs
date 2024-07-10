@@ -287,7 +287,7 @@ impl RawRuntimeRenderer {
         }
     }
 
-    pub fn progress_event(&mut self, event: &vent_window::WindowEvent) {
+    pub fn progress_event(&mut self, _event: &vent_window::WindowEvent) {
         // self.gui_renderer.progress_event(event);
     }
 

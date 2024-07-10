@@ -55,9 +55,7 @@ impl World {
         entity: Entity,
         component: T,
     ) -> Result<(), String> {
-        let component_id = self
-            .component_ids
-            .get(&std::any::type_name::<T>().to_owned());
+        let component_id = self.component_ids.get(std::any::type_name::<T>());
         if let Some(&component_id) = component_id {
             let archetype_key = vec![component_id];
             if let Some(archetype) = self.archetypes.get_mut(&archetype_key) {
@@ -83,9 +81,7 @@ impl World {
         &mut self,
         entity: Entity,
     ) -> Result<(), String> {
-        let component_id = self
-            .component_ids
-            .get(&std::any::type_name::<T>().to_owned());
+        let component_id = self.component_ids.get(std::any::type_name::<T>());
         if let Some(&component_id) = component_id {
             let archetype_key = vec![component_id];
             if let Some(archetype) = self.archetypes.get_mut(&archetype_key) {
@@ -102,9 +98,7 @@ impl World {
 
     /// Retrieves a component by its component ID and entity ID.
     pub fn get_component<T: Component + 'static>(&self, entity: Entity) -> Result<&T, String> {
-        let component_id = self
-            .component_ids
-            .get(&std::any::type_name::<T>().to_owned());
+        let component_id = self.component_ids.get(std::any::type_name::<T>());
         if let Some(&component_id) = component_id {
             let archetype_key = vec![component_id];
             if let Some(archetype) = self.archetypes.get(&archetype_key) {
@@ -125,9 +119,7 @@ impl World {
         &mut self,
         entity: Entity,
     ) -> Result<&mut T, String> {
-        let component_id = self
-            .component_ids
-            .get(&std::any::type_name::<T>().to_owned());
+        let component_id = self.component_ids.get(std::any::type_name::<T>());
         if let Some(&component_id) = component_id {
             let archetype_key = vec![component_id];
             if let Some(archetype) = self.archetypes.get_mut(&archetype_key) {

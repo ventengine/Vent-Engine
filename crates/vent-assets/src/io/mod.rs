@@ -5,13 +5,19 @@ use crate::image::Image;
 mod file;
 
 pub struct AssetsLoader {
-    image_cache: HashMap<String, Image>,
+    _image_cache: HashMap<String, Image>,
+}
+
+impl Default for AssetsLoader {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AssetsLoader {
     pub fn new() -> Self {
         Self {
-            image_cache: HashMap::new(),
+            _image_cache: HashMap::new(),
         }
     }
 
@@ -22,8 +28,4 @@ impl AssetsLoader {
     //         unsafe { device.create_sampler(&vk, None) }.unwrap()
     //     })
     // }
-
-    pub fn destroy(&mut self, device: &ash::Device) {
-        unsafe { for imageö in self.image_cache.drain() {} }
-    }
 }
