@@ -151,17 +151,17 @@ impl RawRuntimeRenderer {
 
         match image {
             Ok((image_index, _)) => {
-                let command_buffer = instance.command_buffers[image_index as usize];
+                let command_pool = instance.command_pools[image_index as usize];
                 unsafe {
                     instance
                         .device
-                        .reset_command_buffer(
-                            command_buffer,
-                            vk::CommandBufferResetFlags::RELEASE_RESOURCES,
-                        )
+                        .reset_command_pool(command_pool, vk::CommandPoolResetFlags::empty())
                         .unwrap();
-
-                    let info = vk::CommandBufferBeginInfo::default();
+                }
+                let command_buffer = instance.command_buffers[image_index as usize];
+                unsafe {
+                    let info = vk::CommandBufferBeginInfo::default()
+                        .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
                     instance
                         .device

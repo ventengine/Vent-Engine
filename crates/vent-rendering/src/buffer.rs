@@ -76,7 +76,8 @@ impl VulkanBuffer {
 
         unsafe { staging_buf.upload_data(memory, data, size) };
 
-        let command_buffer = begin_single_time_command(&instance.device, instance.command_pool);
+        let command_buffer =
+            begin_single_time_command(&instance.device, instance.global_command_pool);
 
         unsafe {
             let buffer_info = vk::BufferCopy::default().size(size);
@@ -89,7 +90,7 @@ impl VulkanBuffer {
 
         end_single_time_command(
             &instance.device,
-            instance.command_pool,
+            instance.global_command_pool,
             instance.graphics_queue,
             command_buffer,
         );

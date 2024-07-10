@@ -66,7 +66,8 @@ impl Mesh3D {
             )
         };
 
-        let command_buffer = begin_single_time_command(&instance.device, instance.command_pool);
+        let command_buffer =
+            begin_single_time_command(&instance.device, instance.global_command_pool);
 
         unsafe {
             let buffer_info = vk::BufferCopy::default().size(vertex_size);
@@ -92,7 +93,7 @@ impl Mesh3D {
 
         end_single_time_command(
             &instance.device,
-            instance.command_pool,
+            instance.global_command_pool,
             instance.graphics_queue,
             command_buffer,
         );

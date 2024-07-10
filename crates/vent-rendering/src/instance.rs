@@ -49,7 +49,8 @@ pub struct VulkanInstance {
     pub descriptor_set_layout: vk::DescriptorSetLayout,
 
     pub render_pass: vk::RenderPass,
-    pub command_pool: vk::CommandPool,
+    pub global_command_pool: vk::CommandPool,
+    pub command_pools: Vec<vk::CommandPool>,
     pub command_buffers: Vec<vk::CommandBuffer>,
 
     pub image_available_semaphores: Vec<vk::Semaphore>,
@@ -215,9 +216,13 @@ impl VulkanInstance {
             depth_image.image_view,
             surface_resolution,
         );
-        let command_pool = Self::create_command_pool(&device, graphics_queue_family_index);
+        let (global_command_pool, command_pools) = Self::create_command_pools(
+            &device,
+            graphics_queue_family_index,
+            swapchain_images.len(),
+        );
         let command_buffers =
-            Self::allocate_command_buffers(&device, command_pool, frame_buffers.len() as u32);
+            Self::allocate_command_buffers(&device, &command_pools, swapchain_images.len());
 
         let (
             image_available_semaphores,
@@ -260,7 +265,8 @@ impl VulkanInstance {
             depth_format,
             depth_image,
             frame_buffers,
-            command_pool,
+            global_command_pool,
+            command_pools,
             command_buffers,
             image_available_semaphores,
             render_finished_semaphores,
@@ -629,24 +635,41 @@ impl VulkanInstance {
         )
     }
 
-    fn create_command_pool(device: &ash::Device, queue_family_index: u32) -> vk::CommandPool {
+    fn create_command_pools(
+        device: &ash::Device,
+        queue_family_index: u32,
+        count: usize,
+    ) -> (vk::CommandPool, Vec<vk::CommandPool>) {
         let create_info = vk::CommandPoolCreateInfo::default()
             .queue_family_index(queue_family_index)
-            .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
-        unsafe { device.create_command_pool(&create_info, None) }.unwrap()
+            .flags(vk::CommandPoolCreateFlags::TRANSIENT);
+        let global = unsafe { device.create_command_pool(&create_info, None) }.unwrap();
+
+        let mut pools: Vec<_> = Vec::with_capacity(count);
+        for _ in 0..count {
+            let create_info = vk::CommandPoolCreateInfo::default()
+                .queue_family_index(queue_family_index)
+                .flags(vk::CommandPoolCreateFlags::TRANSIENT);
+            pools.push(unsafe { device.create_command_pool(&create_info, None) }.unwrap());
+        }
+        (global, pools)
     }
 
     fn allocate_command_buffers(
         device: &ash::Device,
-        command_pool: vk::CommandPool,
-        count: u32,
+        command_pools: &[vk::CommandPool],
+        count: usize,
     ) -> Vec<vk::CommandBuffer> {
-        let allocate_info = vk::CommandBufferAllocateInfo::default()
-            .command_pool(command_pool)
-            .level(vk::CommandBufferLevel::PRIMARY)
-            .command_buffer_count(count);
+        let mut buffers = Vec::with_capacity(count);
+        for pool in command_pools.iter().take(count) {
+            let allocate_info = vk::CommandBufferAllocateInfo::default()
+                .command_pool(*pool)
+                .level(vk::CommandBufferLevel::PRIMARY)
+                .command_buffer_count(1);
 
-        unsafe { device.allocate_command_buffers(&allocate_info) }.unwrap()
+            buffers.push(unsafe { device.allocate_command_buffers(&allocate_info) }.unwrap()[0]);
+        }
+        buffers
     }
 
     fn create_sync_objects(
@@ -897,9 +920,11 @@ impl Drop for VulkanInstance {
             self.device
                 .destroy_descriptor_pool(self.descriptor_pool, None);
 
+            self.command_pools
+                .iter()
+                .for_each(|p| self.device.destroy_command_pool(*p, None));
             self.device
-                .free_command_buffers(self.command_pool, &self.command_buffers);
-            self.device.destroy_command_pool(self.command_pool, None);
+                .destroy_command_pool(self.global_command_pool, None);
 
             // DEVICE DESTRUCTION
             self.device.destroy_device(None);
