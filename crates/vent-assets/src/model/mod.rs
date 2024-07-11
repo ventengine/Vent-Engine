@@ -110,9 +110,10 @@ impl Model3D {
                 model_material.meshes.drain(..).for_each(|mut mesh| {
                     mesh.destroy(device);
                 });
-                // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
             });
         });
+        // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
+        unsafe { device.destroy_descriptor_pool(self.descriptor_pool, None) };
     }
 }
 

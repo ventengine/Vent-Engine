@@ -1,4 +1,4 @@
-use ash::vk;
+use ash::vk::{self};
 use gltf::material::AlphaMode;
 use vent_rendering::{image::VulkanImage, mesh::Mesh3D};
 
@@ -13,6 +13,8 @@ pub trait Asset: Send + Sync + 'static {}
 pub struct Model3D {
     pub pipelines: Vec<ModelPipeline>,
     pub materials: Vec<Material>,
+
+    pub descriptor_pool: vk::DescriptorPool,
 
     pub position: [f32; 3], // Default: 0.0, 0.0, 0.0
     pub rotation: [f32; 4], // Default: 0.0, 0.0, 0.0, 1.0

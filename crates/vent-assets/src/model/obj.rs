@@ -51,6 +51,8 @@ impl OBJLoader {
         //     rotation: [0.0, 0.0, 0.0, 1.0],
         //     scale: [1.0, 1.0, 1.0],
         // })
+
+        // NOTE: Current focus is glTF, But OBJ will be supported
         Err(ModelError::UnsupportedFormat)
     }
 

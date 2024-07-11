@@ -43,13 +43,12 @@ pub struct VulkanInstance {
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
 
-    pub descriptor_pool: vk::DescriptorPool,
-    pub descriptor_set_layout: vk::DescriptorSetLayout,
-
     pub render_pass: vk::RenderPass,
     pub global_command_pool: vk::CommandPool,
     pub command_pools: Vec<vk::CommandPool>,
     pub command_buffers: Vec<vk::CommandBuffer>,
+
+    pub descriptor_set_layout: vk::DescriptorSetLayout,
 
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub render_finished_semaphores: Vec<vk::Semaphore>,
@@ -135,9 +134,15 @@ impl VulkanInstance {
 
         let (layer_names_ptrs, mut validation_features) = if validation {
             check_validation_layer_support(&entry);
-            (debug::get_layer_names_and_pointers(), debug::get_validation_features())
+            (
+                debug::get_layer_names_and_pointers(),
+                debug::get_validation_features(),
+            )
         } else {
-            ((Vec::new(), Vec::new()), vk::ValidationFeaturesEXT::default())
+            (
+                (Vec::new(), Vec::new()),
+                vk::ValidationFeaturesEXT::default(),
+            )
         };
 
         let create_info = vk::InstanceCreateInfo::default()
@@ -146,7 +151,6 @@ impl VulkanInstance {
             .enabled_layer_names(&layer_names_ptrs.1)
             .flags(create_flags)
             .push_next(&mut validation_features);
-
 
         let instance = unsafe {
             entry
@@ -236,7 +240,6 @@ impl VulkanInstance {
             images_in_flight,
         ) = Self::create_sync_objects(&device, &swapchain_images);
 
-        let descriptor_pool = Self::create_descriptor_pool(&device);
         let descriptor_set_layout = Self::create_descriptor_set_layout(&device);
         let vulkan_cache = VulkanCache::new();
 
@@ -261,7 +264,6 @@ impl VulkanInstance {
             vulkan_cache,
             debug_utils,
             debug_utils_device,
-            descriptor_pool,
             descriptor_set_layout,
             debug_messenger,
             depth_format,
@@ -745,25 +747,6 @@ impl VulkanInstance {
         )
     }
 
-    fn create_descriptor_pool(device: &ash::Device) -> vk::DescriptorPool {
-        let pool_sizes = [
-            vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 2000,
-            },
-            vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 2000,
-            },
-        ];
-
-        let create_info = vk::DescriptorPoolCreateInfo::default()
-            .pool_sizes(&pool_sizes)
-            .max_sets(2000);
-
-        unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
-    }
-
     pub fn allocate_descriptor_sets(
         device: &ash::Device,
         descriptor_pool: vk::DescriptorPool,
@@ -920,8 +903,6 @@ impl Drop for VulkanInstance {
 
             self.device
                 .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-            self.device
-                .destroy_descriptor_pool(self.descriptor_pool, None);
 
             self.command_pools
                 .iter()

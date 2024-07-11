@@ -103,7 +103,7 @@ impl Renderer for Renderer3D {
         for material in mesh.model.materials.iter_mut() {
             let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
                 &instance.device,
-                instance.descriptor_pool,
+                mesh.model.descriptor_pool,
                 instance.descriptor_set_layout,
                 instance.swapchain_images.len(),
             );

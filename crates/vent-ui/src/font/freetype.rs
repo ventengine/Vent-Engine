@@ -10,7 +10,7 @@ pub struct FreeTypeLoader {
     library: freetype::Library,
 }
 
-const CHARACTERS_SIZE: usize = 128;
+pub const CHARACTERS_SIZE: usize = 128;
 
 impl Default for FreeTypeLoader {
     fn default() -> Self {
@@ -30,6 +30,7 @@ impl FreeTypeLoader {
         &self,
         path: P,
         descriptor_set_layout: vk::DescriptorSetLayout,
+        descriptor_pool: vk::DescriptorPool,
         instance: &mut VulkanInstance,
     ) -> Font
     where
@@ -58,13 +59,13 @@ impl FreeTypeLoader {
                 image_size,
                 vk::Format::R8G8B8A8_UNORM,
                 Some(SamplerInfo::default()),
-                Some("Font")
+                Some("Font"),
             );
 
             // TODO: store everything in an Texture Atlas
             let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
                 &instance.device,
-                instance.descriptor_pool, // TODO: use own descriptor_pool
+                descriptor_pool,
                 descriptor_set_layout,
                 instance.swapchain_images.len(),
             );

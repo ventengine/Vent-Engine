@@ -6,12 +6,16 @@ use vent_rendering::{
     any_as_u8_slice, instance::VulkanInstance, pipeline::VulkanPipeline, Vertex2D,
 };
 
-use crate::font::{freetype::FreeTypeLoader, Font};
+use crate::font::{
+    freetype::{FreeTypeLoader, CHARACTERS_SIZE},
+    Font,
+};
 
 use super::GUI;
 
 #[allow(dead_code)]
 pub struct GuiRenderer {
+    descriptor_pool: vk::DescriptorPool,
     descriptor_set_layout: vk::DescriptorSetLayout,
     pipeline_layout: vk::PipelineLayout,
     pipeline: VulkanPipeline,
@@ -72,8 +76,15 @@ impl GuiRenderer {
             translate: Vec2::ZERO,
         };
 
+        let descriptor_pool = Self::create_descriptor_pool(
+            CHARACTERS_SIZE as u32,
+            instance.swapchain_images.len() as u32,
+            &instance.device,
+        );
+
         let mut renderer = Self {
             descriptor_set_layout,
+            descriptor_pool,
             pipeline_layout,
             pipeline,
             font_loader,
@@ -109,6 +120,23 @@ impl GuiRenderer {
             &Vertex2D::input_descriptions(),
             instance.surface_resolution,
         )
+    }
+
+    pub fn create_descriptor_pool(
+        material_count: u32,
+        swapchain_count: u32,
+        device: &ash::Device,
+    ) -> vk::DescriptorPool {
+        let pool_sizes = [vk::DescriptorPoolSize {
+            ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            descriptor_count: material_count * swapchain_count,
+        }];
+
+        let create_info = vk::DescriptorPoolCreateInfo::default()
+            .pool_sizes(&pool_sizes)
+            .max_sets(material_count * swapchain_count);
+
+        unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -172,10 +200,12 @@ impl GuiRenderer {
     }
 
     pub fn load_font(&mut self, instance: &mut VulkanInstance, path: &str) {
-        self.font = Some(
-            self.font_loader
-                .load(path, self.descriptor_set_layout, instance),
-        );
+        self.font = Some(self.font_loader.load(
+            path,
+            self.descriptor_set_layout,
+            self.descriptor_pool,
+            instance,
+        ));
     }
 
     pub fn render(&mut self) {
@@ -202,6 +232,9 @@ impl GuiRenderer {
             instance
                 .device
                 .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+            instance
+                .device
+                .destroy_descriptor_pool(self.descriptor_pool, None);
         }
     }
 }

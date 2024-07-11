@@ -113,7 +113,14 @@ impl GLTFLoader {
 
         let matrix = matrix.unwrap_or_default();
 
+        let descriptor_pool = Self::create_descriptor_pool(
+            materials.len() as u32,
+            instance.swapchain_images.len() as u32,
+            &instance.device,
+        );
+
         Ok(Model3D {
+            descriptor_pool,
             materials,
             pipelines,
             position: matrix.0,
@@ -143,6 +150,35 @@ impl GLTFLoader {
             loaded_materials.push(material);
         });
         loaded_materials
+    }
+
+    pub fn create_descriptor_pool(
+        material_count: u32,
+        swapchain_count: u32,
+        device: &ash::Device,
+    ) -> vk::DescriptorPool {
+        let pool_sizes = [
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: material_count * swapchain_count,
+            },
+            // Material UBO
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: material_count * swapchain_count,
+            },
+        ];
+
+        let create_info = vk::DescriptorPoolCreateInfo::default()
+            .pool_sizes(&pool_sizes)
+            .max_sets(material_count * swapchain_count);
+
+        log::debug!(
+            "Creating Description Pool, Size {}",
+            material_count * swapchain_count
+        );
+
+        unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
     }
 
     #[allow(clippy::too_many_arguments)]
