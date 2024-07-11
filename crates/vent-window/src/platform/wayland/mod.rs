@@ -397,6 +397,7 @@ impl PointerHandler for WaylandWindow {
                         self.set_cursor = true;
                         self.decorations_cursor = Some(new_cursor);
                     }
+                    self.event_sender.send(WindowEvent::MouseMotion { x, y, }).unwrap();
                 }
                 PointerEventKind::Press {
                     button,
@@ -439,49 +440,49 @@ fn press_mouse(button: u32, state: &WaylandWindow, mouse_state: mouse::ButtonSta
     match button {
         BTN_LEFT => state
             .event_sender
-            .send(WindowEvent::Mouse {
+            .send(WindowEvent::MouseButton {
                 button: crate::mouse::Button::LEFT,
                 state: mouse_state,
             })
             .unwrap(),
         BTN_RIGHT => state
             .event_sender
-            .send(WindowEvent::Mouse {
+            .send(WindowEvent::MouseButton {
                 button: crate::mouse::Button::RIGHT,
                 state: mouse_state,
             })
             .unwrap(),
         BTN_MIDDLE => state
             .event_sender
-            .send(WindowEvent::Mouse {
+            .send(WindowEvent::MouseButton {
                 button: crate::mouse::Button::MIDDLE,
                 state: mouse_state,
             })
             .unwrap(),
         BTN_SIDE => state
             .event_sender
-            .send(WindowEvent::Mouse {
+            .send(WindowEvent::MouseButton {
                 button: crate::mouse::Button::SIDE,
                 state: mouse_state,
             })
             .unwrap(),
         BTN_EXTRA => state
             .event_sender
-            .send(WindowEvent::Mouse {
+            .send(WindowEvent::MouseButton {
                 button: crate::mouse::Button::EXTRA,
                 state: mouse_state,
             })
             .unwrap(),
         BTN_FORWARD => state
             .event_sender
-            .send(WindowEvent::Mouse {
+            .send(WindowEvent::MouseButton {
                 button: crate::mouse::Button::FORWARD,
                 state: mouse_state,
             })
             .unwrap(),
         BTN_BACK => state
             .event_sender
-            .send(WindowEvent::Mouse {
+            .send(WindowEvent::MouseButton {
                 button: crate::mouse::Button::BACK,
                 state: mouse_state,
             })

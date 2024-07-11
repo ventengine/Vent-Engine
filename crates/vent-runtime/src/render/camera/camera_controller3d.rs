@@ -8,6 +8,8 @@ pub struct CameraController3D {
     sensitivity_x: f32,
     sensitivity_y: f32,
 
+    old_x: f64,
+    old_y: f64,
     mouse_left_down: bool,
 }
 
@@ -20,6 +22,8 @@ impl CameraController3D {
             sensitivity_x: sensitivity,
             sensitivity_y: sensitivity,
             mouse_left_down: false,
+            old_x: 0.0,
+            old_y: 0.0,
         }
     }
 
@@ -80,14 +84,16 @@ impl CameraController3D {
     }
 
     pub fn process_mouse_movement(
-        &self,
+        &mut self,
         camera: &mut Camera3D,
-        mouse_dx: f64,
-        mouse_dy: f64,
+        mouse_x: f64,
+        mouse_y: f64,
         delta_time: f32,
     ) {
         if self.mouse_left_down {
-            let deltaposition = Vec2::new(mouse_dx as f32, mouse_dy as f32);
+            let deltaposition = Vec2::new((mouse_x - self.old_x) as f32, (mouse_y - self.old_y) as f32);
+            self.old_x = mouse_x;
+            self.old_y = mouse_y;
 
             let moveposition =
                 deltaposition * Vec2::new(self.sensitivity_x, self.sensitivity_y) * delta_time;

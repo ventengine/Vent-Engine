@@ -44,7 +44,7 @@ impl VentApplication {
         // TODO
         let mut renderer = DefaultRuntimeRenderer::new(&project, &app_window);
 
-        let mut controller = CameraController3D::new(20.0, 10.0);
+        let mut controller = CameraController3D::new(20.0, 1.0);
         let mut delta_time = 0.0;
 
         // TODO, Handle scale factor change
@@ -60,7 +60,7 @@ impl VentApplication {
                         delta_time,
                     );
                 }
-                WindowEvent::Mouse { button, state } => {
+                WindowEvent::MouseButton { button, state } => {
                     controller.process_mouse_input(&button, &state);
                 }
                 WindowEvent::Resize {
@@ -69,7 +69,8 @@ impl VentApplication {
                 } => {
                     renderer.resize((new_width, new_height));
                 }
-                WindowEvent::Draw => delta_time = renderer.render(), // Default,
+                WindowEvent::Draw => delta_time = renderer.render(),
+                WindowEvent::MouseMotion { x, y } => controller.process_mouse_movement(renderer.camera.downcast_mut().expect("TODO"), x, y, delta_time), // Default,
             }
         });
     }

@@ -13,9 +13,13 @@ pub enum WindowEvent {
         key: keyboard::Key,
         state: keyboard::KeyState,
     },
-    Mouse {
+    MouseButton {
         button: mouse::Button,
         state: mouse::ButtonState,
+    },
+    MouseMotion {
+        x: f64,
+        y: f64,
     },
     Resize {
         new_width: u32,

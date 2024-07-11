@@ -89,7 +89,7 @@ impl VulkanPipeline {
             front_face: vk::FrontFace::COUNTER_CLOCKWISE,
             line_width: 1.0,
             polygon_mode: vk::PolygonMode::FILL,
-            cull_mode: vk::CullModeFlags::BACK,
+            cull_mode: vk::CullModeFlags::NONE, // TODO
             ..Default::default()
         };
         let multisample_state_info = vk::PipelineMultisampleStateCreateInfo {
@@ -97,11 +97,11 @@ impl VulkanPipeline {
             ..Default::default()
         };
 
-        let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::default()
-            .depth_test_enable(true)
-            .depth_write_enable(true)
-            .depth_compare_op(vk::CompareOp::LESS)
-            .max_depth_bounds(1.0);
+        let depth_state_info = vk::PipelineDepthStencilStateCreateInfo::default();
+        // .depth_test_enable(true)
+        // .depth_write_enable(true)
+        // .depth_compare_op(vk::CompareOp::LESS)
+        // .max_depth_bounds(1.0);
         let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
             color_write_mask: vk::ColorComponentFlags::RGBA,
             ..Default::default()
