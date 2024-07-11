@@ -14,16 +14,14 @@ use ash::vk::{
 
 use crate::allocator::MemoryAllocator;
 use crate::cache::VulkanCache;
-use crate::debug::{
-    self, check_validation_layer_support, setup_debug_messenger, ENABLE_VALIDATION_LAYERS,
-};
+use crate::debug::{self, check_validation_layer_support, setup_debug_messenger};
 use crate::image::{DepthImage, VulkanImage};
 use crate::surface;
 
 pub const MAX_FRAMES_IN_FLIGHT: u8 = 2;
 
 pub struct VulkanInstance {
-    // Important: Do not drop entry, As it drops all functions pointers
+    // Important: Do not drop ash::Entry, As it drops all functions pointers
     pub entry: ash::Entry,
     pub instance: ash::Instance,
     pub physical_device: vk::PhysicalDevice,
@@ -67,12 +65,11 @@ pub struct VulkanInstance {
 
     frame: usize,
 
-    #[cfg(debug_assertions)]
-    pub debug_utils: debug_utils::Instance,
-    #[cfg(debug_assertions)]
-    pub debug_utils_device: debug_utils::Device,
-    #[cfg(debug_assertions)]
-    debug_messenger: vk::DebugUtilsMessengerEXT,
+    // debugging
+    pub validation: bool,
+    pub debug_utils: Option<debug_utils::Instance>,
+    pub debug_utils_device: Option<debug_utils::Device>,
+    debug_messenger: Option<vk::DebugUtilsMessengerEXT>,
 }
 
 impl VulkanInstance {
@@ -98,6 +95,9 @@ impl VulkanInstance {
             }
         };
 
+        // We now set validation at runtime, This will be usefull later, We should make this an startup flag so release builds for example could be debugged
+        let validation = cfg!(debug_assertions);
+
         let app_info = unsafe {
             vk::ApplicationInfo::default()
                 .application_name(CStr::from_bytes_with_nul_unchecked(
@@ -115,7 +115,7 @@ impl VulkanInstance {
         let mut extension_names = surface::enumerate_required_extensions(display_handle.as_raw())
             .expect("Unsupported Surface Extension")
             .to_vec();
-        if ENABLE_VALIDATION_LAYERS {
+        if validation {
             extension_names.push(validation_features::NAME.as_ptr());
             extension_names.push(debug_utils::NAME.as_ptr());
         }
@@ -133,12 +133,12 @@ impl VulkanInstance {
             vk::InstanceCreateFlags::default()
         };
 
-        if ENABLE_VALIDATION_LAYERS {
+        let (layer_names_ptrs, mut validation_features) = if validation {
             check_validation_layer_support(&entry);
-        }
-        let layer_names_ptrs = debug::get_layer_names_and_pointers();
-
-        let mut validation_features = debug::get_validation_features();
+            (debug::get_layer_names_and_pointers(), debug::get_validation_features())
+        } else {
+            ((Vec::new(), Vec::new()), vk::ValidationFeaturesEXT::default())
+        };
 
         let create_info = vk::InstanceCreateInfo::default()
             .application_info(&app_info)
@@ -146,6 +146,7 @@ impl VulkanInstance {
             .enabled_layer_names(&layer_names_ptrs.1)
             .flags(create_flags)
             .push_next(&mut validation_features);
+
 
         let instance = unsafe {
             entry
@@ -164,7 +165,7 @@ impl VulkanInstance {
 
         let info = unsafe { instance.get_physical_device_properties(pdevice) };
         unsafe {
-            log::info!(
+            log::debug!(
                 "Vulkan {}, Selected graphics device (`{}`)",
                 info.api_version,
                 CStr::from_ptr(info.device_name.as_ptr()).to_string_lossy()
@@ -176,9 +177,13 @@ impl VulkanInstance {
                 .unwrap()[0];
         let device = Self::create_device(&instance, pdevice, graphics_queue_family_index);
 
-        #[cfg(debug_assertions)]
-        let (debug_utils, debug_utils_device, debug_messenger) =
-            setup_debug_messenger(&entry, &instance, &device);
+        let (debug_utils, debug_utils_device, debug_messenger) = if validation {
+            let (utils, device_utils, messenger) =
+                setup_debug_messenger(&entry, &instance, &device);
+            (Some(utils), Some(device_utils), Some(messenger))
+        } else {
+            (None, None, None)
+        };
 
         let graphics_queue = unsafe { device.get_device_queue(graphics_queue_family_index, 0) };
         let present_queue = unsafe { device.get_device_queue(present_queue_family_index, 0) };
@@ -254,13 +259,10 @@ impl VulkanInstance {
             vulkan_version,
             render_pass,
             vulkan_cache,
-            #[cfg(debug_assertions)]
             debug_utils,
-            #[cfg(debug_assertions)]
             debug_utils_device,
             descriptor_pool,
             descriptor_set_layout,
-            #[cfg(debug_assertions)]
             debug_messenger,
             depth_format,
             depth_image,
@@ -274,6 +276,7 @@ impl VulkanInstance {
             vsync,
             images_in_flight,
             frame: 0,
+            validation,
         }
     }
 
@@ -931,9 +934,13 @@ impl Drop for VulkanInstance {
 
             self.surface_loader.destroy_surface(self.surface, None);
 
-            #[cfg(debug_assertions)]
-            self.debug_utils
-                .destroy_debug_utils_messenger(self.debug_messenger, None);
+            if let Some(debug_messenger) = self.debug_messenger {
+                if let Some(debug_utils) = &self.debug_utils {
+                    debug_utils.destroy_debug_utils_messenger(debug_messenger, None);
+                } else {
+                    unreachable!()
+                }
+            }
             self.instance.destroy_instance(None);
         }
     }

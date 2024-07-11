@@ -8,13 +8,6 @@ use std::{
     os::raw::c_char,
 };
 
-use crate::instance::VulkanInstance;
-
-#[cfg(debug_assertions)]
-pub const ENABLE_VALIDATION_LAYERS: bool = true;
-#[cfg(not(debug_assertions))]
-pub const ENABLE_VALIDATION_LAYERS: bool = false;
-
 const REQUIRED_LAYERS: [&str; 1] = ["VK_LAYER_KHRONOS_validation"];
 
 unsafe extern "system" fn vulkan_debug_callback(
@@ -74,33 +67,33 @@ pub fn check_validation_layer_support(entry: &Entry) {
         }
     }
 }
-#[cfg(debug_assertions)]
-pub fn set_object_name<H: Handle>(instance: &VulkanInstance, handle: H, name: &str) {
-    let object_name = CString::new(name).expect("Failed to convert &str to CString");
+pub fn set_object_name<H: Handle>(
+    debug_utils_device: &Option<debug_utils::Device>,
+    handle: H,
+    name: &str,
+) {
+    if let Some(debug_utils_device) = debug_utils_device {
+        let object_name = CString::new(name).expect("Failed to convert &str to CString");
 
-    let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::default()
-        .object_handle(handle)
-        .object_name(&object_name);
+        let debug_utils_object_name_info = vk::DebugUtilsObjectNameInfoEXT::default()
+            .object_handle(handle)
+            .object_name(&object_name);
 
-    unsafe {
-        instance
-            .debug_utils_device
-            .set_debug_utils_object_name(&debug_utils_object_name_info)
-            .expect("Failed to set debug object name")
-    };
+        unsafe {
+            debug_utils_device
+                .set_debug_utils_object_name(&debug_utils_object_name_info)
+                .expect("Failed to set debug object name")
+        };
+    }
 }
 
 pub fn get_validation_features() -> vk::ValidationFeaturesEXT<'static> {
-    if ENABLE_VALIDATION_LAYERS {
-        return vk::ValidationFeaturesEXT::default()
-            .enabled_validation_features(&[
-                vk::ValidationFeatureEnableEXT::BEST_PRACTICES,
-                vk::ValidationFeatureEnableEXT::SYNCHRONIZATION_VALIDATION,
-            ])
-            .disabled_validation_features(&[]); // We need to give it an empty Array, If not we get an validation error
-    } else {
-        vk::ValidationFeaturesEXT::default()
-    }
+    return vk::ValidationFeaturesEXT::default()
+        .enabled_validation_features(&[
+            vk::ValidationFeatureEnableEXT::BEST_PRACTICES,
+            vk::ValidationFeatureEnableEXT::SYNCHRONIZATION_VALIDATION,
+        ])
+        .disabled_validation_features(&[]); // We need to give it an empty Array, If not we get an validation error
 }
 
 /// Setup the debug message if validation layers are enabled.

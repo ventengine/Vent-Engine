@@ -1,7 +1,7 @@
 use ash::vk::{self, Extent2D};
 
 use crate::{
-    allocator::MemoryAllocator, begin_single_time_command, buffer::VulkanBuffer,
+    allocator::MemoryAllocator, begin_single_time_command, buffer::VulkanBuffer, debug,
     end_single_time_command, instance::VulkanInstance, SamplerInfo,
 };
 
@@ -35,6 +35,7 @@ impl VulkanImage {
         image_size: Extent2D,
         format: vk::Format,
         sampler_info: Option<SamplerInfo>,
+        name: Option<&str>,
     ) -> Self {
         let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
 
@@ -44,7 +45,7 @@ impl VulkanImage {
             vk::BufferUsageFlags::TRANSFER_SRC,
             data,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            None,
+            Some(&format!("Staging of {}", name.unwrap_or("Unknown"))),
         );
 
         let image = Self::create_image(
@@ -54,6 +55,11 @@ impl VulkanImage {
             1,
             vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
         );
+        if instance.validation {
+            if let Some(name) = name {
+                debug::set_object_name(&instance.debug_utils_device, image, name)
+            }
+        }
         let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
         Self::copy_buffer_to_image(
             instance,
@@ -72,6 +78,11 @@ impl VulkanImage {
             1,
             vk::ImageAspectFlags::COLOR,
         );
+        if instance.validation {
+            if let Some(name) = name {
+                debug::set_object_name(&instance.debug_utils_device, image_view, name)
+            }
+        }
 
         let sampler_info = sampler_info.unwrap_or_default();
         let sampler = instance
@@ -90,6 +101,7 @@ impl VulkanImage {
         instance: &mut VulkanInstance,
         image: image::DynamicImage,
         sampler_info: Option<SamplerInfo>,
+        name: Option<&str>,
     ) -> Self {
         let image_size = Extent2D {
             width: image.width(),
@@ -112,7 +124,7 @@ impl VulkanImage {
             vk::BufferUsageFlags::TRANSFER_SRC,
             &image_data,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            None,
+            Some(&format!("Staging of {}", name.unwrap_or("Unknown"))),
         );
 
         let mip_level = (image_size.width.max(image_size.height) as f32)
@@ -131,6 +143,11 @@ impl VulkanImage {
                 | vk::ImageUsageFlags::TRANSFER_SRC
                 | vk::ImageUsageFlags::SAMPLED,
         );
+        if instance.validation {
+            if let Some(name) = name {
+                debug::set_object_name(&instance.debug_utils_device, image, name)
+            }
+        }
         let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
 
         Self::copy_buffer_to_image(
@@ -160,6 +177,11 @@ impl VulkanImage {
             mip_level,
             vk::ImageAspectFlags::COLOR,
         );
+        if instance.validation {
+            if let Some(name) = name {
+                debug::set_object_name(&instance.debug_utils_device, image_view, name)
+            }
+        }
 
         let sampler_info = sampler_info.unwrap_or_default();
         let sampler = instance
@@ -187,6 +209,7 @@ impl VulkanImage {
             1,
             vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
         );
+
         let memory = VulkanBuffer::new_image(device, allocator, image);
         let image_view =
             Self::create_image_view(image, device, format, 1, vk::ImageAspectFlags::DEPTH);
@@ -200,7 +223,12 @@ impl VulkanImage {
 
     pub fn from_color(instance: &mut VulkanInstance, color: [u8; 4], size: Extent2D) -> Self {
         let color_img = image::RgbaImage::from_pixel(size.width, size.height, image::Rgba(color));
-        Self::from_image(instance, image::DynamicImage::ImageRgba8(color_img), None)
+        Self::from_image(
+            instance,
+            image::DynamicImage::ImageRgba8(color_img),
+            None,
+            None,
+        )
     }
 
     pub fn copy_buffer_to_image(

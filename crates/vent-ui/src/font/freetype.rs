@@ -58,6 +58,7 @@ impl FreeTypeLoader {
                 image_size,
                 vk::Format::R8G8B8A8_UNORM,
                 Some(SamplerInfo::default()),
+                Some("Font")
             );
 
             // TODO: store everything in an Texture Atlas

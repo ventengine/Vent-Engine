@@ -64,6 +64,7 @@ impl OBJLoader {
                 instance,
                 image::open(model_dir.join(texture)).unwrap(),
                 None,
+                Some(&material.name),
             )
         } else {
             VulkanImage::from_color(

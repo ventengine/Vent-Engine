@@ -31,6 +31,7 @@ struct MaterialData<'a> {
     alpha_mode: AlphaMode,
     alpha_cut: Option<f32>,
     double_sided: bool,
+    name: Option<&'a str>,
 }
 
 impl GLTFLoader {
@@ -406,6 +407,7 @@ impl GLTFLoader {
             alpha_cut: material.alpha_cutoff(),
             sampler: diffuse_texture.1,
             base_color: pbr.base_color_factor(),
+            name: material.name(),
         }
     }
 
@@ -418,6 +420,7 @@ impl GLTFLoader {
             instance,
             data.image,
             data.sampler.map(|s| Self::convert_sampler(&s)),
+            data.name,
         );
 
         Material {

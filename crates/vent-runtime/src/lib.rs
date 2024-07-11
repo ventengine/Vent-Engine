@@ -70,7 +70,12 @@ impl VentApplication {
                     renderer.resize((new_width, new_height));
                 }
                 WindowEvent::Draw => delta_time = renderer.render(),
-                WindowEvent::MouseMotion { x, y } => controller.process_mouse_movement(renderer.camera.downcast_mut().expect("TODO"), x, y, delta_time), // Default,
+                WindowEvent::MouseMotion { x, y } => controller.process_mouse_movement(
+                    renderer.camera.downcast_mut().expect("TODO"),
+                    x,
+                    y,
+                    delta_time,
+                ), // Default,
             }
         });
     }

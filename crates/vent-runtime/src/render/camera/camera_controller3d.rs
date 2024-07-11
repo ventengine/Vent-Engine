@@ -91,7 +91,8 @@ impl CameraController3D {
         delta_time: f32,
     ) {
         if self.mouse_left_down {
-            let deltaposition = Vec2::new((mouse_x - self.old_x) as f32, (mouse_y - self.old_y) as f32);
+            let deltaposition =
+                Vec2::new((mouse_x - self.old_x) as f32, (mouse_y - self.old_y) as f32);
             self.old_x = mouse_x;
             self.old_y = mouse_y;
 

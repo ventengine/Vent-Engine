@@ -36,9 +36,10 @@ impl VulkanBuffer {
                 .memory_allocator
                 .allocate_buffer(&instance.device, buffer, flags);
 
-        #[cfg(debug_assertions)]
-        if let Some(name) = name {
-            debug::set_object_name(instance, buffer, name)
+        if instance.validation {
+            if let Some(name) = name {
+                debug::set_object_name(&instance.debug_utils_device, buffer, name)
+            }
         }
 
         Self {

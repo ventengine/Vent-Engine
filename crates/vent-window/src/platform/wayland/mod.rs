@@ -397,7 +397,9 @@ impl PointerHandler for WaylandWindow {
                         self.set_cursor = true;
                         self.decorations_cursor = Some(new_cursor);
                     }
-                    self.event_sender.send(WindowEvent::MouseMotion { x, y, }).unwrap();
+                    self.event_sender
+                        .send(WindowEvent::MouseMotion { x, y })
+                        .unwrap();
                 }
                 PointerEventKind::Press {
                     button,
