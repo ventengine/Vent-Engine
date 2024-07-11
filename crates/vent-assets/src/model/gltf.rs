@@ -77,8 +77,20 @@ impl GLTFLoader {
         // So First we load all Materials our glTF file has
         let materials = Self::load_materials(instance, &gltf.document, path, &buffer_data);
 
-        for scene in gltf.document.scenes() {
-            for node in scene.nodes() {
+        for (i, scene) in gltf.document.scenes().enumerate() {
+            log::debug!(
+                "Loading Scene {} {}/{}",
+                scene.name().unwrap_or("Unknown"),
+                i,
+                gltf.document.scenes().len()
+            );
+            for (i, node) in scene.nodes().enumerate() {
+                log::debug!(
+                    "   Loading Node {} {}/{}",
+                    node.name().unwrap_or("Unknown"),
+                    i,
+                    scene.nodes().len()
+                );
                 matrix = Some(node.transform().decomposed());
                 Self::load_node(
                     instance,
@@ -116,9 +128,15 @@ impl GLTFLoader {
         buffer_data: &[gltf::buffer::Data],
     ) -> Vec<Material> {
         let materials = document.materials();
-
+        let len = materials.len();
         let mut loaded_materials = Vec::with_capacity(materials.len());
-        materials.for_each(|material| {
+        materials.enumerate().for_each(|(i, material)| {
+            log::debug!(
+                "Loading Material {} {}/{}",
+                material.name().unwrap_or("Unknown"),
+                i,
+                len,
+            );
             let material_data = Self::parse_material_data(model_dir, material, buffer_data);
             let material = Self::load_material(instance, material_data);
             loaded_materials.push(material);
@@ -149,7 +167,13 @@ impl GLTFLoader {
                 pipelines,
             );
         }
-        node.children().for_each(|child| {
+        node.children().enumerate().for_each(|(i, child)| {
+            log::debug!(
+                "      Loading Child Node {} {}/{}",
+                child.name().unwrap_or("Unknown"),
+                i,
+                node.children().len()
+            );
             Self::load_node(
                 instance,
                 vertex_module,
@@ -174,6 +198,7 @@ impl GLTFLoader {
         loaded_materials: &[Material],
         pipelines: &mut Vec<ModelPipeline>,
     ) {
+        log::debug!("      Loading Mesh {}", mesh.name().unwrap_or("Unknown"));
         //  This is very ugly i know, I originally had the idea to put this into vent_rendering::pipeline but then i had no good idea how to cache the vertex and fragment shader modules outside the for loop
 
         let shader_entry_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"main\0") };
@@ -214,13 +239,17 @@ impl GLTFLoader {
 
         let mut cached_pipeline: HashMap<MaterialPipelineInfo, vk::Pipeline> = HashMap::new();
 
-        for (i, material) in loaded_materials.iter().enumerate() {
+        for (i, primitive) in mesh.primitives().enumerate() {
             let mut all_meshes = vec![];
-            for primitive in mesh
-                .primitives()
-                .filter(|p| i == p.material().index().unwrap())
-            // Maybe there are an better way, we just need the index that the premitive already has
+
+            let material_index = primitive.material().index().unwrap();
+            let material = &loaded_materials[material_index];
             {
+                log::debug!(
+                    "         Loading Mesh Primtive {}/{}",
+                    i,
+                    mesh.primitives().len()
+                );
                 let final_primitive = Self::load_primitive(buffer_data, primitive);
                 let loaded_mesh =
                     Mesh3D::new(instance, &final_primitive.0, final_primitive.1, mesh.name());
@@ -233,7 +262,7 @@ impl GLTFLoader {
             };
 
             let model_material = crate::ModelMaterial {
-                material_index: i,
+                material_index,
                 meshes: all_meshes,
             };
 
