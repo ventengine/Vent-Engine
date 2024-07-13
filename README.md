@@ -14,16 +14,26 @@
 
 - **Built in Rust:** This engine leverages the power of Rust and avoids external language bindings as much as possible.
 - **Performance Optimization:** Vulkan is used for top-tier performance through native APIs.
-- **User-Friendly Design:** The engine prioritizes ease of use, allowing you to focus on creating games.
-- **Cross-Platform Support:** One goal of the engine is to support various platforms ([Platforms](#platforms)) to ensure your creations run smoothly across devices.
+- **User-Friendly Design:** The engine prioritizes ease of use.
+- **Cross-Platform Support:** One goal of the engine is to support various platforms ([Platforms](#platforms)).
 
 ### 🏗 Current Status
-
-For the current Development, look at [GitHub Projects](https://github.com/Snowiiii/Vent-Engine/projects?query=is%3Aopen)
-
--- Vent-Engine is in development --
+Vent-Engine is currently in heavy development, Here is how it currently looks:
 ![image](https://github.com/Snowiiii/Vent-Engine/assets/71594357/5dd81844-9d01-4795-a0fc-4f9e5a5c1a4e)
 **(09.07.2024)**
+
+### How to run?
+This section explains how to compile and run the Vent Engine from source code. Since it's under heavy development, there are currently no pre-built releases available.
+
+#### Prerequisites:
+- **Rust compiler**: Download and install Rust from the official website: https://www.rust-lang.org/tools/install
+- **Vulkan-compatible GPU** The Vent Engine utilizes Vulkan for graphics rendering. You'll need a graphics card that supports Vulkan
+#### Steps:
+1. **Clone the repository:**
+`git clone https://github.com/ventengine/Vent-Engine.git`
+2. **Compile & Run:** 
+`cargo run --bin vent-runtime`
+
 
 ### How to contribute?
 
@@ -37,7 +47,7 @@ Vent-Engine Platform Support:
 | -------- | ------- | ------ |
 | Windows  | 😬     | **❓** |
 | MacOS    | **❓**  | **❓** |
-| Unix     | ✅️     | **❓** |
+| Linux     | ✅️     | **❓** |
 | Redox    | **❓**  | **❓** |
 | VR       | **❓**  | ❌     |
 | Android  | **❓**  | ❌     |
