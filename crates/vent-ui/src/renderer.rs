@@ -6,22 +6,16 @@ use vent_rendering::{
     any_as_u8_slice, instance::VulkanInstance, pipeline::VulkanPipeline, Vertex2D,
 };
 
-use crate::font::{
-    freetype::{FreeTypeLoader, CHARACTERS_SIZE},
-    Font,
-};
+use crate::font::{ab_glyph::AbGlyphLoader, Font};
 
 use super::GUI;
 
 #[allow(dead_code)]
 pub struct GuiRenderer {
     descriptor_pool: vk::DescriptorPool,
-    descriptor_set_layout: vk::DescriptorSetLayout,
-    pipeline_layout: vk::PipelineLayout,
     pipeline: VulkanPipeline,
 
     // Font
-    font_loader: FreeTypeLoader,
     push_constant: PushConstant,
     font: Option<Font>,
 
@@ -40,36 +34,7 @@ impl GuiRenderer {
     pub fn new(instance: &mut VulkanInstance) -> Self {
         log::debug!(target: "ui", "initialising UI Renderer");
 
-        // Create descripotr set layout
-        let desc_layout_bindings = [
-            // Fragment
-            vk::DescriptorSetLayoutBinding {
-                binding: 0,
-                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::FRAGMENT,
-                ..Default::default()
-            },
-        ];
-        let info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&desc_layout_bindings);
-        let descriptor_set_layout =
-            unsafe { instance.device.create_descriptor_set_layout(&info, None) }.unwrap();
-
-        let push_constant_range = vk::PushConstantRange::default()
-            .size(size_of::<PushConstant>() as u32)
-            .stage_flags(vk::ShaderStageFlags::VERTEX);
-
-        let constant_ranges = [push_constant_range];
-        let binding = [descriptor_set_layout];
-        let create_info = vk::PipelineLayoutCreateInfo::default()
-            .push_constant_ranges(&constant_ranges)
-            .set_layouts(&binding);
-
-        let pipeline_layout =
-            unsafe { instance.device.create_pipeline_layout(&create_info, None) }.unwrap();
-        let pipeline = Self::create_pipeline(pipeline_layout, instance);
-
-        let font_loader = FreeTypeLoader::new();
+        let pipeline = Self::create_pipeline(instance);
 
         let push_constant = PushConstant {
             scale: Vec2::ONE,
@@ -77,17 +42,14 @@ impl GuiRenderer {
         };
 
         let descriptor_pool = Self::create_descriptor_pool(
-            CHARACTERS_SIZE as u32,
+            1, // 1 Font
             instance.swapchain_images.len() as u32,
             &instance.device,
         );
 
         let mut renderer = Self {
-            descriptor_set_layout,
             descriptor_pool,
-            pipeline_layout,
             pipeline,
-            font_loader,
             push_constant,
             font: None,
             guis: Vec::new(),
@@ -98,27 +60,34 @@ impl GuiRenderer {
         renderer
     }
 
-    fn create_pipeline(
-        pipeline_layout: vk::PipelineLayout,
-        instance: &VulkanInstance,
-    ) -> VulkanPipeline {
-        let vertex_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/shaders/shader.vert.spv"
-        );
-        let fragment_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/shaders/shader.frag.spv"
-        );
+    fn create_pipeline(instance: &VulkanInstance) -> VulkanPipeline {
+        let vertex_shader = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/gui.vert.spv");
+        let fragment_shader = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/gui.frag.spv");
+
+        let desc_layout_bindings = [
+            // Fragment
+            vk::DescriptorSetLayoutBinding {
+                binding: 0,
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
+        ];
+
+        let push_constant_range = vk::PushConstantRange::default()
+            .size(size_of::<PushConstant>() as u32)
+            .stage_flags(vk::ShaderStageFlags::VERTEX);
 
         VulkanPipeline::create_simple_pipeline(
             instance,
             vertex_shader.as_ref(),
             fragment_shader.as_ref(),
             &[Vertex2D::binding_description()],
-            pipeline_layout,
             &Vertex2D::input_descriptions(),
             instance.surface_resolution,
+            &[push_constant_range],
+            &desc_layout_bindings,
         )
     }
 
@@ -145,7 +114,7 @@ impl GuiRenderer {
         instance: &VulkanInstance,
         command_buffer: vk::CommandBuffer,
         buffer_index: usize,
-        text: &str,
+        text: String,
         x: f32,
         y: f32,
         scale: f32,
@@ -168,8 +137,8 @@ impl GuiRenderer {
                     .device
                     .cmd_set_viewport(command_buffer, 0, &[viewport]);
             }
-            let p_scale = Vec2::new(2.0 / x, 2.0 / y);
-            let translate = Vec2::new(-1.0 - x * p_scale.x, -1.0 - y * p_scale.y);
+            let p_scale = Vec2::new(2.0, 2.0);
+            let translate = Vec2::new(-1.0 - 0.0 * p_scale.x, -1.0 - 0.0 * p_scale.y);
 
             self.push_constant = PushConstant {
                 scale: p_scale,
@@ -179,7 +148,7 @@ impl GuiRenderer {
             unsafe {
                 instance.device.cmd_push_constants(
                     command_buffer,
-                    self.pipeline_layout,
+                    self.pipeline.pipeline_layout,
                     vk::ShaderStageFlags::VERTEX,
                     0,
                     any_as_u8_slice(&self.push_constant),
@@ -188,7 +157,7 @@ impl GuiRenderer {
             font.render_text(
                 instance,
                 command_buffer,
-                self.pipeline_layout,
+                self.pipeline.pipeline_layout,
                 buffer_index,
                 text,
                 x,
@@ -200,9 +169,9 @@ impl GuiRenderer {
     }
 
     pub fn load_font(&mut self, instance: &mut VulkanInstance, path: &str) {
-        self.font = Some(self.font_loader.load(
+        self.font = Some(AbGlyphLoader::load(
             path,
-            self.descriptor_set_layout,
+            self.pipeline.descriptor_set_layout,
             self.descriptor_pool,
             instance,
         ));
@@ -223,18 +192,14 @@ impl GuiRenderer {
     #[allow(dead_code)]
     pub fn register_texture(&mut self) {}
 
-    pub fn destroy(&mut self, instance: &VulkanInstance) {
+    pub fn destroy(&mut self, device: &ash::Device) {
         unsafe {
-            self.pipeline.destroy(&instance.device);
-            instance
-                .device
-                .destroy_pipeline_layout(self.pipeline_layout, None);
-            instance
-                .device
-                .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-            instance
-                .device
-                .destroy_descriptor_pool(self.descriptor_pool, None);
+            if let Some(font) = &mut self.font {
+                font.destroy(device);
+                self.font = None
+            }
+            self.pipeline.destroy(device);
+            device.destroy_descriptor_pool(self.descriptor_pool, None);
         }
     }
 }

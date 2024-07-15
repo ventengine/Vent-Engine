@@ -10,8 +10,8 @@ ash = { version= "0.38", default-features = false, features = ["loaded"] }
 
 log = "0.4"
 
-freetype-rs = { version = "*", features = ["bundled"] }
-cosmic-text = "0.12"
+ab_glyph = { version = "0.2.28" }
+# cosmic-text = "0.12"
 image = "0.25"
 
 [build-dependencies]

@@ -169,19 +169,20 @@ impl RawRuntimeRenderer {
                         .unwrap();
                 }
                 self.cmd_renderpass(instance, command_buffer, image_index as usize);
-
-                self.multi_renderer
-                    .render(instance, image_index, command_buffer, camera);
                 self.gui_renderer.render_text(
                     instance,
                     command_buffer,
                     image_index as usize,
-                    "Abc",
+                    "Abc".to_string(),
                     10.0,
                     10.0,
-                    10.0,
-                    50,
+                    0.5,
+                    255255255,
                 );
+
+                self.multi_renderer
+                    .render(instance, image_index, command_buffer, camera);
+
                 let subpass_end_info = vk::SubpassEndInfo::default();
                 unsafe {
                     instance
@@ -304,7 +305,7 @@ impl RawRuntimeRenderer {
 
     pub fn destroy(&mut self, instance: &VulkanInstance) {
         self.multi_renderer.destroy(instance);
-        self.gui_renderer.destroy(instance);
+        self.gui_renderer.destroy(&instance.device);
         // TODO Egui destroy
     }
 }
