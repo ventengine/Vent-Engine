@@ -187,9 +187,11 @@ impl WaylandWindow {
     }
 
     pub fn close(&mut self) {
-        log::warn!("Closing wayland window...");
-        self.event_sender.send(WindowEvent::Close).unwrap();
-        self.running = false;
+        if self.running {
+            log::warn!("Closing wayland window...");
+            self.event_sender.send(WindowEvent::Close).unwrap();
+            self.running = false;
+        }
     }
 }
 

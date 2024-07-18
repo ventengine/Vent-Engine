@@ -10,7 +10,6 @@ pub struct LightUBO {
 }
 
 pub struct LightRenderer {
-    pipeline_layout: vk::PipelineLayout,
     pipeline: VulkanPipeline,
 }
 
@@ -26,22 +25,35 @@ impl LightRenderer {
             "/assets/shaders/app/3D/light.frag.spv"
         );
 
-        let pipeline_layout = instance.create_pipeline_layout(&[]);
+        let desc_layout_bindings = [
+            vk::DescriptorSetLayoutBinding {
+                binding: 0,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::VERTEX,
+                ..Default::default()
+            },
+            vk::DescriptorSetLayoutBinding {
+                binding: 1,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::VERTEX,
+                ..Default::default()
+            },
+        ];
 
         let pipeline = VulkanPipeline::create_simple_pipeline(
             instance,
             vertex_shader.as_ref(),
             fragment_shader.as_ref(),
             &[Vertex3D::binding_description()],
-            pipeline_layout,
             &Vertex3D::input_descriptions(),
             instance.surface_resolution,
+            &[],
+            &desc_layout_bindings,
         );
 
-        Self {
-            pipeline_layout,
-            pipeline,
-        }
+        Self { pipeline }
     }
 
     pub fn render(
@@ -64,9 +76,6 @@ impl LightRenderer {
     }
 
     pub fn destroy(&mut self, device: &ash::Device) {
-        unsafe {
-            self.pipeline.destroy(device);
-            device.destroy_pipeline_layout(self.pipeline_layout, None);
-        }
+        self.pipeline.destroy(device);
     }
 }

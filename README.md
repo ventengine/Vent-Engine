@@ -37,7 +37,7 @@ This section explains how to compile and run the Vent Engine from source code. S
 
 ### How to contribute?
 
-Contributions are welcome in any way, shape, or form. See [Contributing](CONTRIBUTING) to know how you can get started.
+Contributions are welcome in any way, shape, or form. See [Contributing](CONTRIBUTING.md) to know how you can get started.
 
 ### 🎮 Platforms
 

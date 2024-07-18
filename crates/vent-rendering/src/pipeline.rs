@@ -1,11 +1,17 @@
 use std::{ffi::CStr, fs::File, path::Path};
 
-use ash::{util::read_spv, vk};
+use ash::{
+    util::read_spv,
+    vk::{self, PushConstantRange},
+};
 
 use crate::instance::VulkanInstance;
 
 pub struct VulkanPipeline {
     pub pipeline: vk::Pipeline,
+    pub pipeline_layout: vk::PipelineLayout,
+    pub descriptor_set_layout: vk::DescriptorSetLayout,
+
     pub vertex_module: vk::ShaderModule,
     pub fragment_module: vk::ShaderModule,
 }
@@ -19,15 +25,25 @@ impl VulkanPipeline {
     /// Front Face: CC,
     /// Polygon Mode: Fill
     ///
+    #[allow(clippy::too_many_arguments)]
     pub fn create_simple_pipeline(
         instance: &VulkanInstance,
         vertex_file: &Path,
         fragment_file: &Path,
         binding_desc: &[vk::VertexInputBindingDescription],
-        pipeline_layout: vk::PipelineLayout,
         attrib_desc: &[vk::VertexInputAttributeDescription],
         surface_resolution: vk::Extent2D,
+        push_constant_ranges: &[PushConstantRange],
+        desc_layout_bindings: &[vk::DescriptorSetLayoutBinding],
     ) -> Self {
+        let info = vk::DescriptorSetLayoutCreateInfo::default().bindings(desc_layout_bindings);
+
+        let descriptor_set_layout =
+            unsafe { instance.device.create_descriptor_set_layout(&info, None) }.unwrap();
+
+        let pipeline_layout =
+            instance.create_pipeline_layout(push_constant_ranges, &[descriptor_set_layout]);
+
         let vertex_code =
             read_spv(&mut File::open(vertex_file).expect("Failed to open Vertex File")).unwrap();
         let vertex_module_info = vk::ShaderModuleCreateInfo::default().code(&vertex_code);
@@ -138,6 +154,8 @@ impl VulkanPipeline {
 
         Self {
             pipeline: graphics_pipelines[0],
+            descriptor_set_layout,
+            pipeline_layout,
             vertex_module,
             fragment_module,
         }
@@ -145,6 +163,8 @@ impl VulkanPipeline {
 
     pub fn destroy(&mut self, device: &ash::Device) {
         unsafe {
+            device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+            device.destroy_pipeline_layout(self.pipeline_layout, None);
             device.destroy_shader_module(self.vertex_module, None);
             device.destroy_shader_module(self.fragment_module, None);
             device.destroy_pipeline(self.pipeline, None)

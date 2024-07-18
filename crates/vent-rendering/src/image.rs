@@ -2,8 +2,10 @@ use ash::vk::{self, Extent2D};
 
 use crate::{
     allocator::MemoryAllocator, begin_single_time_command, buffer::VulkanBuffer, debug,
-    end_single_time_command, instance::VulkanInstance, SamplerInfo,
+    end_single_time_command, instance::VulkanInstance,
 };
+
+// TODO: Implement Compression/Decompression (e.g KTX)
 
 pub struct DepthImage {
     pub image: vk::Image,
@@ -34,7 +36,7 @@ impl VulkanImage {
         data: &[u8],
         image_size: Extent2D,
         format: vk::Format,
-        sampler_info: Option<SamplerInfo>,
+        sampler_info: Option<vk::SamplerCreateInfo>,
         name: Option<&str>,
     ) -> Self {
         let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
@@ -76,6 +78,7 @@ impl VulkanImage {
             &instance.device,
             format,
             1,
+            1,
             vk::ImageAspectFlags::COLOR,
         );
         if instance.validation {
@@ -85,9 +88,7 @@ impl VulkanImage {
         }
 
         let sampler_info = sampler_info.unwrap_or_default();
-        let sampler = instance
-            .vulkan_cache
-            .get_sampler(&instance.device, sampler_info);
+        let sampler = unsafe { instance.device.create_sampler(&sampler_info, None).unwrap() };
 
         Self {
             image,
@@ -98,9 +99,9 @@ impl VulkanImage {
     }
 
     pub fn from_image(
-        instance: &mut VulkanInstance,
+        instance: &VulkanInstance,
         image: image::DynamicImage,
-        sampler_info: Option<SamplerInfo>,
+        sampler_info: Option<vk::SamplerCreateInfo>,
         name: Option<&str>,
     ) -> Self {
         let image_size = Extent2D {
@@ -168,6 +169,7 @@ impl VulkanImage {
             image_size.width,
             image_size.height,
             mip_level,
+            1,
         );
 
         let image_view = Self::create_image_view(
@@ -175,6 +177,7 @@ impl VulkanImage {
             &instance.device,
             format,
             mip_level,
+            1,
             vk::ImageAspectFlags::COLOR,
         );
         if instance.validation {
@@ -184,9 +187,97 @@ impl VulkanImage {
         }
 
         let sampler_info = sampler_info.unwrap_or_default();
-        let sampler = instance
-            .vulkan_cache
-            .get_sampler(&instance.device, sampler_info);
+        let sampler = unsafe { instance.device.create_sampler(&sampler_info, None).unwrap() };
+
+        Self {
+            image,
+            image_view,
+            sampler,
+            memory,
+        }
+    }
+
+    pub fn load_cubemap(instance: &VulkanInstance, image: image::DynamicImage) -> Self {
+        let image_size = Extent2D {
+            width: image.width(),
+            height: image.height(),
+        };
+        let image_data = match &image {
+            image::DynamicImage::ImageLuma8(_) | image::DynamicImage::ImageRgb8(_) => {
+                image.into_rgba8().into_raw()
+            }
+            image::DynamicImage::ImageLumaA8(_) | image::DynamicImage::ImageRgba8(_) => {
+                image.into_bytes()
+            }
+            _ => image.into_rgb8().into_raw(),
+        };
+        let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
+
+        let mut staging_buffer = VulkanBuffer::new_init(
+            instance,
+            image_data_size,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            &image_data,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            Some("Staging Cubemap"),
+        );
+
+        let mip_level = 1;
+
+        let format = vk::Format::R8G8B8A8_UNORM;
+
+        let image = Self::create_cubemap_image(
+            &instance.device,
+            format,
+            image_size,
+            mip_level,
+            vk::ImageUsageFlags::TRANSFER_DST
+                | vk::ImageUsageFlags::TRANSFER_SRC
+                | vk::ImageUsageFlags::SAMPLED,
+        );
+
+        let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
+
+        Self::copy_buffer_to_image(
+            instance,
+            image,
+            &staging_buffer,
+            instance.global_command_pool,
+            image_size,
+            mip_level,
+            false,
+        );
+        staging_buffer.destroy(&instance.device);
+
+        Self::generate_mipmaps(
+            instance,
+            image,
+            instance.global_command_pool,
+            image_size.width,
+            image_size.height,
+            mip_level,
+            6,
+        );
+
+        let image_view = Self::create_image_view(
+            image,
+            &instance.device,
+            format,
+            mip_level,
+            6,
+            vk::ImageAspectFlags::COLOR,
+        );
+
+        let sampler_info = vk::SamplerCreateInfo::default()
+            .border_color(vk::BorderColor::FLOAT_OPAQUE_WHITE)
+            .address_mode_u(vk::SamplerAddressMode::CLAMP_TO_EDGE);
+
+        let sampler = unsafe {
+            instance
+                .device
+                .create_sampler(&sampler_info, None)
+                .unwrap()
+        };
 
         Self {
             image,
@@ -212,7 +303,7 @@ impl VulkanImage {
 
         let memory = VulkanBuffer::new_image(device, allocator, image);
         let image_view =
-            Self::create_image_view(image, device, format, 1, vk::ImageAspectFlags::DEPTH);
+            Self::create_image_view(image, device, format, 1, 1, vk::ImageAspectFlags::DEPTH);
 
         DepthImage {
             image,
@@ -221,7 +312,7 @@ impl VulkanImage {
         }
     }
 
-    pub fn from_color(instance: &mut VulkanInstance, color: [u8; 4], size: Extent2D) -> Self {
+    pub fn from_color(instance: &VulkanInstance, color: [u8; 4], size: Extent2D) -> Self {
         let color_img = image::RgbaImage::from_pixel(size.width, size.height, image::Rgba(color));
         Self::from_image(
             instance,
@@ -330,6 +421,7 @@ impl VulkanImage {
         width: u32,
         height: u32,
         mip_level: u32,
+        layer_count: u32,
     ) {
         let device = &instance.device;
 
@@ -376,7 +468,7 @@ impl VulkanImage {
                 .aspect_mask(vk::ImageAspectFlags::COLOR)
                 .mip_level(i)
                 .base_array_layer(0)
-                .layer_count(1);
+                .layer_count(layer_count);
 
             let blit = vk::ImageBlit::default()
                 .src_offsets([
@@ -461,6 +553,7 @@ impl VulkanImage {
         device: &ash::Device,
         format: vk::Format,
         mip_level: u32,
+        layer_count: u32, // Usally 1 for Standard images
         mask: vk::ImageAspectFlags,
     ) -> vk::ImageView {
         let image_view_info = vk::ImageViewCreateInfo::default()
@@ -468,7 +561,7 @@ impl VulkanImage {
                 vk::ImageSubresourceRange::default()
                     .aspect_mask(mask)
                     .level_count(mip_level)
-                    .layer_count(1),
+                    .layer_count(layer_count),
             )
             .image(image)
             .format(format)
@@ -477,7 +570,7 @@ impl VulkanImage {
         unsafe { device.create_image_view(&image_view_info, None) }.unwrap()
     }
 
-    // Do not cache, Every image mostly unique memory
+    // Do not cache, Every image uses unique memory
     fn create_image(
         device: &ash::Device,
         format: vk::Format,
@@ -499,11 +592,33 @@ impl VulkanImage {
         unsafe { device.create_image(&create_info, None) }.unwrap()
     }
 
+    fn create_cubemap_image(
+        device: &ash::Device,
+        format: vk::Format,
+        size: Extent2D,
+        mip_level: u32,
+        usage: vk::ImageUsageFlags,
+    ) -> vk::Image {
+        let create_info = vk::ImageCreateInfo::default()
+            .image_type(vk::ImageType::TYPE_2D)
+            .format(format)
+            .extent(size.into())
+            .mip_levels(mip_level)
+            .array_layers(6) // Cubemaps have 6 faces
+            .samples(vk::SampleCountFlags::TYPE_1)
+            .tiling(vk::ImageTiling::OPTIMAL)
+            .usage(usage)
+            .flags(vk::ImageCreateFlags::CUBE_COMPATIBLE)
+            .sharing_mode(vk::SharingMode::EXCLUSIVE);
+
+        unsafe { device.create_image(&create_info, None) }.unwrap()
+    }
+
     pub fn destroy(&mut self, device: &ash::Device) {
         unsafe {
             device.destroy_image_view(self.image_view, None);
             device.destroy_image(self.image, None);
-            //  device.destroy_sampler(self.sampler, None); Will be destroyed by the cache
+            device.destroy_sampler(self.sampler, None);
             device.free_memory(self.memory, None);
         }
     }

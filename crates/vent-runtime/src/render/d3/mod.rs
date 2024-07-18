@@ -3,6 +3,7 @@ use std::mem::size_of;
 use ash::vk;
 use pollster::FutureExt;
 
+use skybox_renderer::SkyBoxRenderer;
 use vent_ecs::world::World;
 use vent_math::{
     scalar::mat4::Mat4,
@@ -20,6 +21,7 @@ use super::{
 };
 
 pub mod light_renderer;
+pub mod skybox_renderer;
 
 #[repr(C)]
 pub struct MaterialUBO {
@@ -46,24 +48,65 @@ impl Default for Camera3DData {
 
 pub struct Renderer3D {
     mesh_renderer: ModelRenderer3D,
+    skybox_renderer: SkyBoxRenderer,
     //light_renderer: LightRenderer,
     tmp_light_mesh: Mesh3D,
     pipeline_layout: vk::PipelineLayout,
+    descriptor_set_layout: vk::DescriptorSetLayout,
 
     material_ubos: Vec<VulkanBuffer>,
     light_ubos: Vec<VulkanBuffer>,
 }
 
 impl Renderer for Renderer3D {
-    fn init(instance: &mut VulkanInstance, camera: &mut dyn Camera) -> Self
+    fn init(instance: &mut VulkanInstance, _camera: &mut dyn Camera) -> Self
     where
         Self: Sized,
     {
-        let _camera: &Camera3D = camera.downcast_ref().unwrap();
+      //  let _camera: &Camera3D = camera.downcast_ref().unwrap();
+
+        let skybox_image = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/textures/skybox/skybox.png"
+        );
+
+        let skybox_renderer = SkyBoxRenderer::new(instance, skybox_image);
+
         let push_constant_range = vk::PushConstantRange::default()
             .size(size_of::<Camera3DData>() as u32)
             .stage_flags(vk::ShaderStageFlags::VERTEX);
-        let pipeline_layout = instance.create_pipeline_layout(&[push_constant_range]);
+
+        let desc_layout_bindings = [
+            // Fragment
+            vk::DescriptorSetLayoutBinding {
+                binding: 0,
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
+            vk::DescriptorSetLayoutBinding {
+                binding: 1,
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
+            // vk::DescriptorSetLayoutBinding {
+            //     binding: 2,
+            //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            //     descriptor_count: 1,
+            //     stage_flags: vk::ShaderStageFlags::FRAGMENT,
+            //     ..Default::default()
+            // },
+        ];
+        let info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&desc_layout_bindings);
+
+        let descriptor_set_layout =
+            unsafe { instance.device.create_descriptor_set_layout(&info, None) }.unwrap();
+
+        let pipeline_layout =
+            instance.create_pipeline_layout(&[push_constant_range], &[descriptor_set_layout]);
 
         let mut mesh_renderer = ModelRenderer3D::default();
 
@@ -104,7 +147,7 @@ impl Renderer for Renderer3D {
             let descriptor_sets = VulkanInstance::allocate_descriptor_sets(
                 &instance.device,
                 mesh.model.descriptor_pool,
-                instance.descriptor_set_layout,
+                descriptor_set_layout,
                 instance.swapchain_images.len(),
             );
 
@@ -195,6 +238,8 @@ impl Renderer for Renderer3D {
 
         Self {
             mesh_renderer,
+            skybox_renderer,
+            descriptor_set_layout,
             //   light_renderer,
             tmp_light_mesh,
             pipeline_layout,
@@ -244,6 +289,9 @@ impl Renderer for Renderer3D {
 
             //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
 
+            self.skybox_renderer
+                .draw(&instance.device, command_buffer, camera);
+
             self.mesh_renderer.record_buffer(
                 instance,
                 command_buffer,
@@ -261,6 +309,12 @@ impl Renderer for Renderer3D {
     fn destroy(&mut self, instance: &VulkanInstance) {
         unsafe { instance.device.device_wait_idle().unwrap() };
         self.mesh_renderer.destroy_all(&instance.device);
+        self.skybox_renderer.destroy(&instance.device);
+        unsafe {
+            instance
+                .device
+                .destroy_descriptor_set_layout(self.descriptor_set_layout, None)
+        };
         //self.light_renderer.destroy(&instance.device);
         self.material_ubos
             .drain(..)
@@ -335,7 +389,7 @@ fn create_tmp_cube(instance: &VulkanInstance) -> Mesh3D {
     Mesh3D::new(
         instance,
         &vertices,
-        vent_rendering::Indices::U8(indices.to_vec()),
+        vent_rendering::Indices::U16(indices.to_vec()),
         None,
     )
 }

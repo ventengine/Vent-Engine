@@ -62,15 +62,15 @@ A Window creation & management Library
 | Features            | Status |
 | ------------------- | ------ |
 | Window Creation     | ✅️    |
-| Window Decorations  | ❌    |
+| Window Decorations  | ✅️    |
 | Event Handling      | ✅️     |
 | Full-Screen         | ✅️     |
 | Window Minimization | ✅️     |
 | Window Maximization | ✅️     |
-| Window Resizing     | ❌     |
+| Window Resizing     | ✅️     |
 | Vulkan Rendering    | ✅️     |
-| Keyboard Support    | ❌     |
-| Mouse Support       | ❌     |
+| Keyboard Support    | ✅️     |
+| Mouse Support       | ✅️     |
 | GamePad Support     | ❌     |
 | Touch Support       | ❌     |
 | Touch Support       | ❌     |

@@ -20,6 +20,8 @@ ash = { version= "0.38", default-features = false, features = ["loaded"] }
 pollster = "0.3.0"
 log = "0.4"
 
+image = "0.25"
+
 sysinfo = "0.30"
 chrono = "0.4"
 

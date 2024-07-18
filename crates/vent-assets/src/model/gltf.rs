@@ -8,13 +8,13 @@ use std::{
 
 use ash::{
     util::read_spv,
-    vk::{self},
+    vk::{self, PipelineShaderStageCreateInfo},
 };
-use gltf::{material::AlphaMode, mesh::Mode, texture::Sampler};
+use gltf::{material::AlphaMode, mesh::Mode};
 use image::DynamicImage;
 use vent_rendering::{
-    image::VulkanImage, instance::VulkanInstance, Indices, MaterialPipelineInfo, SamplerInfo,
-    Vertex3D, DEFAULT_TEXTURE_FILTER,
+    image::VulkanImage, instance::VulkanInstance, Indices, MaterialPipelineInfo, Vertex3D,
+    DEFAULT_TEXTURE_FILTER,
 };
 
 use crate::{Material, Model3D, ModelPipeline};
@@ -25,7 +25,7 @@ pub(crate) struct GLTFLoader {}
 
 struct MaterialData<'a> {
     image: DynamicImage,
-    sampler: Option<Sampler<'a>>,
+    sampler: Option<gltf::texture::Sampler<'a>>,
     base_color: [f32; 4],
     // Pipeline
     alpha_mode: AlphaMode,
@@ -75,6 +75,22 @@ impl GLTFLoader {
         }
         .unwrap();
 
+        let shader_entry_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"main\0") };
+        let shader_stage_create_info = [
+            vk::PipelineShaderStageCreateInfo {
+                module: vertex_module,
+                p_name: shader_entry_name.as_ptr(),
+                stage: vk::ShaderStageFlags::VERTEX,
+                ..Default::default()
+            },
+            vk::PipelineShaderStageCreateInfo {
+                module: fragment_module,
+                p_name: shader_entry_name.as_ptr(),
+                stage: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
+        ];
+
         // So First we load all Materials our glTF file has
         let materials = Self::load_materials(instance, &gltf.document, path, &buffer_data);
 
@@ -95,8 +111,7 @@ impl GLTFLoader {
                 matrix = Some(node.transform().decomposed());
                 Self::load_node(
                     instance,
-                    vertex_module,
-                    fragment_module,
+                    &shader_stage_create_info,
                     pipeline_layout,
                     node,
                     &buffer_data,
@@ -138,6 +153,7 @@ impl GLTFLoader {
         let materials = document.materials();
         let len = materials.len();
         let mut loaded_materials = Vec::with_capacity(materials.len());
+        // TODO: Load Multi-Threaded
         materials.enumerate().for_each(|(i, material)| {
             log::debug!(
                 "Loading Material {} {}/{}",
@@ -184,8 +200,7 @@ impl GLTFLoader {
     #[allow(clippy::too_many_arguments)]
     fn load_node(
         instance: &mut VulkanInstance,
-        vertex_module: vk::ShaderModule,
-        fragment_module: vk::ShaderModule,
+        shader_stage_create_info: &[PipelineShaderStageCreateInfo],
         pipeline_layout: vk::PipelineLayout,
         node: gltf::Node<'_>,
         buffer_data: &[gltf::buffer::Data],
@@ -195,8 +210,7 @@ impl GLTFLoader {
         if let Some(mesh) = node.mesh() {
             Self::load_mesh_multithreaded(
                 instance,
-                vertex_module,
-                fragment_module,
+                shader_stage_create_info,
                 pipeline_layout,
                 mesh,
                 buffer_data,
@@ -213,8 +227,7 @@ impl GLTFLoader {
             );
             Self::load_node(
                 instance,
-                vertex_module,
-                fragment_module,
+                shader_stage_create_info,
                 pipeline_layout,
                 child,
                 buffer_data,
@@ -227,8 +240,7 @@ impl GLTFLoader {
     #[allow(clippy::too_many_arguments)]
     fn load_mesh_multithreaded(
         instance: &mut VulkanInstance,
-        vertex_module: vk::ShaderModule,
-        fragment_module: vk::ShaderModule,
+        shader_stage_create_info: &[PipelineShaderStageCreateInfo],
         pipeline_layout: vk::PipelineLayout,
         mesh: gltf::Mesh,
         buffer_data: &[gltf::buffer::Data],
@@ -236,23 +248,6 @@ impl GLTFLoader {
         pipelines: &mut Vec<ModelPipeline>,
     ) {
         log::debug!("      Loading Mesh {}", mesh.name().unwrap_or("Unknown"));
-        //  This is very ugly i know, I originally had the idea to put this into vent_rendering::pipeline but then i had no good idea how to cache the vertex and fragment shader modules outside the for loop
-
-        let shader_entry_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"main\0") };
-        let shader_stage_create_info = [
-            vk::PipelineShaderStageCreateInfo {
-                module: vertex_module,
-                p_name: shader_entry_name.as_ptr(),
-                stage: vk::ShaderStageFlags::VERTEX,
-                ..Default::default()
-            },
-            vk::PipelineShaderStageCreateInfo {
-                module: fragment_module,
-                p_name: shader_entry_name.as_ptr(),
-                stage: vk::ShaderStageFlags::FRAGMENT,
-                ..Default::default()
-            },
-        ];
         let surface_resolution = instance.surface_resolution;
 
         let binding = [Vertex3D::binding_description()];
@@ -274,7 +269,7 @@ impl GLTFLoader {
             .scissors(&scissors)
             .viewports(&viewports);
 
-        let mut cached_pipeline: HashMap<MaterialPipelineInfo, vk::Pipeline> = HashMap::new();
+        let mut cached_pipeline: HashMap<MaterialPipelineInfo, usize> = HashMap::new(); // We just need to store the pipelines vec index
 
         for (i, primitive) in mesh.primitives().enumerate() {
             let mut all_meshes = vec![];
@@ -303,11 +298,8 @@ impl GLTFLoader {
                 meshes: all_meshes,
             };
 
-            if let Some(pipeline) = cached_pipeline.get(&pipeline_info) {
-                pipelines.push(ModelPipeline {
-                    pipeline: *pipeline,
-                    materials: vec![model_material], // TODO
-                });
+            if let Some(pipeline_index) = cached_pipeline.get(&pipeline_info) {
+                pipelines[*pipeline_index].materials.push(model_material);
             } else {
                 let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
                     topology: pipeline_info.mode,
@@ -349,7 +341,7 @@ impl GLTFLoader {
                         .dynamic_states(&dynamic_state);
 
                     let graphic_pipeline_info = vk::GraphicsPipelineCreateInfo::default()
-                        .stages(&shader_stage_create_info)
+                        .stages(shader_stage_create_info)
                         .vertex_input_state(&vertex_input_state_info)
                         .input_assembly_state(&vertex_input_assembly_state_info)
                         .viewport_state(&viewport_state_info)
@@ -370,19 +362,19 @@ impl GLTFLoader {
                     }
                     .expect("Unable to create graphics pipeline");
 
+                    cached_pipeline.insert(pipeline_info, pipelines.len());
+
                     pipelines.push(ModelPipeline {
                         pipeline: graphics_pipelines[0],
                         materials: vec![model_material], // TODO
                     });
-
-                    cached_pipeline.insert(pipeline_info, graphics_pipelines[0]);
                 }
             }
         }
     }
 
     /**
-     *  We will parse all Materials and save that what we need
+     *  We will parse all Materials and save everything we need
      *  the Data will be saved on RAM
      */
     fn parse_material_data<'a>(
@@ -470,8 +462,9 @@ impl GLTFLoader {
     }
 
     /// Converts an gltf Texture Sampler into Vulkan Sampler Info
-    /// TODO: Cache Samplers and reuse them
-    fn convert_sampler<'a>(sampler: &'a gltf::texture::Sampler<'a>) -> SamplerInfo {
+    fn convert_sampler<'a>(
+        sampler: &'a gltf::texture::Sampler<'a>,
+    ) -> vk::SamplerCreateInfo<'static> {
         let mag_filter =
             sampler
                 .mag_filter()
@@ -507,7 +500,7 @@ impl GLTFLoader {
         let address_mode_u = Self::conv_wrapping_mode(sampler.wrap_s());
         let address_mode_v = Self::conv_wrapping_mode(sampler.wrap_t());
 
-        SamplerInfo {
+        vk::SamplerCreateInfo {
             mag_filter,
             min_filter,
             mipmap_mode: mipmap_filter,

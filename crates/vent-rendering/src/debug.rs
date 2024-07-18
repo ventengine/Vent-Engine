@@ -90,7 +90,8 @@ pub fn set_object_name<H: Handle>(
 pub fn get_validation_features() -> vk::ValidationFeaturesEXT<'static> {
     return vk::ValidationFeaturesEXT::default()
         .enabled_validation_features(&[
-            vk::ValidationFeatureEnableEXT::BEST_PRACTICES,
+            vk::ValidationFeatureEnableEXT::GPU_ASSISTED,
+            // vk::ValidationFeatureEnableEXT::BEST_PRACTICES, Does hide real errors, so lets disable it for now
             vk::ValidationFeatureEnableEXT::SYNCHRONIZATION_VALIDATION,
         ])
         .disabled_validation_features(&[]); // We need to give it an empty Array, If not we get an validation error

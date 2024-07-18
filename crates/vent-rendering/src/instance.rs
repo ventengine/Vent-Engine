@@ -13,7 +13,6 @@ use ash::vk::{
 };
 
 use crate::allocator::MemoryAllocator;
-use crate::cache::VulkanCache;
 use crate::debug::{self, check_validation_layer_support, setup_debug_messenger};
 use crate::image::{DepthImage, VulkanImage};
 use crate::surface;
@@ -25,6 +24,7 @@ pub struct VulkanInstance {
     pub entry: ash::Entry,
     pub instance: ash::Instance,
     pub physical_device: vk::PhysicalDevice,
+    pub device_features: vk::PhysicalDeviceFeatures,
     pub device: ash::Device,
 
     pub surface_loader: khr::surface::Instance,
@@ -48,8 +48,6 @@ pub struct VulkanInstance {
     pub command_pools: Vec<vk::CommandPool>,
     pub command_buffers: Vec<vk::CommandBuffer>,
 
-    pub descriptor_set_layout: vk::DescriptorSetLayout,
-
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub render_finished_semaphores: Vec<vk::Semaphore>,
 
@@ -57,7 +55,6 @@ pub struct VulkanInstance {
     pub images_in_flight: Vec<vk::Fence>,
 
     pub memory_allocator: MemoryAllocator,
-    pub vulkan_cache: VulkanCache,
     pub vulkan_version: u32,
 
     pub vsync: bool,
@@ -179,7 +176,15 @@ impl VulkanInstance {
         let surface_format =
             unsafe { surface_loader.get_physical_device_surface_formats(pdevice, surface) }
                 .unwrap()[0];
-        let device = Self::create_device(&instance, pdevice, graphics_queue_family_index);
+
+        let device_features = unsafe { instance.get_physical_device_features(pdevice) };
+
+        let device = Self::create_device(
+            &instance,
+            pdevice,
+            graphics_queue_family_index,
+            device_features,
+        );
 
         let (debug_utils, debug_utils_device, debug_messenger) = if validation {
             let (utils, device_utils, messenger) =
@@ -240,45 +245,41 @@ impl VulkanInstance {
             images_in_flight,
         ) = Self::create_sync_objects(&device, &swapchain_images);
 
-        let descriptor_set_layout = Self::create_descriptor_set_layout(&device);
-        let vulkan_cache = VulkanCache::new();
-
         Self {
             entry,
-            memory_allocator,
             instance,
             physical_device: pdevice,
+            device_features,
             device,
-            surface,
             surface_loader,
-            swapchain_loader,
+            surface,
             surface_format,
             surface_resolution,
+            swapchain_loader,
             swapchain,
             swapchain_images,
             swapchain_image_views,
-            graphics_queue,
-            present_queue,
-            vulkan_version,
-            render_pass,
-            vulkan_cache,
-            debug_utils,
-            debug_utils_device,
-            descriptor_set_layout,
-            debug_messenger,
+            frame_buffers,
             depth_format,
             depth_image,
-            frame_buffers,
+            graphics_queue,
+            present_queue,
+            render_pass,
             global_command_pool,
             command_pools,
             command_buffers,
             image_available_semaphores,
             render_finished_semaphores,
             in_flight_fences,
-            vsync,
             images_in_flight,
+            memory_allocator,
+            vulkan_version,
+            vsync,
             frame: 0,
             validation,
+            debug_utils,
+            debug_utils_device,
+            debug_messenger,
         }
     }
 
@@ -524,14 +525,13 @@ impl VulkanInstance {
         instance: &ash::Instance,
         pdevice: vk::PhysicalDevice,
         queue_family_index: u32,
+        available_features: vk::PhysicalDeviceFeatures,
     ) -> ash::Device {
         let device_extension_names_raw = [
             swapchain::NAME.as_ptr(),
             #[cfg(any(target_os = "macos", target_os = "ios"))]
             portability_subset::NAME.as_ptr(),
         ];
-
-        let available_features = unsafe { instance.get_physical_device_features(pdevice) };
 
         let mut features_1_3 = vk::PhysicalDeviceVulkan13Features::default()
             .synchronization2(true)
@@ -761,46 +761,14 @@ impl VulkanInstance {
         unsafe { device.allocate_descriptor_sets(&info) }.unwrap()
     }
 
-    fn create_descriptor_set_layout(device: &ash::Device) -> vk::DescriptorSetLayout {
-        let desc_layout_bindings = [
-            // Fragment
-            vk::DescriptorSetLayoutBinding {
-                binding: 0,
-                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::FRAGMENT,
-                ..Default::default()
-            },
-            vk::DescriptorSetLayoutBinding {
-                binding: 1,
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::FRAGMENT,
-                ..Default::default()
-            },
-            // vk::DescriptorSetLayoutBinding {
-            //     binding: 2,
-            //     descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-            //     descriptor_count: 1,
-            //     stage_flags: vk::ShaderStageFlags::FRAGMENT,
-            //     ..Default::default()
-            // },
-        ];
-
-        let info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&desc_layout_bindings);
-
-        unsafe { device.create_descriptor_set_layout(&info, None) }.unwrap()
-    }
-
     pub fn create_pipeline_layout(
         &self,
         push_constant_ranges: &[PushConstantRange],
+        descriptor_set_layout: &[vk::DescriptorSetLayout],
     ) -> vk::PipelineLayout {
-        let binding = [self.descriptor_set_layout];
-
         let create_info = vk::PipelineLayoutCreateInfo::default()
             .push_constant_ranges(push_constant_ranges)
-            .set_layouts(&binding);
+            .set_layouts(descriptor_set_layout);
 
         unsafe { self.device.create_pipeline_layout(&create_info, None) }.unwrap()
     }
@@ -897,12 +865,8 @@ impl Drop for VulkanInstance {
                 .for_each(|s| self.device.destroy_semaphore(s, None));
 
             self.device.destroy_render_pass(self.render_pass, None);
-            self.vulkan_cache.destroy(&self.device);
 
             self.depth_image.destroy(&self.device);
-
-            self.device
-                .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
 
             self.command_pools
                 .iter()
