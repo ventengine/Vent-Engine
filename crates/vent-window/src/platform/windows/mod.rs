@@ -174,6 +174,10 @@ pub unsafe extern "system" fn window_proc(
 ) -> LRESULT {
     match msg {
         WM_PAINT => LRESULT::default(),
+        WM_DESTROY => {
+            unsafe { PostQuitMessage(0) };
+            LRESULT::default()
+        }
         _ => unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) },
     }
 }
