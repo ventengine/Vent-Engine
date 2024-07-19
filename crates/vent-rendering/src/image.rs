@@ -80,7 +80,7 @@ impl VulkanImage {
             1,
             1,
             vk::ImageAspectFlags::COLOR,
-            vk::ImageViewType::TYPE_2D
+            vk::ImageViewType::TYPE_2D,
         );
         if instance.validation {
             if let Some(name) = name {

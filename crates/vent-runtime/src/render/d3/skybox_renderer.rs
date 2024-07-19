@@ -11,6 +11,7 @@ use crate::render::camera::Camera3D;
 
 use super::create_tmp_cube;
 
+#[allow(dead_code)]
 pub struct SkyBoxRenderer {
     pipeline: VulkanPipeline,
     image: VulkanImage,
@@ -124,7 +125,7 @@ impl SkyBoxRenderer {
 
         unsafe { device.create_descriptor_pool(&create_info, None) }.unwrap()
     }
-
+    #[allow(dead_code)]
     pub fn draw(
         &mut self,
         device: &ash::Device,
@@ -154,7 +155,7 @@ impl SkyBoxRenderer {
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline.pipeline_layout,
                 0,
-                &&self.descriptor_sets[buffer_index..=buffer_index],
+                &self.descriptor_sets[buffer_index..=buffer_index],
                 &[],
             )
         };
