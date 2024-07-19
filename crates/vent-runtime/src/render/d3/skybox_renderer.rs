@@ -7,7 +7,7 @@ use vent_rendering::{
     pipeline::VulkanPipeline, Vertex3D,
 };
 
-use crate::render::camera::{Camera3D};
+use crate::render::camera::Camera3D;
 
 use super::create_tmp_cube;
 
@@ -16,6 +16,7 @@ pub struct SkyBoxRenderer {
     image: VulkanImage,
     descriptor_pool: vk::DescriptorPool,
     push_constants: SkyBoxUBO,
+    descriptor_sets: Vec<vk::DescriptorSet>,
     cube: Mesh3D,
 }
 
@@ -37,15 +38,13 @@ impl SkyBoxRenderer {
             "/assets/shaders/app/3D/skybox.frag.spv"
         );
 
-        let desc_layout_bindings = [
-            vk::DescriptorSetLayoutBinding {
-                binding: 0,
-                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::FRAGMENT,
-                ..Default::default()
-            },
-        ];
+        let desc_layout_bindings = [vk::DescriptorSetLayoutBinding {
+            binding: 0,
+            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            descriptor_count: 1,
+            stage_flags: vk::ShaderStageFlags::FRAGMENT,
+            ..Default::default()
+        }];
 
         let push_constant_range = vk::PushConstantRange::default()
             .size(size_of::<SkyBoxUBO>() as u32)
@@ -76,10 +75,7 @@ impl SkyBoxRenderer {
             pipeline.descriptor_set_layout,
             instance.swapchain_images.len(),
         );
-        let image = VulkanImage::load_cubemap(
-            instance,
-            image::open(path).unwrap(),
-        );
+        let image = VulkanImage::load_cubemap(instance, image::open(path).unwrap());
 
         for &descriptor_set in descriptor_sets.iter() {
             let diffuse_texture = &image;
@@ -109,6 +105,7 @@ impl SkyBoxRenderer {
             image,
             push_constants,
             descriptor_pool,
+            descriptor_sets,
         }
     }
 
@@ -133,6 +130,7 @@ impl SkyBoxRenderer {
         device: &ash::Device,
         command_buffer: vk::CommandBuffer,
         camera: &Camera3D,
+        buffer_index: usize,
     ) {
         self.push_constants = SkyBoxUBO {
             projection: camera.projection,
@@ -151,7 +149,14 @@ impl SkyBoxRenderer {
                 vk::PipelineBindPoint::GRAPHICS,
                 self.pipeline.pipeline,
             );
-           
+            device.cmd_bind_descriptor_sets(
+                command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.pipeline.pipeline_layout,
+                0,
+                &&self.descriptor_sets[buffer_index..=buffer_index],
+                &[],
+            )
         };
         self.cube.bind(device, command_buffer);
         self.cube.draw(device, command_buffer);

@@ -80,6 +80,7 @@ impl VulkanImage {
             1,
             1,
             vk::ImageAspectFlags::COLOR,
+            vk::ImageViewType::TYPE_2D
         );
         if instance.validation {
             if let Some(name) = name {
@@ -179,6 +180,7 @@ impl VulkanImage {
             mip_level,
             1,
             vk::ImageAspectFlags::COLOR,
+            vk::ImageViewType::TYPE_2D,
         );
         if instance.validation {
             if let Some(name) = name {
@@ -198,9 +200,10 @@ impl VulkanImage {
     }
 
     pub fn load_cubemap(instance: &VulkanInstance, image: image::DynamicImage) -> Self {
+        // For CUBE_COMPATIABLE width and height must match
         let image_size = Extent2D {
             width: image.width(),
-            height: image.height(),
+            height: image.width(),
         };
         let image_data = match &image {
             image::DynamicImage::ImageLuma8(_) | image::DynamicImage::ImageRgb8(_) => {
@@ -266,18 +269,14 @@ impl VulkanImage {
             mip_level,
             6,
             vk::ImageAspectFlags::COLOR,
+            vk::ImageViewType::CUBE,
         );
 
         let sampler_info = vk::SamplerCreateInfo::default()
             .border_color(vk::BorderColor::FLOAT_OPAQUE_WHITE)
             .address_mode_u(vk::SamplerAddressMode::CLAMP_TO_EDGE);
 
-        let sampler = unsafe {
-            instance
-                .device
-                .create_sampler(&sampler_info, None)
-                .unwrap()
-        };
+        let sampler = unsafe { instance.device.create_sampler(&sampler_info, None).unwrap() };
 
         Self {
             image,
@@ -302,8 +301,15 @@ impl VulkanImage {
         );
 
         let memory = VulkanBuffer::new_image(device, allocator, image);
-        let image_view =
-            Self::create_image_view(image, device, format, 1, 1, vk::ImageAspectFlags::DEPTH);
+        let image_view = Self::create_image_view(
+            image,
+            device,
+            format,
+            1,
+            1,
+            vk::ImageAspectFlags::DEPTH,
+            vk::ImageViewType::TYPE_2D,
+        );
 
         DepthImage {
             image,
@@ -555,6 +561,7 @@ impl VulkanImage {
         mip_level: u32,
         layer_count: u32, // Usally 1 for Standard images
         mask: vk::ImageAspectFlags,
+        view_type: vk::ImageViewType,
     ) -> vk::ImageView {
         let image_view_info = vk::ImageViewCreateInfo::default()
             .subresource_range(
@@ -565,12 +572,11 @@ impl VulkanImage {
             )
             .image(image)
             .format(format)
-            .view_type(vk::ImageViewType::TYPE_2D);
+            .view_type(view_type);
 
         unsafe { device.create_image_view(&image_view_info, None) }.unwrap()
     }
 
-    // Do not cache, Every image uses unique memory
     fn create_image(
         device: &ash::Device,
         format: vk::Format,

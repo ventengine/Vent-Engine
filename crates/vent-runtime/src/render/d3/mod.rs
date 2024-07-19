@@ -63,7 +63,7 @@ impl Renderer for Renderer3D {
     where
         Self: Sized,
     {
-      //  let _camera: &Camera3D = camera.downcast_ref().unwrap();
+        //  let _camera: &Camera3D = camera.downcast_ref().unwrap();
 
         let skybox_image = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -289,8 +289,7 @@ impl Renderer for Renderer3D {
 
             //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
 
-            self.skybox_renderer
-                .draw(&instance.device, command_buffer, camera);
+            // self.skybox_renderer.draw(&instance.device, command_buffer, camera, image_index);
 
             self.mesh_renderer.record_buffer(
                 instance,
