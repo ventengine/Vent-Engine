@@ -188,7 +188,7 @@ impl VulkanImage {
             }
         }
 
-        let sampler_info = sampler_info.unwrap_or_default();
+        let sampler_info = sampler_info.unwrap_or_default(); // TODO
         let sampler = unsafe { instance.device.create_sampler(&sampler_info, None).unwrap() };
 
         Self {

@@ -15,9 +15,8 @@ image = "0.25"
 
 log = "0.4"
 
-ash = { version= "0.38", default-features = false, features = ["loaded"] }
+ash = { version= "0.38", default-features = false }
 
-# model
-tobj = { version = "4.0.0", features = ["async"] }
-gltf = "1.4.0"
+# model is development and we often need features/changes which are not published yet
+modelz = { git = "https://github.com/ventengine/Modelz.git" }
 

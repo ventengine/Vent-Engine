@@ -1,24 +1,14 @@
 use std::path::Path;
 
 use ash::vk;
+use loader::ModelLoader;
 use vent_rendering::instance::VulkanInstance;
 use vent_sdk::utils::stopwatch::Stopwatch;
 
-use crate::{Material, Mesh3D, Model3D};
+use crate::Model3D;
 
-use self::gltf::GLTFLoader;
-use self::obj::OBJLoader;
-
-mod gltf;
-mod obj;
+mod loader;
 mod optimizer;
-
-#[derive(Debug)]
-pub enum ModelError {
-    UnsupportedFormat,
-    FileNotExists,
-    LoadingError(String),
-}
 
 impl Model3D {
     #[inline]
@@ -30,18 +20,18 @@ impl Model3D {
         path: P,
     ) -> Self {
         let sw = Stopwatch::new_and_start();
-        let model = load_model_from_path(
+        let model = modelz::Model3D::load(path.as_ref()).expect("Failed to Load 3D Model");
+        let model = ModelLoader::load(
             instance,
             vertex_shader.as_ref(),
             fragment_shader.as_ref(),
             pipeline_layout,
-            path.as_ref(),
+            model,
         )
-        .await
-        .expect("Failed to Load 3D Model");
+        .await;
         log::info!(
             "Model {} took {}ms to Load, {} Pipelines, {} Materials",
-            path.as_ref().to_str().unwrap(),
+            path.as_ref().display(),
             sw.elapsed_ms(),
             model.pipelines.len(),
             model.materials.len(),
@@ -114,32 +104,5 @@ impl Model3D {
         });
         // We are getting an Validation error when we try to free an descriptor set, They will all automatily freed when the Descriptor pool is destroyed
         unsafe { device.destroy_descriptor_pool(self.descriptor_pool, None) };
-    }
-}
-
-async fn load_model_from_path(
-    instance: &mut VulkanInstance,
-    vertex_shader: &Path,
-    fragment_shader: &Path,
-    pipline_layout: vk::PipelineLayout,
-    path: &Path,
-) -> Result<Model3D, ModelError> {
-    if !path.exists() {
-        return Err(ModelError::FileNotExists);
-    }
-
-    let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
-
-    match extension {
-        "obj" => Ok(OBJLoader::load(instance, path).await?),
-        "gltf" | "glb" => Ok(GLTFLoader::load(
-            instance,
-            vertex_shader,
-            fragment_shader,
-            pipline_layout,
-            path,
-        )
-        .await?),
-        _ => Err(ModelError::UnsupportedFormat),
     }
 }

@@ -6,7 +6,7 @@ edition.workspace = true
 [dependencies]
 vent-rendering = { path = "../vent-rendering"}
 vent-math = { path = "../vent-math"}
-ash = { version= "0.38", default-features = false, features = ["loaded"] }
+ash = { version= "0.38", default-features = false }
 
 log = "0.4"
 

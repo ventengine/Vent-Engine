@@ -1,5 +1,5 @@
 use ash::vk::{self};
-use gltf::material::AlphaMode;
+use modelz::AlphaMode;
 use vent_rendering::{image::VulkanImage, mesh::Mesh3D};
 
 mod image;
