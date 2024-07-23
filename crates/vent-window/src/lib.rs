@@ -6,6 +6,8 @@ pub mod keyboard;
 pub mod mouse;
 pub mod platform;
 
+type EventHandler = dyn FnMut(WindowEvent);
+
 #[derive(PartialEq, Clone)]
 pub enum WindowEvent {
     Close,
@@ -92,7 +94,7 @@ impl Window {
 
     pub fn poll<F>(mut self, event_handler: F)
     where
-        F: FnMut(WindowEvent),
+        F: FnMut(WindowEvent) + 'static,
     {
         self.window.poll(event_handler);
     }

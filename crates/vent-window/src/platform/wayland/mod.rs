@@ -1,12 +1,4 @@
-use std::{
-    num::NonZeroU32,
-    ptr::NonNull,
-    sync::{
-        mpsc::{channel, Receiver, Sender},
-        Arc,
-    },
-    time::Duration,
-};
+use std::{num::NonZeroU32, ptr::NonNull, sync::Arc, time::Duration};
 
 use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle,
@@ -53,7 +45,7 @@ use xkbcommon::xkb;
 
 use crate::{
     keyboard::{Key, KeyState},
-    mouse, WindowAttribs, WindowEvent,
+    mouse, EventHandler, WindowAttribs, WindowEvent,
 };
 
 pub struct PlatformWindow {
@@ -88,8 +80,7 @@ struct WaylandWindow {
     keyboard_focus: bool,
     themed_pointer: Option<ThemedPointer>,
 
-    event_sender: Sender<WindowEvent>,
-    event_receiver: Receiver<WindowEvent>,
+    event_handler: Option<Box<EventHandler>>,
     running: bool,
 }
 
@@ -174,7 +165,7 @@ impl WaylandWindow {
                 frame.draw();
             }
         }
-        self.event_sender.send(WindowEvent::Draw).unwrap();
+        (self.event_handler.as_mut().unwrap())(WindowEvent::Draw);
         // wl_surface.damage_buffer is the preferred method of setting the damage region
         // on compositor version 4 and above.
         self.window
@@ -189,7 +180,8 @@ impl WaylandWindow {
     pub fn close(&mut self) {
         if self.running {
             log::warn!("Closing wayland window...");
-            self.event_sender.send(WindowEvent::Close).unwrap();
+            (self.event_handler.as_mut().unwrap())(WindowEvent::Close);
+
             self.running = false;
         }
     }
@@ -318,12 +310,10 @@ impl KeyboardHandler for WaylandWindow {
         _serial: u32,
         event: sctk::seat::keyboard::KeyEvent,
     ) {
-        self.event_sender
-            .send(WindowEvent::Key {
-                key: convert_key(event.keysym.raw()),
-                state: KeyState::Pressed,
-            })
-            .expect("Failed to send key event");
+        (self.event_handler.as_mut().unwrap())(WindowEvent::Key {
+            key: convert_key(event.keysym.raw()),
+            state: KeyState::Pressed,
+        })
     }
 
     fn release_key(
@@ -334,12 +324,10 @@ impl KeyboardHandler for WaylandWindow {
         _serial: u32,
         event: sctk::seat::keyboard::KeyEvent,
     ) {
-        self.event_sender
-            .send(WindowEvent::Key {
-                key: convert_key(event.keysym.raw()),
-                state: KeyState::Released,
-            })
-            .expect("Failed to send key event");
+        (self.event_handler.as_mut().unwrap())(WindowEvent::Key {
+            key: convert_key(event.keysym.raw()),
+            state: KeyState::Released,
+        });
     }
 
     fn update_modifiers(
@@ -399,9 +387,7 @@ impl PointerHandler for WaylandWindow {
                         self.set_cursor = true;
                         self.decorations_cursor = Some(new_cursor);
                     }
-                    self.event_sender
-                        .send(WindowEvent::MouseMotion { x, y })
-                        .unwrap();
+                    (self.event_handler.as_mut().unwrap())(WindowEvent::MouseMotion { x, y });
                 }
                 PointerEventKind::Press {
                     button,
@@ -440,57 +426,36 @@ impl PointerHandler for WaylandWindow {
     }
 }
 
-fn press_mouse(button: u32, state: &WaylandWindow, mouse_state: mouse::ButtonState) {
+fn press_mouse(button: u32, state: &mut WaylandWindow, mouse_state: mouse::ButtonState) {
     match button {
-        BTN_LEFT => state
-            .event_sender
-            .send(WindowEvent::MouseButton {
-                button: crate::mouse::Button::LEFT,
-                state: mouse_state,
-            })
-            .unwrap(),
-        BTN_RIGHT => state
-            .event_sender
-            .send(WindowEvent::MouseButton {
-                button: crate::mouse::Button::RIGHT,
-                state: mouse_state,
-            })
-            .unwrap(),
-        BTN_MIDDLE => state
-            .event_sender
-            .send(WindowEvent::MouseButton {
-                button: crate::mouse::Button::MIDDLE,
-                state: mouse_state,
-            })
-            .unwrap(),
-        BTN_SIDE => state
-            .event_sender
-            .send(WindowEvent::MouseButton {
-                button: crate::mouse::Button::SIDE,
-                state: mouse_state,
-            })
-            .unwrap(),
-        BTN_EXTRA => state
-            .event_sender
-            .send(WindowEvent::MouseButton {
-                button: crate::mouse::Button::EXTRA,
-                state: mouse_state,
-            })
-            .unwrap(),
-        BTN_FORWARD => state
-            .event_sender
-            .send(WindowEvent::MouseButton {
-                button: crate::mouse::Button::FORWARD,
-                state: mouse_state,
-            })
-            .unwrap(),
-        BTN_BACK => state
-            .event_sender
-            .send(WindowEvent::MouseButton {
-                button: crate::mouse::Button::BACK,
-                state: mouse_state,
-            })
-            .unwrap(),
+        BTN_LEFT => (state.event_handler.as_mut().unwrap())(WindowEvent::MouseButton {
+            button: crate::mouse::Button::LEFT,
+            state: mouse_state,
+        }),
+        BTN_RIGHT => (state.event_handler.as_mut().unwrap())(WindowEvent::MouseButton {
+            button: crate::mouse::Button::RIGHT,
+            state: mouse_state,
+        }),
+        BTN_MIDDLE => (state.event_handler.as_mut().unwrap())(WindowEvent::MouseButton {
+            button: crate::mouse::Button::MIDDLE,
+            state: mouse_state,
+        }),
+        BTN_SIDE => (state.event_handler.as_mut().unwrap())(WindowEvent::MouseButton {
+            button: crate::mouse::Button::SIDE,
+            state: mouse_state,
+        }),
+        BTN_EXTRA => (state.event_handler.as_mut().unwrap())(WindowEvent::MouseButton {
+            button: crate::mouse::Button::EXTRA,
+            state: mouse_state,
+        }),
+        BTN_FORWARD => (state.event_handler.as_mut().unwrap())(WindowEvent::MouseButton {
+            button: crate::mouse::Button::FORWARD,
+            state: mouse_state,
+        }),
+        BTN_BACK => (state.event_handler.as_mut().unwrap())(WindowEvent::MouseButton {
+            button: crate::mouse::Button::BACK,
+            state: mouse_state,
+        }),
         _ => (),
     }
 }
@@ -646,12 +611,10 @@ impl WindowHandler for WaylandWindow {
         // Update new width and height;
         self.attribs.width = width;
         self.attribs.height = height;
-        self.event_sender
-            .send(WindowEvent::Resize {
-                new_width: width.into(),
-                new_height: height.into(),
-            })
-            .unwrap();
+        (self.event_handler.as_mut().unwrap())(WindowEvent::Resize {
+            new_width: width.into(),
+            new_height: height.into(),
+        });
 
         // Initiate the first draw.
         if self.configured {
@@ -665,8 +628,6 @@ impl PlatformWindow {
     pub fn create_window(attribs: WindowAttribs) -> Self {
         let conn = wayland_client::Connection::connect_to_env().expect("Failed to get connection");
         log::debug!("Connected to Wayland Server");
-
-        let (event_sender, event_receiver) = channel::<WindowEvent>();
 
         let (globals, event_queue) = registry_queue_init(&conn).unwrap();
         let qhandle = event_queue.handle();
@@ -701,8 +662,6 @@ impl PlatformWindow {
             configured: true,
             output_state,
             seat_state,
-            event_receiver,
-            event_sender,
             _xdg_shell_state: xdg_shell_state,
             registry_state,
             shm_state,
@@ -715,6 +674,7 @@ impl PlatformWindow {
             decorations_cursor: None,
             set_cursor: false,
             themed_pointer: None,
+            event_handler: None,
             running: true,
         };
 
@@ -727,19 +687,17 @@ impl PlatformWindow {
         }
     }
 
-    pub fn poll<F>(&mut self, mut event_handler: F)
+    pub fn poll<F>(&mut self, event_handler: F)
     where
-        F: FnMut(WindowEvent),
+        F: FnMut(WindowEvent) + 'static,
     {
+        self.state.event_handler = Some(Box::new(event_handler));
+
         while self.state.running {
             self.connection.flush().unwrap();
             self.event_loop
                 .dispatch(Duration::from_millis(16), &mut self.state)
                 .expect("Failed to dispatch pending");
-
-            while let Ok(event) = self.state.event_receiver.try_recv() {
-                event_handler(event);
-            }
         }
     }
 

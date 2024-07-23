@@ -44,7 +44,7 @@ impl VentApplication {
         // TODO
         let mut renderer = DefaultRuntimeRenderer::new(&project, &app_window);
 
-        let mut controller = CameraController3D::new(30.0, 1.0);
+        let mut controller = CameraController3D::new(100.0, 1.0);
         let mut delta_time = 0.0;
 
         // TODO, Handle scale factor change
