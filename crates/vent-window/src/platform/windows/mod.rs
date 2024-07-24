@@ -1,7 +1,7 @@
 use std::{
     ffi::c_uint,
-    mem::{self},
-    sync::mpsc::{sync_channel, Receiver, SyncSender},
+    mem::{self, transmute},
+    rc::Rc,
 };
 
 use raw_window_handle::{
@@ -10,29 +10,34 @@ use raw_window_handle::{
 use windows::{
     core::PCWSTR,
     Win32::{
-        Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM},
-        System::LibraryLoader::GetModuleHandleW,
-        UI::WindowsAndMessaging::{
-            AdjustWindowRect, CreateWindowExW, DefWindowProcW, DispatchMessageW, GetClientRect,
-            LoadCursorW, PeekMessageW, PostQuitMessage, RegisterClassExW, ShowWindow,
-            TranslateMessage, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, GWLP_HINSTANCE, IDC_ARROW,
-            MSG, PM_REMOVE, SW_SHOW, WINDOW_EX_STYLE, WM_DESTROY, WM_PAINT, WM_QUIT, WM_SIZE,
-            WNDCLASSEXW, WS_OVERLAPPEDWINDOW,
+        Foundation::{GetLastError, HWND, LPARAM, LRESULT, RECT, WPARAM},
+        System::{Com::GetErrorInfo, LibraryLoader::GetModuleHandleW},
+        UI::{
+            Input::KeyboardAndMouse::*,
+            WindowsAndMessaging::{
+                AdjustWindowRect, CreateWindowExW, DefWindowProcW, DispatchMessageW, GetClientRect,
+                GetWindowLongPtrW, LoadCursorW, PeekMessageW, PostQuitMessage, RegisterClassExW,
+                SetWindowLongPtrW, ShowWindow, TranslateMessage, CREATESTRUCTW, CS_HREDRAW,
+                CS_VREDRAW, CW_USEDEFAULT, GWLP_HINSTANCE, GWLP_USERDATA, IDC_ARROW, MSG,
+                PM_REMOVE, SW_SHOW, WINDOW_EX_STYLE, WM_CREATE, WM_DESTROY, WM_KEYDOWN, WM_KEYUP,
+                WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_PAINT, WM_QUIT, WM_RBUTTONDOWN,
+                WM_RBUTTONUP, WM_SIZE, WM_SYSKEYDOWN, WM_SYSKEYUP, WNDCLASSEXW,
+                WS_OVERLAPPEDWINDOW,
+            },
         },
     },
 };
 
-use crate::{WindowAttribs, WindowEvent};
+use crate::{EventHandler, WindowAttribs, WindowEvent};
 
 pub struct PlatformWindow {
     hwnd: HWND,
-    data: WindowsWindow,
+    data: Rc<WindowsWindow>,
 }
 
 pub struct WindowsWindow {
     pub attribs: WindowAttribs,
-    event_sender: SyncSender<WindowEvent>,
-    event_receiver: Receiver<WindowEvent>,
+    event_handler: Option<Box<EventHandler>>,
 }
 
 impl PlatformWindow {
@@ -63,12 +68,9 @@ impl PlatformWindow {
             panic!("Failed register class.");
         }
 
-        let (event_sender, event_receiver) = sync_channel::<WindowEvent>(1);
-
-        let windows_window = WindowsWindow {
+        let mut windows_window = WindowsWindow {
             attribs,
-            event_sender,
-            event_receiver,
+            event_handler: None,
         };
 
         let mut window_rect = RECT {
@@ -95,7 +97,7 @@ impl PlatformWindow {
                 None, // Parent
                 None, // Menu
                 h_instance,
-                None,
+                Some(&mut windows_window as *mut _ as _),
             )
         }
         .expect("Failed to create window.");
@@ -104,15 +106,22 @@ impl PlatformWindow {
 
         Self {
             hwnd,
-            data: windows_window,
+            data: windows_window.into(),
         }
     }
 
-    #[allow(unused_mut)]
-    pub fn poll<F>(&mut self, mut event_handler: F)
+    pub fn poll<F>(&mut self, event_handler: F)
     where
-        F: FnMut(WindowEvent),
+        F: FnMut(WindowEvent) + 'static,
     {
+        let data = Rc::get_mut(&mut self.data).unwrap();
+        data.event_handler = Some(Box::new(event_handler));
+        let input_ptr = Box::into_raw(Box::new(data));
+        let create_struct: &CREATESTRUCTW = unsafe {
+            &*(input_ptr as *const windows::Win32::UI::WindowsAndMessaging::CREATESTRUCTW)
+        };
+        unsafe { SetWindowLongPtrW(self.hwnd, GWLP_USERDATA, create_struct.lpCreateParams as _) };
+
         loop {
             let mut msg = MSG::default();
 
@@ -122,10 +131,22 @@ impl PlatformWindow {
                     DispatchMessageW(&msg);
                 }
 
-                self.data.event_sender.send(WindowEvent::Draw).unwrap();
+                // self.data.event_sender.send(WindowEvent::Draw).unwrap();
 
-                while let Ok(event) = self.data.event_receiver.try_recv() {
-                    event_handler(event);
+                #[cfg(debug_assertions)]
+                {
+                // Currently we get error 87 all the time
+                /*     let s = unsafe { GetLastError() };
+                    if s.0 != 0 {
+                        let info = unsafe { GetErrorInfo(s.0) };
+                        eprintln!("Error {}", s.0);
+                        if let Ok(info) = info {
+                            if let Ok(desc) = unsafe { info.GetDescription() } {
+                                eprintln!("Description {}", desc);
+                            }
+                        }
+                    }
+                */
                 }
 
                 if msg.message == WM_QUIT {
@@ -173,12 +194,27 @@ pub unsafe extern "system" fn window_proc(
     l_param: LPARAM,
 ) -> LRESULT {
     match msg {
-        WM_PAINT => LRESULT::default(),
-        WM_DESTROY => {
-            unsafe { PostQuitMessage(0) };
+        WM_CREATE => {
+            unsafe {
+                let create_struct: &CREATESTRUCTW = transmute(l_param);
+                SetWindowLongPtrW(hwnd, GWLP_USERDATA, create_struct.lpCreateParams as _);
+            }
             LRESULT::default()
         }
-        _ => unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) },
+        _ => {
+            // Get the user data associated with the window
+            let user_data_ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA);
+            let data = std::ptr::NonNull::<WindowsWindow>::new(user_data_ptr as _);
+            // Dereference the pointer to access the actual data
+            let handled = data.map_or(false, |mut s| {
+                s.as_mut().progress_message(hwnd, msg, w_param, l_param)
+            });
+            if handled {
+                LRESULT::default()
+            } else {
+                unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) }
+            }
+        }
     }
 }
 
@@ -187,28 +223,162 @@ impl WindowsWindow {
         &mut self,
         hwnd: HWND,
         message: c_uint,
-        _wparam: WPARAM,
-        _lparam: LPARAM,
-    ) {
+        wparam: WPARAM,
+        lparam: LPARAM,
+    ) -> bool {
         match message {
             WM_DESTROY => {
-                self.event_sender.send(WindowEvent::Close).unwrap();
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::Close)
+                }
                 unsafe { PostQuitMessage(0) };
+                true
             }
             WM_PAINT => {
-                self.event_sender.send(WindowEvent::Draw).unwrap();
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::Draw)
+                }
+                true
             }
             WM_SIZE => {
                 let mut rect = RECT::default();
                 unsafe { GetClientRect(hwnd, &mut rect).expect("Failed to get Client rect area") };
-                self.event_sender
-                    .send(WindowEvent::Resize {
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::Resize {
                         new_width: rect.right as u32,
                         new_height: rect.bottom as u32,
-                    })
-                    .unwrap();
+                    });
+                }
+                true
             }
-            _ => {}
+            WM_SYSKEYDOWN | WM_KEYDOWN => {
+                let vkcode = loword(wparam.0 as u32);
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::Key {
+                        key: convert_key(VIRTUAL_KEY(vkcode)),
+                        state: crate::keyboard::KeyState::Pressed,
+                    });
+                }
+                true
+            }
+            WM_SYSKEYUP | WM_KEYUP => {
+                let vkcode = loword(wparam.0 as u32);
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::Key {
+                        key: convert_key(VIRTUAL_KEY(vkcode)),
+                        state: crate::keyboard::KeyState::Released,
+                    });
+                }
+                true
+            }
+            WM_RBUTTONDOWN => {
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::MouseButton {
+                        button: crate::mouse::Button::RIGHT,
+                        state: crate::mouse::ButtonState::Pressed,
+                    });
+                }
+                true
+            }
+            WM_RBUTTONUP => {
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::MouseButton {
+                        button: crate::mouse::Button::RIGHT,
+                        state: crate::mouse::ButtonState::Released,
+                    });
+                }
+                true
+            }
+            WM_LBUTTONUP => {
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::MouseButton {
+                        button: crate::mouse::Button::LEFT,
+                        state: crate::mouse::ButtonState::Released,
+                    });
+                }
+                true
+            }
+            WM_LBUTTONDOWN => {
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::MouseButton {
+                        button: crate::mouse::Button::LEFT,
+                        state: crate::mouse::ButtonState::Pressed,
+                    });
+                }
+                true
+            }
+            WM_MOUSEMOVE => {
+                let x = get_x_lparam(lparam.0 as u32) as i32;
+                let y = get_y_lparam(lparam.0 as u32) as i32;
+                if let Some(handler) = self.event_handler.as_mut() {
+                    handler(WindowEvent::MouseMotion {
+                        x: x as f64,
+                        y: y as f64,
+                    });
+                }
+                true
+            }
+            _ => false,
         }
     }
+}
+use crate::keyboard::Key;
+
+fn convert_key(key: VIRTUAL_KEY) -> Key {
+    match key {
+        VK_A => Key::A,
+        VK_B => Key::B,
+        VK_C => Key::C,
+        VK_D => Key::D,
+        VK_E => Key::E,
+        VK_F => Key::F,
+        VK_G => Key::G,
+        VK_H => Key::H,
+        VK_I => Key::I,
+        VK_J => Key::J,
+        VK_K => Key::K,
+        VK_L => Key::L,
+        VK_M => Key::M,
+        VK_N => Key::N,
+        VK_O => Key::O,
+        VK_P => Key::P,
+        VK_Q => Key::Q,
+        VK_R => Key::R,
+        VK_S => Key::S,
+        VK_T => Key::T,
+        VK_U => Key::U,
+        VK_V => Key::V,
+        VK_W => Key::W,
+        VK_X => Key::X,
+        VK_Y => Key::Y,
+        VK_Z => Key::Z,
+        VK_SPACE => Key::Space,
+        VK_LSHIFT => Key::ShiftL,
+        VK_RSHIFT => Key::ShiftR,
+        VK_LEFT => Key::Leftarrow,
+        VK_RIGHT => Key::Rightarrow,
+        VK_UP => Key::Uparrow,
+        VK_DOWN => Key::Downarrow,
+        _ => Key::Unknown,
+    }
+}
+
+#[inline(always)]
+pub(crate) const fn loword(x: u32) -> u16 {
+    (x & 0xffff) as u16
+}
+
+#[inline(always)]
+const fn hiword(x: u32) -> u16 {
+    ((x >> 16) & 0xffff) as u16
+}
+
+#[inline(always)]
+const fn get_x_lparam(x: u32) -> i16 {
+    loword(x) as _
+}
+
+#[inline(always)]
+const fn get_y_lparam(x: u32) -> i16 {
+    hiword(x) as _
 }
