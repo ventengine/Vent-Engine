@@ -10,8 +10,8 @@ use raw_window_handle::{
 use windows::{
     core::PCWSTR,
     Win32::{
-        Foundation::{GetLastError, HWND, LPARAM, LRESULT, RECT, WPARAM},
-        System::{Com::GetErrorInfo, LibraryLoader::GetModuleHandleW},
+        Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM},
+        System::LibraryLoader::GetModuleHandleW,
         UI::{
             Input::KeyboardAndMouse::*,
             WindowsAndMessaging::{
