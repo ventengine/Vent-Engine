@@ -27,8 +27,8 @@ A Window creation & management Library
 | Window Maximization | ✅️     |
 | Window Resizing     | ✅️     |
 | Vulkan Rendering    | ✅️     |
-| Keyboard Support    | ❌     |
-| Mouse Support       | ❌     |
+| Keyboard Support    | ✅️     |
+| Mouse Support       | ✅️     |
 | GamePad Support     | ❌     |
 | Touch Support       | ❌     |
 | Touch Support       | ❌     |

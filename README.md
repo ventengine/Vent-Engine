@@ -45,7 +45,7 @@ Vent-Engine Platform Support:
 
 | Platform | Runtime | Editor |
 | -------- | ------- | ------ |
-| Windows  | 😬     | **❓** |
+| Windows  | ✅️     | **❓** |
 | MacOS    | **❓**  | **❓** |
 | Linux     | ✅️     | **❓** |
 | Redox    | **❓**  | **❓** |
