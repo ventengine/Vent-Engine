@@ -3,7 +3,7 @@ use crate::render::Dimension;
 use project::{RenderSettings, VentApplicationProject};
 use render::{camera::camera_controller3d::CameraController3D, DefaultRuntimeRenderer};
 
-use util::{crash::init_panic_hook, version::Version};
+use util::{crash::init_panic_hook, input_handler::InputHandler, version::Version};
 use vent_logging::Logger;
 use vent_window::{Window, WindowAttribs, WindowEvent};
 
@@ -44,22 +44,22 @@ impl VentApplication {
         // TODO
         let mut renderer = DefaultRuntimeRenderer::new(&project, &app_window);
 
-        let mut controller = CameraController3D::new(100.0, 1.0);
+        let mut input_handler = InputHandler::default();
+
+        let mut controller = CameraController3D::new(5.0, 1.0);
         let mut delta_time = 0.0;
 
         // TODO, Handle scale factor change
         app_window.poll(move |event| {
+            controller.process_keyboard(
+                renderer.camera.downcast_mut().expect("TODO"),
+                &input_handler,
+                delta_time,
+            );
             renderer.progress_event(&event);
             match event {
                 WindowEvent::Close => {} // Closes automaticly
-                WindowEvent::Key { key, state } => {
-                    controller.process_keyboard(
-                        renderer.camera.downcast_mut().expect("TODO"),
-                        key,
-                        state,
-                        delta_time,
-                    );
-                }
+                WindowEvent::Key { key, state } => input_handler.set_key(key, state),
                 WindowEvent::MouseButton { button, state } => {
                     controller.process_mouse_input(&button, &state);
                 }

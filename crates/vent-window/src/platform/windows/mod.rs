@@ -135,18 +135,18 @@ impl PlatformWindow {
 
                 #[cfg(debug_assertions)]
                 {
-                // Currently we get error 87 all the time
-                /*     let s = unsafe { GetLastError() };
-                    if s.0 != 0 {
-                        let info = unsafe { GetErrorInfo(s.0) };
-                        eprintln!("Error {}", s.0);
-                        if let Ok(info) = info {
-                            if let Ok(desc) = unsafe { info.GetDescription() } {
-                                eprintln!("Description {}", desc);
+                    // Currently we get error 87 all the time
+                    /*     let s = unsafe { GetLastError() };
+                        if s.0 != 0 {
+                            let info = unsafe { GetErrorInfo(s.0) };
+                            eprintln!("Error {}", s.0);
+                            if let Ok(info) = info {
+                                if let Ok(desc) = unsafe { info.GetDescription() } {
+                                    eprintln!("Description {}", desc);
+                                }
                             }
                         }
-                    }
-                */
+                    */
                 }
 
                 if msg.message == WM_QUIT {
@@ -154,6 +154,10 @@ impl PlatformWindow {
                 }
             }
         }
+    }
+
+    pub fn set_cursor_visible(&mut self, visible: bool) {
+        todo!()
     }
 
     pub fn width(&self) -> u32 {

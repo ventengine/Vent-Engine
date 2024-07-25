@@ -701,6 +701,15 @@ impl PlatformWindow {
         }
     }
 
+    pub fn set_cursor_visible(&mut self, visible: bool) {
+        let icon = if visible {
+            Some(CursorIcon::Default)
+        } else {
+            None
+        };
+        self.state.decorations_cursor = icon;
+    }
+
     pub fn width(&self) -> u32 {
         self.state.attribs.width.into()
     }

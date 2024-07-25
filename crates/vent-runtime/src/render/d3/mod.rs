@@ -287,8 +287,6 @@ impl Renderer for Renderer3D {
                 .device
                 .cmd_set_viewport(command_buffer, 0, &[viewport]);
 
-            //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
-
             // self.skybox_renderer.draw(&instance.device, command_buffer, camera, image_index);
 
             self.mesh_renderer.record_buffer(
@@ -298,6 +296,8 @@ impl Renderer for Renderer3D {
                 self.pipeline_layout,
                 camera,
             );
+
+            //    self.light_renderer.render(instance, command_buffer, image_index, &self.tmp_light_mesh);
 
             //  camera.write(instance, self.pipeline_layout, command_buffer);
 

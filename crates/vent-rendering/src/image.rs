@@ -102,6 +102,7 @@ impl VulkanImage {
     pub fn from_image(
         instance: &VulkanInstance,
         image: image::DynamicImage,
+        mipmaps: bool,
         sampler_info: Option<vk::SamplerCreateInfo>,
         name: Option<&str>,
     ) -> Self {
@@ -129,10 +130,14 @@ impl VulkanImage {
             Some(&format!("Staging of {}", name.unwrap_or("Unknown"))),
         );
 
-        let mip_level = (image_size.width.max(image_size.height) as f32)
-            .log2()
-            .floor() as u32
-            + 1;
+        let mip_level = if mipmaps {
+            (image_size.width.max(image_size.height) as f32)
+                .log2()
+                .floor() as u32
+                + 1
+        } else {
+            1
+        };
 
         let format = vk::Format::R8G8B8A8_UNORM;
 
@@ -159,20 +164,21 @@ impl VulkanImage {
             instance.global_command_pool,
             image_size,
             mip_level,
-            false,
+            !mipmaps,
         );
         staging_buffer.destroy(&instance.device);
 
-        Self::generate_mipmaps(
-            instance,
-            image,
-            instance.global_command_pool,
-            image_size.width,
-            image_size.height,
-            mip_level,
-            1,
-        );
-
+        if mipmaps {
+            Self::generate_mipmaps(
+                instance,
+                image,
+                instance.global_command_pool,
+                image_size.width,
+                image_size.height,
+                mip_level,
+                1,
+            );
+        }
         let image_view = Self::create_image_view(
             image,
             &instance.device,
@@ -248,19 +254,9 @@ impl VulkanImage {
             instance.global_command_pool,
             image_size,
             mip_level,
-            false,
+            true,
         );
         staging_buffer.destroy(&instance.device);
-
-        Self::generate_mipmaps(
-            instance,
-            image,
-            instance.global_command_pool,
-            image_size.width,
-            image_size.height,
-            mip_level,
-            6,
-        );
 
         let image_view = Self::create_image_view(
             image,
@@ -318,13 +314,19 @@ impl VulkanImage {
         }
     }
 
-    pub fn from_color(instance: &VulkanInstance, color: [u8; 4], size: Extent2D) -> Self {
+    pub fn from_color(
+        instance: &VulkanInstance,
+        color: [u8; 4],
+        size: Extent2D,
+        name: Option<&str>,
+    ) -> Self {
         let color_img = image::RgbaImage::from_pixel(size.width, size.height, image::Rgba(color));
         Self::from_image(
             instance,
             image::DynamicImage::ImageRgba8(color_img),
+            false,
             None,
-            None,
+            name,
         )
     }
 

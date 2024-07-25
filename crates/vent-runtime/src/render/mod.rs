@@ -169,6 +169,10 @@ impl RawRuntimeRenderer {
                         .unwrap();
                 }
                 self.cmd_renderpass(instance, command_buffer, image_index as usize);
+
+                self.multi_renderer
+                    .render(instance, image_index, command_buffer, camera);
+
                 self.gui_renderer.render_text(
                     instance,
                     command_buffer,
@@ -179,9 +183,6 @@ impl RawRuntimeRenderer {
                     0.5,
                     255255255,
                 );
-
-                self.multi_renderer
-                    .render(instance, image_index, command_buffer, camera);
 
                 let subpass_end_info = vk::SubpassEndInfo::default();
                 unsafe {
@@ -273,7 +274,7 @@ impl RawRuntimeRenderer {
     fn calc_render_data(&mut self, frame_start: Instant) -> RenderData {
         self.current_frames += 1;
 
-        self.delta_time = frame_start.elapsed().as_secs_f32();
+        self.delta_time = frame_start.elapsed().as_millis() as f32;
 
         let now = Instant::now();
         if now - self.last_fps >= Duration::from_secs(1) {

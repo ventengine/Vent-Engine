@@ -270,20 +270,18 @@ impl ModelLoader {
             VulkanImage::from_image(
                 instance,
                 diffuse_texture.image,
+                true,
                 Some(Self::convert_sampler(diffuse_texture.sampler)),
                 data.name.as_deref(), // TODO: use texture name not material name
             )
         } else {
-            let image = image::DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
-                128,
-                128,
-                image::Rgba([255, 255, 255, 255]),
-            ));
-
-            VulkanImage::from_image(
+            VulkanImage::from_color(
                 instance,
-                image,
-                None,
+                [255, 255, 255, 255],
+                vk::Extent2D {
+                    width: 128,
+                    height: 128,
+                },
                 data.name.as_deref(), // TODO: use texture name not material name
             )
         };

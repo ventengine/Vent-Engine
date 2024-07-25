@@ -129,7 +129,7 @@ impl AbGlyphLoader {
         // TODO: No mipmaps
         let dimensions = image.dimensions();
         let mut texture =
-            VulkanImage::from_image(instance, DynamicImage::ImageRgba8(image), None, None);
+            VulkanImage::from_image(instance, DynamicImage::ImageRgba8(image), false, None, None);
 
         // TODO: store everything in an Texture Atlas
         let descriptor_sets = VulkanInstance::allocate_descriptor_sets(

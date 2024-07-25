@@ -1,5 +1,7 @@
-use vent_math::vec::vec2::Vec2;
-use vent_window::keyboard::{self, Key};
+use vent_math::vec::{vec2::Vec2, vec3::Vec3};
+use vent_window::keyboard::Key;
+
+use crate::util::input_handler::InputHandler;
 
 use super::Camera3D;
 
@@ -30,46 +32,34 @@ impl CameraController3D {
     pub fn process_keyboard(
         &self,
         camera: &mut Camera3D,
-        key: keyboard::Key,
-        state: keyboard::KeyState,
+        input_handler: &InputHandler,
         delta_time: f32,
-    ) -> bool {
-        if state == keyboard::KeyState::Pressed {
-            let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
-            match key {
-                // Arrow keys works but WASD not :C
-                Key::W | Key::Uparrow => {
-                    camera.position.x += sin_pitch * self.speed * delta_time;
-                    camera.position.z += cos_pitch * self.speed * delta_time;
-                    return true;
-                }
-                Key::S | Key::Downarrow => {
-                    camera.position.x -= sin_pitch * self.speed * delta_time;
-                    camera.position.z -= cos_pitch * self.speed * delta_time;
-                    return true;
-                }
-                Key::A | Key::Leftarrow => {
-                    camera.position.x -= cos_pitch * self.speed * delta_time;
-                    camera.position.x += sin_pitch * self.speed * delta_time;
-                    return true;
-                }
-                Key::D | Key::Rightarrow => {
-                    camera.position.x += cos_pitch * self.speed * delta_time;
-                    camera.position.z -= sin_pitch * self.speed * delta_time;
-                    return true;
-                }
-                Key::Space => {
-                    camera.position.y += self.speed * delta_time;
-                    return true;
-                }
-                Key::ShiftL => {
-                    camera.position.y -= self.speed * delta_time;
-                    return true;
-                }
-                _ => return false,
-            }
+    ) {
+        let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
+        let (sin_yaw, cos_yaw) = camera.rotation.y.sin_cos();
+
+        if input_handler.is_pressed(Key::W) | input_handler.is_pressed(Key::Uparrow) {
+            camera.position += Vec3::new(cos_pitch * cos_yaw, sin_pitch, -cos_pitch * sin_yaw)
+                * self.speed
+                * delta_time;
         }
-        false
+        if input_handler.is_pressed(Key::S) | input_handler.is_pressed(Key::Downarrow) {
+            camera.position -= Vec3::new(cos_pitch * cos_yaw, sin_pitch, -cos_pitch * sin_yaw)
+                * self.speed
+                * delta_time;
+        }
+        if input_handler.is_pressed(Key::A) | input_handler.is_pressed(Key::Leftarrow) {
+            camera.position -= Vec3::new(sin_yaw, 0.0, cos_yaw) * self.speed * delta_time;
+        }
+        if input_handler.is_pressed(Key::D) | input_handler.is_pressed(Key::Rightarrow) {
+            camera.position += Vec3::new(sin_yaw, 0.0, cos_yaw) * self.speed * delta_time;
+        }
+        if input_handler.is_pressed(Key::Space) {
+            camera.position.y += self.speed * delta_time;
+        }
+        if input_handler.is_pressed(Key::ShiftL) {
+            camera.position.y -= self.speed * delta_time;
+        }
     }
 
     pub fn process_mouse_input(
@@ -79,7 +69,6 @@ impl CameraController3D {
     ) {
         if button == &vent_window::mouse::Button::LEFT {
             self.mouse_left_down = state == &vent_window::mouse::ButtonState::Pressed;
-            // window.set_cursor_visible(!self.mouse_left_down); TODO
         }
     }
 
@@ -98,8 +87,8 @@ impl CameraController3D {
 
             let moveposition =
                 deltaposition * Vec2::new(self.sensitivity_x, self.sensitivity_y) * delta_time;
-            camera.rotation.x += moveposition.x;
-            camera.rotation.y += moveposition.y;
+            camera.rotation.x += moveposition.x.to_radians();
+            camera.rotation.y += moveposition.y.to_radians();
         }
     }
 }

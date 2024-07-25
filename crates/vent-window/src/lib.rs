@@ -99,6 +99,10 @@ impl Window {
         self.window.poll(event_handler);
     }
 
+    pub fn set_cursor_visible(&mut self, visible: bool) {
+        self.window.set_cursor_visible(visible)
+    }
+
     pub fn close(&mut self) {
         self.window.close()
     }
@@ -114,8 +118,6 @@ impl Window {
     pub fn size(&self) -> (u32, u32) {
         (self.window.width(), self.window.height())
     }
-
-    pub fn set_cursor_visible() {}
 }
 
 impl HasDisplayHandle for Window {
