@@ -156,7 +156,7 @@ impl PlatformWindow {
         }
     }
 
-    pub fn set_cursor_visible(&mut self, visible: bool) {
+    pub fn set_cursor_visible(&mut self, _visible: bool) {
         todo!()
     }
 
