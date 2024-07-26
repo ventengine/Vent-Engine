@@ -37,28 +37,38 @@ impl CameraController3D {
     ) {
         let (sin_pitch, cos_pitch) = camera.rotation.x.sin_cos();
         let (sin_yaw, cos_yaw) = camera.rotation.y.sin_cos();
+        let mut moved = false;
 
         if input_handler.is_pressed(Key::W) | input_handler.is_pressed(Key::Uparrow) {
             camera.position += Vec3::new(cos_pitch * cos_yaw, sin_pitch, -cos_pitch * sin_yaw)
                 * self.speed
                 * delta_time;
+            moved = true;
         }
         if input_handler.is_pressed(Key::S) | input_handler.is_pressed(Key::Downarrow) {
             camera.position -= Vec3::new(cos_pitch * cos_yaw, sin_pitch, -cos_pitch * sin_yaw)
                 * self.speed
                 * delta_time;
+            moved = true;
         }
         if input_handler.is_pressed(Key::A) | input_handler.is_pressed(Key::Leftarrow) {
             camera.position -= Vec3::new(sin_yaw, 0.0, cos_yaw) * self.speed * delta_time;
+            moved = true;
         }
         if input_handler.is_pressed(Key::D) | input_handler.is_pressed(Key::Rightarrow) {
             camera.position += Vec3::new(sin_yaw, 0.0, cos_yaw) * self.speed * delta_time;
+            moved = true;
         }
         if input_handler.is_pressed(Key::Space) {
             camera.position.y += self.speed * delta_time;
+            moved = true;
         }
         if input_handler.is_pressed(Key::ShiftL) {
             camera.position.y -= self.speed * delta_time;
+            moved = true;
+        }
+        if moved {
+            camera.recreate_view();
         }
     }
 
@@ -89,6 +99,7 @@ impl CameraController3D {
                 deltaposition * Vec2::new(self.sensitivity_x, self.sensitivity_y) * delta_time;
             camera.rotation.x += moveposition.x.to_radians();
             camera.rotation.y += moveposition.y.to_radians();
+            camera.recreate_direction();
         }
     }
 }

@@ -58,6 +58,7 @@ pub struct Camera3D {
     pub transformation: Mat4,
 
     pub position: Vec3,
+    pub direction: Vec3,
     pub rotation: Quat,
 }
 
@@ -76,17 +77,23 @@ impl Camera for Camera3D {
             position: Vec3::ZERO,
             ubo: Default::default(),
             projection: Mat4::IDENTITY,
+            direction: Vec3::ZERO,
             view: Mat4::IDENTITY,
             transformation: Mat4::IDENTITY,
         };
         // we should configure
         cam.recreate_projection(aspect_ratio);
-        cam.recreate_view();
+        cam.recreate_direction();
         cam.calc_matrix();
 
         cam
     }
 
+    // Only recreate when:
+    // FOV is changed
+    // Aspect ratio is changed
+    // znear is changed
+    // zfar is changed
     fn recreate_projection(&mut self, aspect_ratio: f32) {
         self.projection =
             Mat4::perspective_rh(self.fovy.to_radians(), aspect_ratio, self.znear, self.zfar);
@@ -98,8 +105,9 @@ impl Camera for Camera3D {
 impl Camera3D {
     pub fn update_set() {}
 
+    /// Call when position changed
     pub fn recreate_view(&mut self) {
-        let view = Mat4::look_at_rh(self.position, self.position + self.direction(), Vec3::Y);
+        let view = Mat4::look_at_rh(self.position, self.position + self.direction, Vec3::Y);
         self.ubo.view_position = self.position;
         self.view = view;
     }
@@ -126,11 +134,12 @@ impl Camera3D {
     }
 
     #[inline]
-    #[must_use]
-    fn direction(&self) -> Vec3 {
+    /// Call when rotation changed
+    pub fn recreate_direction(&mut self) {
         let (sin_yaw, cos_yaw) = self.rotation.x.sin_cos();
         let (sin_pitch, cos_pitch) = self.rotation.y.sin_cos();
 
-        Vec3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize()
+        self.direction = Vec3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw).normalize();
+        self.recreate_view()
     }
 }

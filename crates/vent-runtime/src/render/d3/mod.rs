@@ -266,8 +266,6 @@ impl Renderer for Renderer3D {
     ) {
         let camera: &mut Camera3D = camera.downcast_mut().unwrap();
 
-        camera.recreate_view();
-
         let image_index = image_index as usize;
 
         let render_area = vk::Rect2D::default()
