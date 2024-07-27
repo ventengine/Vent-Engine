@@ -144,7 +144,7 @@ impl Renderer for Renderer3D {
 
         let model = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/models/test/Sponza-GLTF/Sponza.gltf"
+            "/assets/models/test/bistro_outside.glb"
         );
 
         // Sponza-GLTF/Sponza.gltf
