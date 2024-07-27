@@ -4,7 +4,12 @@ use ash::vk;
 use image::GenericImageView;
 use vent_math::scalar::mat4::Mat4;
 use vent_rendering::{
-    any_as_u8_slice, image::{SkyBoxImages, VulkanImage}, instance::VulkanInstance, mesh::Mesh3D, pipeline::VulkanPipeline, vertex::VertexPos3D
+    any_as_u8_slice,
+    image::{SkyBoxImages, VulkanImage},
+    instance::VulkanInstance,
+    mesh::Mesh3D,
+    pipeline::VulkanPipeline,
+    vertex::VertexPos3D,
 };
 
 use crate::render::{camera::Camera3D, d3::create_simple_cube};

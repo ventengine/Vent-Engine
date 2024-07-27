@@ -5,7 +5,8 @@ use ash::{
     vk::{self, PipelineShaderStageCreateInfo},
 };
 use vent_rendering::{
-    image::VulkanImage, instance::VulkanInstance, mesh::Mesh3D, vertex::Vertex3D, MaterialPipelineInfo, DEFAULT_TEXTURE_FILTER
+    image::VulkanImage, instance::VulkanInstance, mesh::Mesh3D, vertex::Vertex3D,
+    MaterialPipelineInfo, DEFAULT_TEXTURE_FILTER,
 };
 
 use crate::{Material, Model3D, ModelPipeline};

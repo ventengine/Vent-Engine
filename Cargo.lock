@@ -673,12 +673,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 
 [[package]]
-name = "fs_extra"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
-
-[[package]]
 name = "getrandom"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2068,7 +2062,6 @@ dependencies = [
  "ash",
  "chrono",
  "downcast-rs",
- "fs_extra",
  "image",
  "log",
  "ndk",
@@ -2095,7 +2088,6 @@ version = "0.1.0"
 dependencies = [
  "ab_glyph",
  "ash",
- "fs_extra",
  "image",
  "log",
  "vent-math",

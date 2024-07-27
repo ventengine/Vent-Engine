@@ -49,7 +49,8 @@ impl Font {
 
         let characters = &self.characters;
 
-        if !self.buffer_cache.contains_key(&text) { // Todo, Support changing colors for same text
+        if !self.buffer_cache.contains_key(&text) {
+            // Todo, Support changing colors for same text
             let mut batched_vertices = Vec::new();
             // Loop through each character in the text
             let mut current_x = x;

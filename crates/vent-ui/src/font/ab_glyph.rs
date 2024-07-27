@@ -126,7 +126,6 @@ impl AbGlyphLoader {
         //     height: all_px_bounds.height() as u32,
         // };
 
-        // TODO: No mipmaps
         let dimensions = image.dimensions();
         let mut texture =
             VulkanImage::from_image(instance, DynamicImage::ImageRgba8(image), false, None, None);

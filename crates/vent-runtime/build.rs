@@ -1,8 +1,5 @@
 use std::{env, fs::DirEntry, io::Result};
 
-use fs_extra::copy_items;
-use fs_extra::dir::CopyOptions;
-
 use std::{
     env::var,
     fs,
@@ -15,13 +12,28 @@ fn main() {
     println!("cargo:rerun-if-changed=assets/*");
 
     let out_dir = env::var("OUT_DIR").expect("Var: OUT_DIR Not found!");
-    let copy_options = CopyOptions::new().overwrite(true);
-    copy_items(&["assets/"], out_dir, &copy_options).expect("Failed to copy to resource Folder");
+    copy_dir_all("assets/", out_dir).expect("Failed to copy to resource Folder");
 
     if !should_skip_shader_compilation() {
         println!("Compiling shaders");
         compile_shaders(&get_shader_source_dir_path());
     }
+}
+
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<()> {
+    let src = src.as_ref();
+    let dst = dst.as_ref();
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(entry.path(), dst.join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
 
 fn should_skip_shader_compilation() -> bool {

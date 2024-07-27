@@ -35,7 +35,3 @@ downcast-rs = "1.2.0"
 android_logger = "0.14"
 android-activity = { version = "0.6", features = [ "game-activity" ] }
 ndk = "0.9.0"
-
-
-[build-dependencies]
-fs_extra = "1.3.0"

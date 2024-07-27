@@ -10,7 +10,8 @@ use vent_math::{
     vec::{vec3::Vec3, vec4::Vec4},
 };
 use vent_rendering::{
-    any_as_u8_slice, buffer::VulkanBuffer, image::SkyBoxImages, instance::VulkanInstance, mesh::Mesh3D, vertex::VertexPos3D
+    any_as_u8_slice, buffer::VulkanBuffer, image::SkyBoxImages, instance::VulkanInstance,
+    mesh::Mesh3D, vertex::VertexPos3D,
 };
 
 use super::{
