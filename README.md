@@ -19,8 +19,8 @@
 
 ### 🏗 Current Status
 Vent-Engine is currently in heavy development, Here is how it currently looks:
-![image](https://github.com/Snowiiii/Vent-Engine/assets/71594357/5dd81844-9d01-4795-a0fc-4f9e5a5c1a4e)
-**(09.07.2024)**
+![image](https://github.com/user-attachments/assets/fbcc183c-a189-4dc1-991c-caa8a22ad47e)
+**(27.07.2024)**
 
 ### How to run?
 This section explains how to compile and run the Vent Engine from source code. Since it's under heavy development, there are currently no pre-built releases available.
