@@ -299,8 +299,6 @@ impl VulkanImage {
             .address_mode_w(vk::SamplerAddressMode::CLAMP_TO_EDGE)
             .mag_filter(vk::Filter::LINEAR)
             .min_filter(vk::Filter::LINEAR);
-        
-            
 
         let sampler = unsafe { instance.device.create_sampler(&sampler_info, None).unwrap() };
 
@@ -360,6 +358,7 @@ impl VulkanImage {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn copy_buffer_to_image(
         instance: &VulkanInstance,
         image: vk::Image,
