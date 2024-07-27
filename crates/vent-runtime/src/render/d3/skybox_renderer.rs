@@ -1,10 +1,15 @@
 use std::mem::size_of;
 
 use ash::vk;
+use image::GenericImageView;
 use vent_math::scalar::mat4::Mat4;
 use vent_rendering::{
-    any_as_u8_slice, image::VulkanImage, instance::VulkanInstance, mesh::Mesh3D,
-    pipeline::VulkanPipeline, Vertex3D,
+    any_as_u8_slice,
+    image::{SkyBoxImages, VulkanImage},
+    instance::VulkanInstance,
+    mesh::Mesh3D,
+    pipeline::VulkanPipeline,
+    Vertex3D,
 };
 
 use crate::render::camera::Camera3D;
@@ -28,7 +33,7 @@ pub struct SkyBoxUBO {
 }
 
 impl SkyBoxRenderer {
-    pub fn new(instance: &VulkanInstance, path: &str) -> Self {
+    pub fn new(instance: &VulkanInstance, images: SkyBoxImages) -> Self {
         log::debug!("Creating skybox");
         let vertex_shader = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -76,7 +81,25 @@ impl SkyBoxRenderer {
             pipeline.descriptor_set_layout,
             instance.swapchain_images.len(),
         );
-        let image = VulkanImage::load_cubemap(instance, image::open(path).unwrap());
+
+        let images = [
+            image::open(images.right).unwrap(),
+            image::open(images.left).unwrap(),
+            image::open(images.top).unwrap(),
+            image::open(images.bottom).unwrap(),
+            image::open(images.front).unwrap(),
+            image::open(images.back).unwrap(),
+        ];
+        let image_size = images[0].dimensions();
+
+        let image = VulkanImage::load_cubemap(
+            instance,
+            images,
+            vk::Extent2D {
+                width: image_size.0,
+                height: image_size.1,
+            },
+        );
 
         for &descriptor_set in descriptor_sets.iter() {
             let diffuse_texture = &image;

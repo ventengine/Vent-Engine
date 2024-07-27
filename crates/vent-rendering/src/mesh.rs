@@ -12,7 +12,6 @@ use crate::{
 /// Note that this simple mesh implementation does not support advanced features such as normal mapping, skeletal animation, or material properties. It serves as a basic foundation for representing 3D geometry and can be extended or customized according to your specific requirements.
 
 pub struct Mesh3D {
-    // Basic
     vertex_buf: VulkanBuffer,
     index_buf: VulkanBuffer,
     index_type: vk::IndexType,

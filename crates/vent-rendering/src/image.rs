@@ -23,6 +23,15 @@ impl DepthImage {
     }
 }
 
+pub struct SkyBoxImages {
+    pub right: String,
+    pub left: String,
+    pub top: String,
+    pub bottom: String,
+    pub front: String,
+    pub back: String,
+}
+
 pub struct VulkanImage {
     pub image: vk::Image,
     pub image_view: vk::ImageView,
@@ -69,6 +78,8 @@ impl VulkanImage {
             &staging_buffer,
             instance.global_command_pool,
             image_size,
+            1,
+            0,
             1,
             true,
         );
@@ -164,6 +175,8 @@ impl VulkanImage {
             instance.global_command_pool,
             image_size,
             mip_level,
+            0,
+            1,
             !mipmaps,
         );
         staging_buffer.destroy(&instance.device);
@@ -205,34 +218,21 @@ impl VulkanImage {
         }
     }
 
-    pub fn load_cubemap(instance: &VulkanInstance, image: image::DynamicImage) -> Self {
-        // For CUBE_COMPATIABLE width and height must match
-        let image_size = Extent2D {
-            width: image.width(),
-            height: image.width(),
-        };
-        let image_data = match &image {
-            image::DynamicImage::ImageLuma8(_) | image::DynamicImage::ImageRgb8(_) => {
-                image.into_rgba8().into_raw()
-            }
-            image::DynamicImage::ImageLumaA8(_) | image::DynamicImage::ImageRgba8(_) => {
-                image.into_bytes()
-            }
-            _ => image.into_rgb8().into_raw(),
-        };
-        let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
-
-        let mut staging_buffer = VulkanBuffer::new_init(
-            instance,
-            image_data_size,
-            vk::BufferUsageFlags::TRANSFER_SRC,
-            &image_data,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-            Some("Staging Cubemap"),
-        );
-
+    // skybox images:
+    // 1. LEFT
+    // 2. RIGHT
+    // 3. TOP
+    // 4. BOTTOM
+    // 5. FRONT
+    // 6. BACK
+    //
+    // Size: For CUBE_COMPATIABLE width and height must match
+    pub fn load_cubemap(
+        instance: &VulkanInstance,
+        skybox_images: [image::DynamicImage; 6],
+        image_size: Extent2D,
+    ) -> Self {
         let mip_level = 1;
-
         let format = vk::Format::R8G8B8A8_UNORM;
 
         let image = Self::create_cubemap_image(
@@ -246,17 +246,41 @@ impl VulkanImage {
         );
 
         let memory = VulkanBuffer::new_image(&instance.device, &instance.memory_allocator, image);
+        let image_data_size = (image_size.width * image_size.height * 4) as vk::DeviceSize;
 
-        Self::copy_buffer_to_image(
-            instance,
-            image,
-            &staging_buffer,
-            instance.global_command_pool,
-            image_size,
-            mip_level,
-            true,
-        );
-        staging_buffer.destroy(&instance.device);
+        for (i, layer_image) in skybox_images.into_iter().enumerate() {
+            let image_data = match &layer_image {
+                image::DynamicImage::ImageLuma8(_) | image::DynamicImage::ImageRgb8(_) => {
+                    layer_image.into_rgba8().into_raw()
+                }
+                image::DynamicImage::ImageLumaA8(_) | image::DynamicImage::ImageRgba8(_) => {
+                    layer_image.into_bytes()
+                }
+                _ => layer_image.into_rgb8().into_raw(),
+            };
+
+            let mut staging_buffer = VulkanBuffer::new_init(
+                instance,
+                image_data_size,
+                vk::BufferUsageFlags::TRANSFER_SRC,
+                &image_data,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                Some("Staging Cubemap"),
+            );
+
+            Self::copy_buffer_to_image(
+                instance,
+                image,
+                &staging_buffer,
+                instance.global_command_pool,
+                image_size,
+                mip_level,
+                i as u32,
+                6,
+                true,
+            );
+            staging_buffer.destroy(&instance.device);
+        }
 
         let image_view = Self::create_image_view(
             image,
@@ -270,7 +294,13 @@ impl VulkanImage {
 
         let sampler_info = vk::SamplerCreateInfo::default()
             .border_color(vk::BorderColor::FLOAT_OPAQUE_WHITE)
-            .address_mode_u(vk::SamplerAddressMode::CLAMP_TO_EDGE);
+            .address_mode_u(vk::SamplerAddressMode::CLAMP_TO_EDGE)
+            .address_mode_v(vk::SamplerAddressMode::CLAMP_TO_EDGE)
+            .address_mode_w(vk::SamplerAddressMode::CLAMP_TO_EDGE)
+            .mag_filter(vk::Filter::LINEAR)
+            .min_filter(vk::Filter::LINEAR);
+        
+            
 
         let sampler = unsafe { instance.device.create_sampler(&sampler_info, None).unwrap() };
 
@@ -337,6 +367,8 @@ impl VulkanImage {
         command_pool: vk::CommandPool,
         size: Extent2D,
         mip_level: u32,
+        layer_count: u32,
+        final_count: u32,
         make_ready: bool,
     ) {
         let device = &instance.device;
@@ -354,7 +386,8 @@ impl VulkanImage {
             .subresource_range(vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::COLOR,
                 level_count: mip_level,
-                layer_count: 1,
+                base_array_layer: 0,
+                layer_count: final_count,
                 ..Default::default()
             });
 
@@ -368,7 +401,7 @@ impl VulkanImage {
         let subresource = vk::ImageSubresourceLayers::default()
             .aspect_mask(vk::ImageAspectFlags::COLOR)
             .mip_level(0)
-            .base_array_layer(0)
+            .base_array_layer(layer_count)
             .layer_count(1);
 
         let region = vk::BufferImageCopy2::default()
@@ -402,7 +435,7 @@ impl VulkanImage {
                 .subresource_range(vk::ImageSubresourceRange {
                     aspect_mask: vk::ImageAspectFlags::COLOR,
                     level_count: mip_level,
-                    layer_count: 1,
+                    layer_count: final_count,
                     ..Default::default()
                 });
 

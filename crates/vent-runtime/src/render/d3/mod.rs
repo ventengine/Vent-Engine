@@ -10,7 +10,8 @@ use vent_math::{
     vec::{vec3::Vec3, vec4::Vec4},
 };
 use vent_rendering::{
-    any_as_u8_slice, buffer::VulkanBuffer, instance::VulkanInstance, mesh::Mesh3D, Vertex3D,
+    any_as_u8_slice, buffer::VulkanBuffer, image::SkyBoxImages, instance::VulkanInstance,
+    mesh::Mesh3D, Vertex3D,
 };
 
 use super::{
@@ -65,12 +66,41 @@ impl Renderer for Renderer3D {
     {
         //  let _camera: &Camera3D = camera.downcast_ref().unwrap();
 
-        let skybox_image = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/textures/skybox/skybox.png"
+        let skybox_renderer = SkyBoxRenderer::new(
+            instance,
+            SkyBoxImages {
+                right: concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/assets/textures/skybox/right.jpg"
+                )
+                .into(),
+                left: concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/assets/textures/skybox/left.jpg"
+                )
+                .into(),
+                top: concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/assets/textures/skybox/top.jpg"
+                )
+                .into(),
+                bottom: concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/assets/textures/skybox/bottom.jpg"
+                )
+                .into(),
+                front: concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/assets/textures/skybox/front.jpg"
+                )
+                .into(),
+                back: concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/assets/textures/skybox/back.jpg"
+                )
+                .into(),
+            },
         );
-
-        let skybox_renderer = SkyBoxRenderer::new(instance, skybox_image);
 
         let push_constant_range = vk::PushConstantRange::default()
             .size(size_of::<Camera3DData>() as u32)
@@ -285,7 +315,8 @@ impl Renderer for Renderer3D {
                 .device
                 .cmd_set_viewport(command_buffer, 0, &[viewport]);
 
-            // self.skybox_renderer.draw(&instance.device, command_buffer, camera, image_index);
+            self.skybox_renderer
+                .draw(&instance.device, command_buffer, camera, image_index);
 
             self.mesh_renderer.record_buffer(
                 instance,
