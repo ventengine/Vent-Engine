@@ -3,7 +3,7 @@ use std::mem::size_of;
 use ash::vk::{self};
 use vent_math::vec::vec2::Vec2;
 use vent_rendering::{
-    any_as_u8_slice, instance::VulkanInstance, pipeline::VulkanPipeline, Vertex2D,
+    any_as_u8_slice, instance::VulkanInstance, pipeline::VulkanPipeline, vertex::Vertex2D,
 };
 
 use crate::font::{ab_glyph::AbGlyphLoader, Font};

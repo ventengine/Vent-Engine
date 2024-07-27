@@ -1,6 +1,6 @@
 use ash::vk;
 use vent_math::vec::vec3::Vec3;
-use vent_rendering::{instance::VulkanInstance, mesh::Mesh3D, pipeline::VulkanPipeline, Vertex3D};
+use vent_rendering::{instance::VulkanInstance, mesh::Mesh3D, pipeline::VulkanPipeline, vertex::Vertex3D};
 
 #[allow(dead_code)]
 #[repr(C)]

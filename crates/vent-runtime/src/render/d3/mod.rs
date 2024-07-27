@@ -10,8 +10,7 @@ use vent_math::{
     vec::{vec3::Vec3, vec4::Vec4},
 };
 use vent_rendering::{
-    any_as_u8_slice, buffer::VulkanBuffer, image::SkyBoxImages, instance::VulkanInstance,
-    mesh::Mesh3D, Vertex3D,
+    any_as_u8_slice, buffer::VulkanBuffer, image::SkyBoxImages, instance::VulkanInstance, mesh::Mesh3D, vertex::VertexPos3D
 };
 
 use super::{
@@ -263,7 +262,7 @@ impl Renderer for Renderer3D {
 
         mesh_renderer.insert(world.create_entity(), mesh);
 
-        let tmp_light_mesh = create_tmp_cube(instance);
+        let tmp_light_mesh = create_simple_cube(instance);
         //  let light_renderer = LightRenderer::new(instance);
 
         Self {
@@ -360,7 +359,7 @@ impl Renderer for Renderer3D {
     }
 }
 
-fn create_tmp_cube(instance: &VulkanInstance) -> Mesh3D {
+fn create_simple_cube(instance: &VulkanInstance) -> Mesh3D {
     let indices = [
         //Top
         2, 6, 7, 2, 3, 7, //Bottom
@@ -372,45 +371,29 @@ fn create_tmp_cube(instance: &VulkanInstance) -> Mesh3D {
     ];
 
     let vertices = [
-        Vertex3D {
+        VertexPos3D {
             position: [-1.0, -1.0, 0.5],
-            tex_coord: [0.0, 0.0],
-            normal: [0.0, 0.0, 0.0],
         }, //0
-        Vertex3D {
+        VertexPos3D {
             position: [1.0, -1.0, 0.5],
-            tex_coord: [0.0, 0.0],
-            normal: [0.0, 0.0, 0.0],
         }, //1
-        Vertex3D {
+        VertexPos3D {
             position: [-1.0, 1.0, 0.5],
-            tex_coord: [0.0, 0.0],
-            normal: [0.0, 0.0, 0.0],
         }, //2
-        Vertex3D {
+        VertexPos3D {
             position: [1.0, 1.0, 0.5],
-            tex_coord: [0.0, 0.0],
-            normal: [0.0, 0.0, 0.0],
         }, //3
-        Vertex3D {
+        VertexPos3D {
             position: [-1.0, -1.0, -0.5],
-            tex_coord: [0.0, 0.0],
-            normal: [0.0, 0.0, 0.0],
         }, //4
-        Vertex3D {
+        VertexPos3D {
             position: [0.0, -1.0, -0.5],
-            tex_coord: [0.0, 0.0],
-            normal: [0.0, 0.0, 0.0],
         }, //5
-        Vertex3D {
+        VertexPos3D {
             position: [-1.0, 1.0, -0.5],
-            tex_coord: [0.0, 0.0],
-            normal: [0.0, 0.0, 0.0],
         }, //6
-        Vertex3D {
+        VertexPos3D {
             position: [1.0, 1.0, -0.5],
-            tex_coord: [0.0, 0.0],
-            normal: [0.0, 0.0, 0.0],
         }, //7
     ];
 

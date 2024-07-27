@@ -5,8 +5,7 @@ use ash::{
     vk::{self, PipelineShaderStageCreateInfo},
 };
 use vent_rendering::{
-    image::VulkanImage, instance::VulkanInstance, mesh::Mesh3D, MaterialPipelineInfo, Vertex3D,
-    DEFAULT_TEXTURE_FILTER,
+    image::VulkanImage, instance::VulkanInstance, mesh::Mesh3D, vertex::Vertex3D, MaterialPipelineInfo, DEFAULT_TEXTURE_FILTER
 };
 
 use crate::{Material, Model3D, ModelPipeline};
@@ -360,8 +359,8 @@ impl ModelLoader {
             .iter()
             .map(|vertex| Vertex3D {
                 position: vertex.position,
-                tex_coord: vertex.tex_coord.unwrap(), // TODO
-                normal: vertex.normal.unwrap(),       // TODO
+                tex_coord: vertex.tex_coord.unwrap_or_default(), // TODO
+                normal: vertex.normal.unwrap_or_default(),       // TODO
             })
             .collect()
     }

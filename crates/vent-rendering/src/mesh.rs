@@ -2,7 +2,7 @@ use ash::vk;
 
 use crate::{
     begin_single_time_command, buffer::VulkanBuffer, end_single_time_command,
-    instance::VulkanInstance, Indices, Vertex3D,
+    instance::VulkanInstance, Indices,
 };
 
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
@@ -19,9 +19,9 @@ pub struct Mesh3D {
 }
 
 impl Mesh3D {
-    pub fn new(
+    pub fn new<V: Copy>(
         instance: &VulkanInstance,
-        vertices: &[Vertex3D],
+        vertices: &[V],
         indices: Indices,
         name: Option<&str>,
     ) -> Self {

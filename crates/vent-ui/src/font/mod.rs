@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use ash::vk;
 use vent_math::vec::vec2::Vec2;
-use vent_rendering::{buffer::VulkanBuffer, instance::VulkanInstance, Vertex2D};
+use vent_rendering::{buffer::VulkanBuffer, instance::VulkanInstance, vertex::Vertex2D};
 
 pub mod ab_glyph;
 

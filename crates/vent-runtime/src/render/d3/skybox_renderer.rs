@@ -4,17 +4,10 @@ use ash::vk;
 use image::GenericImageView;
 use vent_math::scalar::mat4::Mat4;
 use vent_rendering::{
-    any_as_u8_slice,
-    image::{SkyBoxImages, VulkanImage},
-    instance::VulkanInstance,
-    mesh::Mesh3D,
-    pipeline::VulkanPipeline,
-    Vertex3D,
+    any_as_u8_slice, image::{SkyBoxImages, VulkanImage}, instance::VulkanInstance, mesh::Mesh3D, pipeline::VulkanPipeline, vertex::VertexPos3D
 };
 
-use crate::render::camera::Camera3D;
-
-use super::create_tmp_cube;
+use crate::render::{camera::Camera3D, d3::create_simple_cube};
 
 #[allow(dead_code)]
 pub struct SkyBoxRenderer {
@@ -60,13 +53,13 @@ impl SkyBoxRenderer {
             instance,
             vertex_shader.as_ref(),
             fragment_shader.as_ref(),
-            &[Vertex3D::binding_description()],
-            &Vertex3D::input_descriptions(),
+            &[VertexPos3D::binding_description()],
+            &VertexPos3D::input_descriptions(),
             instance.surface_resolution,
             &[push_constant_range],
             &desc_layout_bindings,
         );
-        let cube = create_tmp_cube(instance);
+        let cube = create_simple_cube(instance);
         let push_constants = SkyBoxUBO {
             projection: Mat4::IDENTITY,
             model: Mat4::IDENTITY,
