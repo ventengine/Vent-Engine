@@ -26,7 +26,7 @@ impl Mesh3D {
         name: Option<&str>,
     ) -> Self {
         let vertex_size = std::mem::size_of_val(vertices) as vk::DeviceSize;
-        let index_size = std::mem::size_of_val(indices.get_slice()) as vk::DeviceSize;
+        let index_size = indices.get_size() as vk::DeviceSize;
 
         let vertex_buf = VulkanBuffer::new(
             instance,

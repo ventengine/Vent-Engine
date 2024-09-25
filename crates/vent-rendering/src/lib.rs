@@ -2,7 +2,6 @@ use std::os::raw::c_void;
 
 use ash::vk;
 use buffer::VulkanBuffer;
-use bytemuck::cast_slice;
 use ordered_float::OrderedFloat;
 
 pub mod allocator;
@@ -55,11 +54,11 @@ impl Indices {
         }
     }
 
-    pub fn get_slice(&self) -> &[u8] {
+    pub fn get_size(&self) -> usize {
         match self {
-            Indices::U8(indices) => cast_slice(&indices[..]),
-            Indices::U16(indices) => cast_slice(&indices[..]),
-            Indices::U32(indices) => cast_slice(&indices[..]),
+            Indices::U8(indices) => std::mem::size_of_val(&indices[..]),
+            Indices::U16(indices) => std::mem::size_of_val(&indices[..]),
+            Indices::U32(indices) => std::mem::size_of_val(&indices[..]),
         }
     }
 

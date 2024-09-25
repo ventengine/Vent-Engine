@@ -1,8 +1,6 @@
 ### Vent-Assets
 
-**Models**
-- **glTF 2.0** ✅️
-- **Wavefront OBJ** ✅️
+We using our [Modelz](https://github.com/ventengine/Modelz) Library for Loading Models
 
 ## Contributing
 

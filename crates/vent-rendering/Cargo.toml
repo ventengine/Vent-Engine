@@ -11,12 +11,10 @@ ash = { version= "0.38", default-features = false, features = ["loaded", "debug"
 spirv = "0.3.0"
 
 ordered-float = "4.2.0"
-bytemuck = "1.16"
-
 image = "0.25"
 
 raw-window-handle = "0.6"
 log = "0.4"
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
-raw-window-metal = "0.4"
+raw-window-metal = "1.0.0"
