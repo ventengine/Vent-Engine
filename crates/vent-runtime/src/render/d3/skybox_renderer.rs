@@ -2,6 +2,7 @@ use std::mem::size_of;
 
 use ash::vk;
 use image::GenericImageView;
+use vent_assets::io::file::FileAsset;
 use vent_math::scalar::mat4::Mat4;
 use vent_rendering::{
     any_as_u8_slice,
@@ -33,14 +34,8 @@ pub struct SkyBoxUBO {
 impl SkyBoxRenderer {
     pub fn new(instance: &VulkanInstance, images: SkyBoxImages) -> Self {
         log::debug!("Creating skybox");
-        let vertex_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/shaders/app/3D/skybox.vert.spv"
-        );
-        let fragment_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/shaders/app/3D/skybox.frag.spv"
-        );
+        let vertex_shader = FileAsset::new("assets/shaders/app/3D/skybox.vert.spv");
+        let fragment_shader = FileAsset::new("assets/shaders/app/3D/skybox.frag.spv");
 
         let desc_layout_bindings = [vk::DescriptorSetLayoutBinding {
             binding: 0,
@@ -56,8 +51,8 @@ impl SkyBoxRenderer {
 
         let pipeline = VulkanPipeline::create_simple_pipeline(
             instance,
-            vertex_shader.as_ref(),
-            fragment_shader.as_ref(),
+            vertex_shader.root_path(),
+            fragment_shader.root_path(),
             &[VertexPos3D::binding_description()],
             &VertexPos3D::input_descriptions(),
             instance.surface_resolution,

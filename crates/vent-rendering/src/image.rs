@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ash::vk::{self, Extent2D};
 
 use crate::{
@@ -24,12 +26,12 @@ impl DepthImage {
 }
 
 pub struct SkyBoxImages {
-    pub right: String,
-    pub left: String,
-    pub top: String,
-    pub bottom: String,
-    pub front: String,
-    pub back: String,
+    pub right: PathBuf,
+    pub left: PathBuf,
+    pub top: PathBuf,
+    pub bottom: PathBuf,
+    pub front: PathBuf,
+    pub back: PathBuf,
 }
 
 pub struct VulkanImage {

@@ -4,6 +4,7 @@ use ash::vk;
 use pollster::FutureExt;
 
 use skybox_renderer::SkyBoxRenderer;
+use vent_assets::io::file::FileAsset;
 use vent_ecs::world::World;
 use vent_math::{
     scalar::mat4::Mat4,
@@ -69,36 +70,24 @@ impl Renderer for Renderer3D {
         let skybox_renderer = SkyBoxRenderer::new(
             instance,
             SkyBoxImages {
-                right: concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/assets/textures/skybox/right.jpg"
-                )
-                .into(),
-                left: concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/assets/textures/skybox/left.jpg"
-                )
-                .into(),
-                top: concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/assets/textures/skybox/top.jpg"
-                )
-                .into(),
-                bottom: concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/assets/textures/skybox/bottom.jpg"
-                )
-                .into(),
-                front: concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/assets/textures/skybox/front.jpg"
-                )
-                .into(),
-                back: concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/assets/textures/skybox/back.jpg"
-                )
-                .into(),
+                right: FileAsset::new("assets/textures/skybox/right.jpg")
+                    .root_path()
+                    .clone(),
+                left: FileAsset::new("assets/textures/skybox/left.jpg")
+                    .root_path()
+                    .clone(),
+                top: FileAsset::new("assets/textures/skybox/top.jpg")
+                    .root_path()
+                    .clone(),
+                bottom: FileAsset::new("assets/textures/skybox/bottom.jpg")
+                    .root_path()
+                    .clone(),
+                front: FileAsset::new("assets/textures/skybox/front.jpg")
+                    .root_path()
+                    .clone(),
+                back: FileAsset::new("assets/textures/skybox/back.jpg")
+                    .root_path()
+                    .clone(),
             },
         );
 
@@ -143,10 +132,7 @@ impl Renderer for Renderer3D {
         // // -------------- DEMO -------------------
         let mut world = World::new();
 
-        let model = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/models/test/Sponza-GLTF/Sponza.gltf"
-        );
+        let model = FileAsset::new("assets/models/test/Sponza-GLTF/Sponza.gltf");
 
         // Sponza-GLTF/Sponza.gltf
         // bistro_outside.glb
@@ -154,22 +140,16 @@ impl Renderer for Renderer3D {
         let mut material_ubos = vec![];
         let light_ubos = vec![];
 
-        let vertex_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/shaders/app/3D/shader.vert.spv"
-        );
-        let fragment_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/shaders/app/3D/shader.frag.spv"
-        );
+        let vertex_shader = FileAsset::new("assets/shaders/app/3D/shader.vert.spv");
+        let fragment_shader = FileAsset::new("assets/shaders/app/3D/shader.frag.spv");
 
         let mut mesh = Entity3D::new(
             vent_assets::Model3D::load(
                 instance,
-                vertex_shader,
-                fragment_shader,
+                vertex_shader.root_path(),
+                fragment_shader.root_path(),
                 pipeline_layout,
-                model,
+                model.root_path(),
             )
             .block_on(),
         );

@@ -1,4 +1,5 @@
 use ash::vk;
+use vent_assets::io::file::FileAsset;
 use vent_math::vec::vec3::Vec3;
 use vent_rendering::{
     instance::VulkanInstance, mesh::Mesh3D, pipeline::VulkanPipeline, vertex::Vertex3D,
@@ -18,14 +19,8 @@ pub struct LightRenderer {
 #[allow(dead_code)]
 impl LightRenderer {
     pub fn new(instance: &VulkanInstance) -> Self {
-        let vertex_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/shaders/app/3D/light.vert.spv"
-        );
-        let fragment_shader = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/shaders/app/3D/light.frag.spv"
-        );
+        let vertex_shader = FileAsset::new("assets/shaders/app/3D/light.vert.spv");
+        let fragment_shader = FileAsset::new("assets/shaders/app/3D/light.frag.spv");
 
         let desc_layout_bindings = [
             vk::DescriptorSetLayoutBinding {
@@ -46,8 +41,8 @@ impl LightRenderer {
 
         let pipeline = VulkanPipeline::create_simple_pipeline(
             instance,
-            vertex_shader.as_ref(),
-            fragment_shader.as_ref(),
+            vertex_shader.root_path(),
+            fragment_shader.root_path(),
             &[Vertex3D::binding_description()],
             &Vertex3D::input_descriptions(),
             instance.surface_resolution,

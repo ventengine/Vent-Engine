@@ -1,6 +1,7 @@
-use std::mem::size_of;
+use std::{mem::size_of, path::PathBuf};
 
 use ash::vk::{self};
+use vent_assets::io::file::FileAsset;
 use vent_math::vec::vec2::Vec2;
 use vent_rendering::{
     any_as_u8_slice, instance::VulkanInstance, pipeline::VulkanPipeline, vertex::Vertex2D,
@@ -54,15 +55,15 @@ impl GuiRenderer {
             font: None,
             guis: Vec::new(),
         };
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Arial.ttf");
+        let path = FileAsset::new("assets/fonts/Arial.ttf");
         // Load default font
-        renderer.load_font(instance, path);
+        renderer.load_font(instance, path.root_path());
         renderer
     }
 
     fn create_pipeline(instance: &VulkanInstance) -> VulkanPipeline {
-        let vertex_shader = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/gui.vert.spv");
-        let fragment_shader = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/gui.frag.spv");
+        let vertex_shader = FileAsset::new("assets/shaders/app/2D/gui.vert.spv");
+        let fragment_shader = FileAsset::new("assets/shaders/app/2D/gui.frag.spv");
 
         let desc_layout_bindings = [
             // Fragment
@@ -81,8 +82,8 @@ impl GuiRenderer {
 
         VulkanPipeline::create_simple_pipeline(
             instance,
-            vertex_shader.as_ref(),
-            fragment_shader.as_ref(),
+            vertex_shader.root_path(),
+            fragment_shader.root_path(),
             &[Vertex2D::binding_description()],
             &Vertex2D::input_descriptions(),
             instance.surface_resolution,
@@ -168,7 +169,7 @@ impl GuiRenderer {
         }
     }
 
-    pub fn load_font(&mut self, instance: &mut VulkanInstance, path: &str) {
+    pub fn load_font(&mut self, instance: &mut VulkanInstance, path: &PathBuf) {
         self.font = Some(AbGlyphLoader::load(
             path,
             self.pipeline.descriptor_set_layout,

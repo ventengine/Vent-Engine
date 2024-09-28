@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::image::Image;
 
-mod file;
+pub mod file;
 
 pub struct AssetsLoader {
     _image_cache: HashMap<String, Image>,

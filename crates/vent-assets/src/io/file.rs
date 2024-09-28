@@ -17,15 +17,13 @@ pub(crate) fn get_base_path() -> PathBuf {
 ///
 /// This asset I/O is fully featured but it's not available on `android` and `wasm` targets.
 #[allow(dead_code)]
-pub struct FileAssetReader {
+pub struct FileAsset {
     root_path: PathBuf,
 }
 #[allow(dead_code)]
-impl FileAssetReader {
+impl FileAsset {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         let root_path = get_base_path().join(path.as_ref());
-        // try create root
-        std::fs::create_dir_all(&root_path).expect("Failed to create root dirs");
         Self { root_path }
     }
 

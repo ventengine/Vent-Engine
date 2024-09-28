@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+vent-assets = { path = "../vent-assets"}
 vent-rendering = { path = "../vent-rendering"}
 vent-math = { path = "../vent-math"}
 ash = { version= "0.38", default-features = false }
