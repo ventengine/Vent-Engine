@@ -6,11 +6,10 @@ use crate::{
 };
 
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.
-
+///
 /// By using this simple mesh, you can easily define custom shapes or provide default objects for your application. It is particularly handy when you want to avoid loading external model files and instead directly embed the 3D data within your code.
-
+///
 /// Note that this simple mesh implementation does not support advanced features such as normal mapping, skeletal animation, or material properties. It serves as a basic foundation for representing 3D geometry and can be extended or customized according to your specific requirements.
-
 pub struct Mesh3D {
     vertex_buf: VulkanBuffer,
     index_buf: VulkanBuffer,

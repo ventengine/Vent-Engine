@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local};
 use std::fs::File;
 use std::io::Write;
-use std::panic::{self, PanicInfo};
+use std::panic::{self, PanicHookInfo};
 use sysinfo::System;
 
 // Crash Handler
@@ -11,13 +11,13 @@ pub fn init_panic_hook() {
     panic::set_hook(Box::new(panic_handler));
 }
 
-fn panic_handler(pi: &PanicInfo) {
+fn panic_handler(pi: &PanicHookInfo) {
     eprintln!("Crash: {}", pi);
     log_crash(pi).expect("Failed to Log Crash File");
     // show_error_dialog(pi);
 }
 
-fn log_crash(pi: &PanicInfo) -> std::io::Result<()> {
+fn log_crash(pi: &PanicHookInfo) -> std::io::Result<()> {
     let timestamp: DateTime<Local> = Local::now();
 
     let sys = System::new_all();

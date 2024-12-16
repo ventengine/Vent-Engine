@@ -40,7 +40,7 @@ impl Model3D {
     }
 
     /// So your ideal render loop would be
-
+    ///
     /// For each pipeline
     ///  Set pipeline
     ///   For each material that uses pipeline

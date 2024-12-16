@@ -94,7 +94,7 @@ pub fn get_validation_features() -> vk::ValidationFeaturesEXT<'static> {
             // vk::ValidationFeatureEnableEXT::BEST_PRACTICES, Does hide real errors, so lets disable it for now
             vk::ValidationFeatureEnableEXT::SYNCHRONIZATION_VALIDATION,
         ])
-        .disabled_validation_features(&[])// We need to give it an empty Array, If not we get an validation error
+        .disabled_validation_features(&[]) // We need to give it an empty Array, If not we get an validation error
 }
 
 /// Setup the debug message if validation layers are enabled.

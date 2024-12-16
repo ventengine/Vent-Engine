@@ -65,7 +65,7 @@ impl VulkanPipeline {
         }
         .unwrap();
 
-        let shader_entry_name = unsafe { c"main" };
+        let shader_entry_name = c"main";
         let shader_stage_create_info = [
             vk::PipelineShaderStageCreateInfo {
                 module: vertex_module,
