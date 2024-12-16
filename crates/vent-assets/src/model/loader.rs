@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::CStr, fs::File, path::Path};
+use std::{collections::HashMap, fs::File, path::Path};
 
 use ash::{
     util::read_spv,
@@ -45,7 +45,7 @@ impl ModelLoader {
         }
         .unwrap();
 
-        let shader_entry_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"main\0") };
+        let shader_entry_name = unsafe { c"main" };
         let shader_stage_create_info = [
             vk::PipelineShaderStageCreateInfo {
                 module: vertex_module,

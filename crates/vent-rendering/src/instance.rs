@@ -100,7 +100,7 @@ impl VulkanInstance {
                     application_name.as_bytes(),
                 ))
                 .application_version(application_version)
-                .engine_name(CStr::from_bytes_with_nul_unchecked(b"Vent-Engine\0"))
+                .engine_name(c"Vent-Engine")
                 .engine_version(engine_version)
                 .api_version(vk::API_VERSION_1_3)
         };

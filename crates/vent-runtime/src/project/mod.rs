@@ -17,6 +17,20 @@ pub struct VentApplicationProject {
     pub render_settings: RenderSettings,
 }
 
+impl Default for VentApplicationProject {
+    fn default() -> Self {
+        VentApplicationProject {
+            name: "Placeholder".to_string(),
+            version: Version::new(1, 0, 0),
+            window_settings: WindowAttribs::default().with_title("Placeholder".to_string()),
+            render_settings: RenderSettings {
+                dimension: Dimension::D3,
+                vsync: false,
+            },
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RenderSettings {
     // Inital vsync setting, can be changed later

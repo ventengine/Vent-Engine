@@ -1,38 +1,19 @@
-use crate::render::Dimension;
-
-use project::{RenderSettings, VentApplicationProject};
+use project::VentApplicationProject;
 use render::{camera::camera_controller3d::CameraController3D, DefaultRuntimeRenderer};
 
-use util::{crash::init_panic_hook, input_handler::InputHandler, version::Version};
-use vent_logging::Logger;
-use vent_window::{Window, WindowAttribs, WindowEvent};
+use util::input_handler::InputHandler;
+use vent_window::{Window, WindowEvent};
 
 pub mod project;
 pub mod render;
 pub mod util;
 
+#[derive(Default)]
 pub struct VentApplication {
     project: VentApplicationProject,
 }
 
 impl VentApplication {
-    pub fn default() {
-        init_panic_hook();
-        Logger::init();
-
-        let project = VentApplicationProject {
-            name: "Placeholder".to_string(),
-            version: Version::new(1, 0, 0),
-            window_settings: WindowAttribs::default().with_title("Placeholder".to_string()),
-            render_settings: RenderSettings {
-                dimension: Dimension::D3,
-                vsync: false,
-            },
-        };
-        let app = VentApplication::new(project);
-        app.start();
-    }
-
     pub fn new(project: VentApplicationProject) -> Self {
         Self { project }
     }
