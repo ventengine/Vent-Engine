@@ -4,6 +4,8 @@
 
 /.vscode
 
+*.spv
+
 
 # Added by cargo
 
