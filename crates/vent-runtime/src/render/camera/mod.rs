@@ -1,12 +1,12 @@
 use ash::vk;
-use downcast_rs::{impl_downcast, Downcast};
+use downcast_rs::{Downcast, impl_downcast};
 use vent_math::{
     scalar::{mat4::Mat4, quat::Quat},
     vec::{vec2::Vec2, vec3::Vec3},
 };
 use vent_rendering::{any_as_u8_slice, instance::VulkanInstance};
 
-use super::{d3::Camera3DData, Dimension};
+use super::{Dimension, d3::Camera3DData};
 
 pub mod camera_controller3d;
 

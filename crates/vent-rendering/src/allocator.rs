@@ -1,6 +1,6 @@
 use ash::vk;
 
-// TODO Write an own Efficent Vulkan Memory Allocator
+// TODO Write an own Efficient Vulkan Memory Allocator
 
 pub struct MemoryAllocator {
     memory_props: vk::PhysicalDeviceMemoryProperties,

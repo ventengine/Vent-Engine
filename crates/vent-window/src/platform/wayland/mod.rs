@@ -20,32 +20,33 @@ use sctk::{
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
     seat::{
+        Capability, SeatHandler, SeatState,
         keyboard::KeyboardHandler,
         pointer::{PointerData, PointerEventKind, PointerHandler},
-        Capability, SeatHandler, SeatState,
     },
     shell::{
-        xdg::{
-            window::{DecorationMode, Window, WindowDecorations, WindowHandler},
-            XdgShell, XdgSurface,
-        },
         WaylandSurface,
+        xdg::{
+            XdgShell, XdgSurface,
+            window::{DecorationMode, Window, WindowDecorations, WindowHandler},
+        },
     },
     shm::{Shm, ShmHandler},
     subcompositor::SubcompositorState,
 };
 use sctk_adwaita::{AdwaitaFrame, FrameConfig};
 use wayland_client::{
+    Connection, Proxy, QueueHandle,
     globals::registry_queue_init,
     protocol::{wl_keyboard, wl_output, wl_pointer, wl_seat, wl_surface},
-    Connection, Proxy, QueueHandle,
 };
 use wayland_csd_frame::{CursorIcon, DecorationsFrame, FrameAction, FrameClick, ResizeEdge};
 use xkbcommon::xkb;
 
 use crate::{
+    EventHandler, WindowAttribs, WindowEvent,
     keyboard::{Key, KeyState},
-    mouse, EventHandler, WindowAttribs, WindowEvent,
+    mouse,
 };
 
 pub struct PlatformWindow {

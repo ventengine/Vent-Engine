@@ -1,8 +1,8 @@
 use ash::vk;
 
 use crate::{
-    begin_single_time_command, buffer::VulkanBuffer, end_single_time_command,
-    instance::VulkanInstance, Indices,
+    Indices, begin_single_time_command, buffer::VulkanBuffer, end_single_time_command,
+    instance::VulkanInstance,
 };
 
 /// This is a simple mesh that consists of vertices and indices. It is useful when you need to hard-code 3D data into your application.

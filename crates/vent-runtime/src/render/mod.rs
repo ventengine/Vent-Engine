@@ -7,7 +7,7 @@ use vent_ui::renderer::GuiRenderer;
 
 use crate::project::VentApplicationProject;
 
-use self::camera::{from_dimension, Camera};
+use self::camera::{Camera, from_dimension};
 use self::d2::Renderer2D;
 use self::d3::Renderer3D;
 use self::gui::debug_gui::RenderData;

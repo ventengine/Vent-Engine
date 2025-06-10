@@ -1,6 +1,6 @@
 use ash::ext::debug_utils;
 use ash::vk::Handle;
-use ash::{vk, Entry, Instance};
+use ash::{Entry, Instance, vk};
 use std::borrow::Cow;
 use std::os::raw::c_void;
 use std::{
@@ -16,21 +16,23 @@ unsafe extern "system" fn vulkan_debug_callback(
     p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
     _: *mut c_void,
 ) -> vk::Bool32 {
-    use vk::DebugUtilsMessageSeverityFlagsEXT as Flag;
-    let callback_data = *p_callback_data;
+    unsafe {
+        use vk::DebugUtilsMessageSeverityFlagsEXT as Flag;
+        let callback_data = *p_callback_data;
 
-    let message = if callback_data.p_message.is_null() {
-        Cow::from("")
-    } else {
-        CStr::from_ptr(callback_data.p_message).to_string_lossy()
-    };
-    match flag {
-        Flag::VERBOSE => log::debug!("{:?} - {:?}", typ, message),
-        Flag::INFO => log::info!("{:?} - {:?}", typ, message),
-        Flag::WARNING => log::warn!("{:?} - {:?}", typ, message),
-        _ => log::error!("{:?} - {:?}", typ, message),
+        let message = if callback_data.p_message.is_null() {
+            Cow::from("")
+        } else {
+            CStr::from_ptr(callback_data.p_message).to_string_lossy()
+        };
+        match flag {
+            Flag::VERBOSE => log::debug!("{:?} - {:?}", typ, message),
+            Flag::INFO => log::info!("{:?} - {:?}", typ, message),
+            Flag::WARNING => log::warn!("{:?} - {:?}", typ, message),
+            _ => log::error!("{:?} - {:?}", typ, message),
+        }
+        vk::FALSE
     }
-    vk::FALSE
 }
 
 /// Get the pointers to the validation layers names.

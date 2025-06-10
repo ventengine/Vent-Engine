@@ -138,8 +138,10 @@ impl VulkanBuffer {
         data: &[T],
         size: vk::DeviceSize,
     ) {
-        let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
-        align.copy_from_slice(data);
+        unsafe {
+            let mut align = ash::util::Align::new(memory, align_of::<T>() as _, size);
+            align.copy_from_slice(data);
+        }
     }
 
     pub fn map(&self, device: &ash::Device, size: vk::DeviceSize) -> *mut c_void {

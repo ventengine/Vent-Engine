@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path};
 
-use ab_glyph::{point, Font, FontVec, Glyph, PxScale, ScaleFont};
+use ab_glyph::{Font, FontVec, Glyph, PxScale, ScaleFont, point};
 use ash::vk::{self};
 use image::{DynamicImage, Rgba};
 use vent_math::vec::vec2::Vec2;
@@ -72,7 +72,7 @@ impl AbGlyphLoader {
             glyphs.push(glyph);
             characters.push(character);
         }
-        log::debug!("Loaded Charaters: {}", characters.len());
+        log::debug!("Loaded Characters: {}", characters.len());
 
         let outlined: Vec<_> = glyphs
             .into_iter()

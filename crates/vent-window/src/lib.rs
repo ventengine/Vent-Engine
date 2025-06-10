@@ -86,9 +86,9 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new(inital_attribs: WindowAttribs) -> Self {
+    pub fn new(initial_attribs: WindowAttribs) -> Self {
         Self {
-            window: platform::PlatformWindow::create_window(inital_attribs),
+            window: platform::PlatformWindow::create_window(initial_attribs),
         }
     }
 

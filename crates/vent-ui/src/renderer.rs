@@ -7,7 +7,7 @@ use vent_rendering::{
     any_as_u8_slice, instance::VulkanInstance, pipeline::VulkanPipeline, vertex::Vertex2D,
 };
 
-use crate::font::{ab_glyph::AbGlyphLoader, Font};
+use crate::font::{Font, ab_glyph::AbGlyphLoader};
 
 use super::GUI;
 

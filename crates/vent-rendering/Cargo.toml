@@ -1,7 +1,7 @@
 [package]
 name = "vent-rendering"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,11 +10,11 @@ vent-window = { path= "../vent-window"}
 ash = { version= "0.38", default-features = false, features = ["loaded", "debug", "std"] }
 spirv = "0.3.0"
 
-ordered-float = "4.2.0"
+ordered-float = "5.0.0"
 image = "0.25"
 
 raw-window-handle = "0.6"
 log = "0.4"
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
-raw-window-metal = "1.0.0"
+raw-window-metal = "1.1.0"

@@ -1,6 +1,6 @@
 use ash::vk;
 
-use super::{camera::Camera, Renderer};
+use super::{Renderer, camera::Camera};
 
 #[allow(dead_code)]
 pub struct UBO2D {}

@@ -595,7 +595,7 @@ impl VulkanImage {
         device: &ash::Device,
         format: vk::Format,
         mip_level: u32,
-        layer_count: u32, // Usally 1 for Standard images
+        layer_count: u32, // Usually 1 for Standard images
         mask: vk::ImageAspectFlags,
         view_type: vk::ImageViewType,
     ) -> vk::ImageView {

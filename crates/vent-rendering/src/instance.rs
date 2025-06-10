@@ -2,7 +2,7 @@ use ash::ext::{debug_utils, validation_features};
 use ash::khr::swapchain;
 use ash::prelude::VkResult;
 use ash::vk::{Extent2D, PushConstantRange, SwapchainKHR};
-use ash::{khr, vk, Entry};
+use ash::{Entry, khr, vk};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use std::{default::Default, ffi::CStr};
@@ -91,7 +91,7 @@ impl VulkanInstance {
             }
         };
 
-        // We now set validation at runtime, This will be usefull later, We should make this an startup flag so release builds for example could be debugged
+        // We now set validation at runtime, This will be useful later, We should make this an startup flag so release builds for example could be debugged
         let validation = cfg!(debug_assertions);
 
         let app_info = unsafe {
@@ -399,16 +399,18 @@ impl VulkanInstance {
     }
 
     unsafe fn clean_swapchain(&mut self) {
-        self.frame_buffers
-            .drain(..)
-            .for_each(|f| self.device.destroy_framebuffer(f, None));
+        unsafe {
+            self.frame_buffers
+                .drain(..)
+                .for_each(|f| self.device.destroy_framebuffer(f, None));
 
-        self.swapchain_image_views
-            .drain(..)
-            .for_each(|v| self.device.destroy_image_view(v, None));
+            self.swapchain_image_views
+                .drain(..)
+                .for_each(|v| self.device.destroy_image_view(v, None));
 
-        self.swapchain_loader
-            .destroy_swapchain(self.swapchain, None);
+            self.swapchain_loader
+                .destroy_swapchain(self.swapchain, None);
+        }
     }
 
     fn get_depth_format(instance: &ash::Instance, pdevice: vk::PhysicalDevice) -> vk::Format {

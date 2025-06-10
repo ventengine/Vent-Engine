@@ -11,9 +11,9 @@ pub struct VentApplicationProject {
     pub name: String,
     // Version of the Application
     pub version: Version,
-    // Inital Window settings, can be changed later
+    // Initial Window settings, can be changed later
     pub window_settings: WindowAttribs,
-    // Inital Render settings, can be changed later
+    // Initial Render settings, can be changed later
     pub render_settings: RenderSettings,
 }
 
@@ -33,7 +33,7 @@ impl Default for VentApplicationProject {
 
 #[derive(Serialize, Deserialize)]
 pub struct RenderSettings {
-    // Inital vsync setting, can be changed later
+    // Initial vsync setting, can be changed later
     pub dimension: Dimension,
     pub vsync: bool,
 }

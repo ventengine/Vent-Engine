@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // This disables the Windows Console in release mode
 
 use vent_logging::Logger;
-use vent_runtime::{util::crash::init_panic_hook, VentApplication};
+use vent_runtime::{VentApplication, util::crash::init_panic_hook};
 
 fn main() {
     init_panic_hook();
@@ -12,8 +12,8 @@ fn main() {
 
 #[cfg(target_os = "android")]
 use android_activity::{
-    input::{InputEvent, KeyAction, KeyEvent, KeyMapChar, MotionAction},
     AndroidApp, InputStatus, MainEvent, PollEvent,
+    input::{InputEvent, KeyAction, KeyEvent, KeyMapChar, MotionAction},
 };
 
 #[cfg(target_os = "android")]

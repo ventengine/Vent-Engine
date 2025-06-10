@@ -159,7 +159,7 @@ impl Font {
 
     pub fn destroy(&mut self, device: &ash::Device) {
         for mut buffer in self.buffer_cache.drain() {
-            buffer.1 .1.destroy(device);
+            buffer.1.1.destroy(device);
         }
     }
 }

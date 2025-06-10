@@ -70,7 +70,7 @@ impl AbGlyphLoader {
             glyphs.push(glyph);
             characters.push(character);
         }
-        log::debug!("Loaded Charaters: {}", characters.len());
+        log::debug!("Loaded Characters: {}", characters.len());
 
         let outlined: Vec<_> = glyphs
             .into_iter()

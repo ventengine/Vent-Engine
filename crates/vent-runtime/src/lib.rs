@@ -1,5 +1,5 @@
 use project::VentApplicationProject;
-use render::{camera::camera_controller3d::CameraController3D, DefaultRuntimeRenderer};
+use render::{DefaultRuntimeRenderer, camera::camera_controller3d::CameraController3D};
 
 use util::input_handler::InputHandler;
 use vent_window::{Window, WindowEvent};
@@ -39,7 +39,7 @@ impl VentApplication {
             );
             renderer.progress_event(&event);
             match event {
-                WindowEvent::Close => {} // Closes automaticly
+                WindowEvent::Close => {} // Closes automatically
                 WindowEvent::Key { key, state } => input_handler.set_key(key, state),
                 WindowEvent::MouseButton { button, state } => {
                     controller.process_mouse_input(&button, &state);

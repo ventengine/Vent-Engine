@@ -16,10 +16,10 @@ use vent_rendering::{
 };
 
 use super::{
+    Renderer,
     camera::{Camera, Camera3D},
     model::Entity3D,
     model_renderer::ModelRenderer3D,
-    Renderer,
 };
 
 pub mod light_renderer;
@@ -32,8 +32,8 @@ pub struct MaterialUBO {
     pub alpha_cutoff: f32,
 }
 
-#[repr(C)] // This fixed everthing... #[repr(C)]
-/// We calculate all values on the CPU, This will save us alot of memory, Push constants only guarante us 128 bytes
+#[repr(C)] // This fixed everything... #[repr(C)]
+/// We calculate all values on the CPU, This will save us alot of memory, Push constants only guarantee us 128 bytes
 pub struct Camera3DData {
     pub view_position: Vec3,
     pub proj_view_trans: Mat4,
@@ -164,7 +164,7 @@ impl Renderer for Renderer3D {
             for &descriptor_set in descriptor_sets.iter() {
                 let diffuse_texture = &material.diffuse_texture;
 
-                let matieral_buffer = VulkanBuffer::new_init(
+                let material_buffer = VulkanBuffer::new_init(
                     instance,
                     size_of::<MaterialUBO>() as vk::DeviceSize,
                     vk::BufferUsageFlags::UNIFORM_BUFFER,
@@ -195,7 +195,7 @@ impl Renderer for Renderer3D {
                     .sampler(diffuse_texture.sampler);
 
                 let material_buffer_info = vk::DescriptorBufferInfo::default()
-                    .buffer(*matieral_buffer)
+                    .buffer(*material_buffer)
                     .offset(0)
                     .range(size_of::<MaterialUBO>() as vk::DeviceSize);
 
@@ -235,7 +235,7 @@ impl Renderer for Renderer3D {
                     instance.device.update_descriptor_sets(&desc_sets, &[]);
                 }
 
-                material_ubos.push(matieral_buffer);
+                material_ubos.push(material_buffer);
                 //  light_ubos.push(light_buffer);
             }
             material.descriptor_set = Some(descriptor_sets);

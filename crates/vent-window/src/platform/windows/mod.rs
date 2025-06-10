@@ -8,24 +8,24 @@ use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, Win32WindowHandle, WindowsDisplayHandle,
 };
 use windows::{
-    core::PCWSTR,
     Win32::{
         Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM},
         System::LibraryLoader::GetModuleHandleW,
         UI::{
             Input::KeyboardAndMouse::*,
             WindowsAndMessaging::{
-                AdjustWindowRect, CreateWindowExW, DefWindowProcW, DispatchMessageW, GetClientRect,
-                GetWindowLongPtrW, LoadCursorW, PeekMessageW, PostQuitMessage, RegisterClassExW,
-                SetWindowLongPtrW, ShowWindow, TranslateMessage, CREATESTRUCTW, CS_HREDRAW,
-                CS_VREDRAW, CW_USEDEFAULT, GWLP_HINSTANCE, GWLP_USERDATA, IDC_ARROW, MSG,
-                PM_REMOVE, SW_SHOW, WINDOW_EX_STYLE, WM_CREATE, WM_DESTROY, WM_KEYDOWN, WM_KEYUP,
-                WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_PAINT, WM_QUIT, WM_RBUTTONDOWN,
-                WM_RBUTTONUP, WM_SIZE, WM_SYSKEYDOWN, WM_SYSKEYUP, WNDCLASSEXW,
+                AdjustWindowRect, CREATESTRUCTW, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT,
+                CreateWindowExW, DefWindowProcW, DispatchMessageW, GWLP_HINSTANCE, GWLP_USERDATA,
+                GetClientRect, GetWindowLongPtrW, IDC_ARROW, LoadCursorW, MSG, PM_REMOVE,
+                PeekMessageW, PostQuitMessage, RegisterClassExW, SW_SHOW, SetWindowLongPtrW,
+                ShowWindow, TranslateMessage, WINDOW_EX_STYLE, WM_CREATE, WM_DESTROY, WM_KEYDOWN,
+                WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_PAINT, WM_QUIT,
+                WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SIZE, WM_SYSKEYDOWN, WM_SYSKEYUP, WNDCLASSEXW,
                 WS_OVERLAPPEDWINDOW,
             },
         },
     },
+    core::PCWSTR,
 };
 
 use crate::{EventHandler, WindowAttribs, WindowEvent};

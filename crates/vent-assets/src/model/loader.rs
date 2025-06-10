@@ -4,9 +4,10 @@ use ash::{
     util::read_spv,
     vk::{self, PipelineShaderStageCreateInfo},
 };
+use image::DynamicImage;
 use vent_rendering::{
-    image::VulkanImage, instance::VulkanInstance, mesh::Mesh3D, vertex::Vertex3D,
-    MaterialPipelineInfo, DEFAULT_TEXTURE_FILTER,
+    DEFAULT_TEXTURE_FILTER, MaterialPipelineInfo, image::VulkanImage, instance::VulkanInstance,
+    mesh::Mesh3D, vertex::Vertex3D,
 };
 
 use crate::{Material, Model3D, ModelPipeline};
@@ -355,8 +356,8 @@ impl ModelLoader {
         }
     }
 
-    fn convert_vertices(verticies: &[modelz::Vertex]) -> Vec<Vertex3D> {
-        verticies
+    fn convert_vertices(vertices: &[modelz::Vertex]) -> Vec<Vertex3D> {
+        vertices
             .iter()
             .map(|vertex| Vertex3D {
                 position: vertex.position,

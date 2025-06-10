@@ -46,7 +46,7 @@ impl Log for Logger {
         // Android
         #[cfg(target_os = "android")]
         {
-            use std::ffi::{c_int, CStr, CString};
+            use std::ffi::{CStr, CString, c_int};
             let prio = match record.level() {
                 Level::Error => ndk_sys::android_LogPriority::ANDROID_LOG_ERROR,
                 Level::Warn => ndk_sys::android_LogPriority::ANDROID_LOG_WARN,

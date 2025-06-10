@@ -9,7 +9,7 @@ pub mod model;
 pub trait Asset: Send + Sync + 'static {}
 
 /// A Full Model/Scene that can be Loaded from a 3D Model File
-/// This is done by Parsing all Essensial Informations like Vertices, Indices, Materials & More
+/// This is done by Parsing all Essential Information like Vertices, Indices, Materials & More
 pub struct Model3D {
     pub pipelines: Vec<ModelPipeline>,
     pub materials: Vec<Material>,
@@ -29,7 +29,7 @@ pub struct ModelPipeline {
 
 pub struct ModelMaterial {
     pub material_index: usize,
-    // So every App is Specfic and you will need to create your own DescriptorSet's out of this
+    // So every App is Specific and you will need to create your own DescriptorSet's out of this
     // We only binding them
     pub meshes: Vec<Mesh3D>,
 }
